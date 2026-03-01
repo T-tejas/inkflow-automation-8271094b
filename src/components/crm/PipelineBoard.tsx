@@ -1,0 +1,73 @@
+import { Lead, LeadStatus, LEAD_STATUSES, STATUS_COLORS } from '@/types/lead';
+import { LeadCard } from './LeadCard';
+import { AnimatePresence } from 'framer-motion';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface PipelineBoardProps {
+  leads: Lead[];
+  getLeadsByStatus: (status: LeadStatus) => Lead[];
+  onLeadClick: (lead: Lead) => void;
+  onStatusChange: (leadId: string, status: LeadStatus) => void;
+}
+
+const STATUS_DOT_COLORS: Record<LeadStatus, string> = {
+  'New Lead': 'bg-pipeline-new',
+  'Contacted': 'bg-pipeline-contacted',
+  'Consultation Scheduled': 'bg-pipeline-consultation',
+  'Booked': 'bg-pipeline-booked',
+  'Completed': 'bg-pipeline-completed',
+  'No Response': 'bg-pipeline-no-response',
+  'Cancelled': 'bg-pipeline-cancelled',
+};
+
+export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange }: PipelineBoardProps) {
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-4 min-h-[500px]">
+      {LEAD_STATUSES.map(status => {
+        const statusLeads = getLeadsByStatus(status);
+        return (
+          <div
+            key={status}
+            className="flex-shrink-0 w-[260px] flex flex-col"
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => {
+              const leadId = e.dataTransfer.getData('leadId');
+              if (leadId) onStatusChange(leadId, status);
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3 px-1">
+              <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status]}`} />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {status}
+              </h3>
+              <span className="ml-auto text-xs text-muted-foreground font-medium">
+                {statusLeads.length}
+              </span>
+            </div>
+
+            <ScrollArea className="flex-1 rounded-lg bg-muted/30 p-2">
+              <div className="space-y-2 min-h-[60px]">
+                <AnimatePresence mode="popLayout">
+                  {statusLeads.map(lead => (
+                    <div
+                      key={lead.id}
+                      draggable
+                      onDragStart={e => e.dataTransfer.setData('leadId', lead.id)}
+                    >
+                      <LeadCard lead={lead} onClick={onLeadClick} />
+                    </div>
+                  ))}
+                </AnimatePresence>
+                {statusLeads.length === 0 && (
+                  <div className="flex items-center justify-center h-[60px] text-xs text-muted-foreground/50 border border-dashed border-border/30 rounded-lg">
+                    Drop here
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
