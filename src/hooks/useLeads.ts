@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Lead, LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -58,13 +58,29 @@ function leadToDb(lead: Partial<Lead>): Record<string, unknown> {
   return map;
 }
 
+// Retry helper for mutations
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === attempts - 1) throw err;
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+  throw new Error('Retry exhausted');
+}
+
 export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncError, setSyncError] = useState(false);
+  const leadsRef = useRef(leads);
+  leadsRef.current = leads;
 
-  // Fetch all leads with retry
   const fetchLeads = useCallback(async () => {
     setLoading(true);
+    setSyncError(false);
     for (let attempt = 0; attempt < 3; attempt++) {
       const { data, error } = await supabase
         .from('leads')
@@ -76,18 +92,16 @@ export function useLeads() {
         setLoading(false);
         return;
       }
-
       console.error(`Fetch leads attempt ${attempt + 1} failed:`, error);
       if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
-    toast.error('Failed to load leads');
+    setSyncError(true);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchLeads();
 
-    // Realtime subscription
     const channel = supabase
       .channel('leads-realtime')
       .on(
@@ -111,70 +125,108 @@ export function useLeads() {
       )
       .subscribe();
 
+    // Auto-refetch on focus/reconnect
+    const handleFocus = () => fetchLeads();
+    const handleOnline = () => fetchLeads();
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
     };
-  }, []);
+  }, [fetchLeads]);
 
-  const addLead = useCallback(async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
+  // Returns true on success, false on failure
+  const addLead = useCallback(async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
     const dbData = leadToDb(lead);
-    const { data, error } = await supabase
-      .from('leads')
-      .insert(dbData as any)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding lead:', error);
-      toast.error('Failed to add lead');
-      return null;
+    try {
+      const result = await withRetry(async () => {
+        const { data, error } = await supabase
+          .from('leads')
+          .insert(dbData as any)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      });
+      const newLead = dbToLead(result as DbLead);
+      setLeads(prev => {
+        if (prev.some(l => l.id === newLead.id)) return prev;
+        return [newLead, ...prev];
+      });
+      toast.success(`Lead "${newLead.fullName}" added`);
+      setSyncError(false);
+      return true;
+    } catch (err) {
+      console.error('Error adding lead:', err);
+      toast.error('Failed to add lead. Please try again.');
+      return false;
     }
-    const newLead = dbToLead(data as DbLead);
-    // Optimistically add in case realtime is delayed
-    setLeads(prev => {
-      if (prev.some(l => l.id === newLead.id)) return prev;
-      return [newLead, ...prev];
-    });
-    toast.success(`Lead "${newLead.fullName}" added`);
-    return newLead;
   }, []);
 
-  const updateLead = useCallback(async (id: string, updates: Partial<Lead>) => {
+  // Returns true on success
+  const updateLead = useCallback(async (id: string, updates: Partial<Lead>): Promise<boolean> => {
+    const prev = leadsRef.current;
     const dbData = leadToDb(updates);
     dbData.updated_at = new Date().toISOString();
 
-    const { error } = await supabase
-      .from('leads')
-      .update(dbData as any)
-      .eq('id', id);
+    // Optimistic update
+    setLeads(curr => curr.map(l => l.id === id ? { ...l, ...updates, updatedAt: dbData.updated_at as string } : l));
 
-    if (error) {
-      console.error('Error updating lead:', error);
+    try {
+      await withRetry(async () => {
+        const { error } = await supabase.from('leads').update(dbData as any).eq('id', id);
+        if (error) throw error;
+      });
+      setSyncError(false);
+      return true;
+    } catch (err) {
+      console.error('Error updating lead:', err);
       toast.error('Failed to update lead');
+      setLeads(prev); // rollback
+      return false;
     }
   }, []);
 
   const updateLeadStatus = useCallback(async (id: string, status: LeadStatus) => {
-    const { error } = await supabase
-      .from('leads')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id);
+    const prev = leadsRef.current;
+    const now = new Date().toISOString();
 
-    if (error) {
-      console.error('Error updating status:', error);
+    // Optimistic
+    setLeads(curr => curr.map(l => l.id === id ? { ...l, status, updatedAt: now } : l));
+
+    try {
+      await withRetry(async () => {
+        const { error } = await supabase.from('leads').update({ status, updated_at: now }).eq('id', id);
+        if (error) throw error;
+      });
+      setSyncError(false);
+    } catch (err) {
+      console.error('Error updating status:', err);
       toast.error('Failed to update status');
+      setLeads(prev);
     }
   }, []);
 
   const deleteLead = useCallback(async (id: string) => {
-    const { error } = await supabase
-      .from('leads')
-      .delete()
-      .eq('id', id);
+    const prev = leadsRef.current;
 
-    if (error) {
-      console.error('Error deleting lead:', error);
+    // Optimistic
+    setLeads(curr => curr.filter(l => l.id !== id));
+
+    try {
+      await withRetry(async () => {
+        const { error } = await supabase.from('leads').delete().eq('id', id);
+        if (error) throw error;
+      });
+      toast.success('Lead deleted');
+      setSyncError(false);
+    } catch (err) {
+      console.error('Error deleting lead:', err);
       toast.error('Failed to delete lead');
+      setLeads(prev);
     }
   }, []);
 
@@ -193,5 +245,5 @@ export function useLeads() {
       : 0,
   };
 
-  return { leads, loading, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats };
+  return { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads: fetchLeads };
 }
