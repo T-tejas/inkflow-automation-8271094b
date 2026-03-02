@@ -61,6 +61,12 @@
     --pipeline-no-response: 220 10% 40%;
     --pipeline-cancelled: 0 72% 51%;
 
+    /* WhatsApp messenger tokens */
+    --wa-bg: 220 20% 7%;
+    --wa-header: 220 18% 12%;
+    --wa-outgoing: 150 20% 14%;
+    --wa-read: 199 89% 58%;
+
     font-family: 'Space Grotesk', system-ui, sans-serif;
   }
 }
