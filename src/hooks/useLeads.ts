@@ -96,7 +96,7 @@ async function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 30000): Promise<
   }
 }
 
-async function withRetry<T>(fn: () => Promise<T>, attempts = 3, timeoutMs = 10000): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, attempts = 2, timeoutMs = 30000): Promise<T> {
   let lastError: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
