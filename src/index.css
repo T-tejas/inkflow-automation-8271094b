@@ -57,7 +57,8 @@
 
     --pipeline-new: 36 90% 55%;
     --pipeline-contacted: 199 89% 48%;
-    --pipeline-consultation: 262 83% 58%;
+    --pipeline-interested: 262 83% 58%;
+    --pipeline-negotiating: 280 60% 50%;
     --pipeline-booked: 142 71% 45%;
     --pipeline-completed: 142 71% 35%;
     --pipeline-no-response: 220 10% 40%;

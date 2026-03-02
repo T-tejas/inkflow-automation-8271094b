@@ -1,4 +1,4 @@
-import { Users, CalendarCheck, CheckCircle, TrendingUp } from 'lucide-react';
+import { Users, CalendarCheck, CheckCircle, TrendingUp, IndianRupee } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface StatsCardsProps {
@@ -8,20 +8,29 @@ interface StatsCardsProps {
     booked: number;
     completed: number;
     conversionRate: number;
+    pipelineValue: number;
   };
 }
 
 const cards = [
-  { key: 'total', label: 'Total Leads', icon: Users, color: 'text-primary' },
-  { key: 'newLeads', label: 'New Leads', icon: TrendingUp, color: 'text-pipeline-new' },
-  { key: 'booked', label: 'Booked', icon: CalendarCheck, color: 'text-pipeline-booked' },
-  { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-pipeline-completed' },
+  { key: 'total', label: 'Total Leads', icon: Users, color: 'text-primary', format: 'number' },
+  { key: 'newLeads', label: 'New Leads', icon: TrendingUp, color: 'text-pipeline-new', format: 'number' },
+  { key: 'booked', label: 'Booked', icon: CalendarCheck, color: 'text-pipeline-booked', format: 'number' },
+  { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-pipeline-completed', format: 'number' },
+  { key: 'pipelineValue', label: 'Pipeline Value', icon: IndianRupee, color: 'text-warning', format: 'currency' },
 ] as const;
+
+function formatValue(val: number, format: string) {
+  if (format === 'currency') {
+    return `₹${val.toLocaleString('en-IN')}`;
+  }
+  return val.toString();
+}
 
 export function StatsCards({ stats }: StatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map(({ key, label, icon: Icon, color }, i) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {cards.map(({ key, label, icon: Icon, color, format }, i) => (
         <motion.div
           key={key}
           initial={{ opacity: 0, y: 12 }}
@@ -30,10 +39,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
           className="glass-card rounded-xl p-4 space-y-2"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium">{label}</span>
+            <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
             <Icon className={`h-4 w-4 ${color}`} />
           </div>
-          <p className="text-2xl font-bold text-foreground">{stats[key]}</p>
+          <p className="text-2xl font-bold text-foreground tracking-tight">
+            {formatValue(stats[key], format)}
+          </p>
         </motion.div>
       ))}
     </div>

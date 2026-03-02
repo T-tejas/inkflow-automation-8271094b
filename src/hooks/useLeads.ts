@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Lead, LeadStatus } from '@/types/lead';
+import { Lead, LeadStatus, AutomationTag, parseBudget } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
@@ -96,7 +96,6 @@ async function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 30000): Promise<
   }
 }
 
-// Retry helper for mutations and fetches
 async function withRetry<T>(fn: () => Promise<T>, attempts = 3, timeoutMs = 10000): Promise<T> {
   let lastError: unknown;
   for (let i = 0; i < attempts; i++) {
@@ -109,6 +108,43 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3, timeoutMs = 1000
     }
   }
   throw lastError instanceof Error ? lastError : new Error('Retry exhausted');
+}
+
+// Auto-tag logic
+function computeAutoTags(
+  existingTags: AutomationTag[],
+  source: string,
+  status: string,
+  allLeads: Lead[],
+  phone: string,
+  currentLeadId?: string
+): AutomationTag[] {
+  const tags = new Set<AutomationTag>(existingTags);
+
+  if (source === 'WhatsApp') tags.add('whatsapp_inquiry');
+  if (status === 'Booked') tags.add('booked_whatsapp');
+  if (status === 'Completed') tags.add('happy_client');
+
+  // repeat_client: same phone exists in another lead
+  const otherWithSamePhone = allLeads.some(
+    l => l.phone === phone && l.id !== currentLeadId
+  );
+  if (otherWithSamePhone) tags.add('repeat_client');
+
+  return Array.from(tags);
+}
+
+// Log interaction to lead_interactions table (fire and forget)
+function logInteraction(leadId: string, actionType: string, oldValue?: string, newValue?: string, note?: string) {
+  supabase.from('lead_interactions' as any).insert({
+    lead_id: leadId,
+    action_type: actionType,
+    old_value: oldValue || null,
+    new_value: newValue || null,
+    note: note || null,
+  }).then(({ error }) => {
+    if (error) console.error('Failed to log interaction:', error);
+  });
 }
 
 export function useLeads() {
@@ -172,7 +208,6 @@ export function useLeads() {
       )
       .subscribe();
 
-    // Auto-refetch on focus/reconnect
     const handleFocus = () => fetchLeads();
     const handleOnline = () => fetchLeads();
     window.addEventListener('focus', handleFocus);
@@ -185,8 +220,10 @@ export function useLeads() {
     };
   }, [fetchLeads]);
 
-  // Returns true on success, false on failure
   const addLead = useCallback(async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
+    // Auto-tag
+    const autoTags = computeAutoTags(lead.tags, lead.source, lead.status, leadsRef.current, lead.phone);
+
     const insertData: TablesInsert<'leads'> = {
       full_name: lead.fullName,
       phone: lead.phone,
@@ -198,7 +235,7 @@ export function useLeads() {
       budget: lead.budget,
       preferred_date: lead.preferredDate,
       status: lead.status,
-      tags: lead.tags,
+      tags: autoTags,
       notes: lead.notes,
     };
     try {
@@ -216,6 +253,7 @@ export function useLeads() {
         if (prev.some(l => l.id === newLead.id)) return prev;
         return [newLead, ...prev];
       });
+      logInteraction(newLead.id, 'created', undefined, lead.status);
       toast.success(`Lead "${newLead.fullName}" added`);
       setSyncError(false);
       return true;
@@ -227,10 +265,24 @@ export function useLeads() {
     }
   }, []);
 
-  // Returns true on success
   const updateLead = useCallback(async (id: string, updates: Partial<Lead>): Promise<boolean> => {
     const prev = leadsRef.current;
+    const existing = prev.find(l => l.id === id);
     const now = new Date().toISOString();
+
+    // Auto-tag on update
+    if (existing && (updates.source || updates.status)) {
+      const newTags = computeAutoTags(
+        updates.tags ?? existing.tags,
+        updates.source ?? existing.source,
+        updates.status ?? existing.status,
+        prev,
+        updates.phone ?? existing.phone,
+        id
+      );
+      updates.tags = newTags;
+    }
+
     const updateData: TablesUpdate<'leads'> = { updated_at: now };
     if (updates.fullName !== undefined) updateData.full_name = updates.fullName;
     if (updates.phone !== undefined) updateData.phone = updates.phone;
@@ -245,7 +297,6 @@ export function useLeads() {
     if (updates.tags !== undefined) updateData.tags = updates.tags;
     if (updates.notes !== undefined) updateData.notes = updates.notes;
 
-    // Optimistic update
     setLeads(curr => curr.map(l => l.id === id ? { ...l, ...updates, updatedAt: now } : l));
 
     try {
@@ -253,29 +304,39 @@ export function useLeads() {
         const { error } = await supabase.from('leads').update(updateData).eq('id', id);
         if (error) throw error;
       });
+      logInteraction(id, 'updated');
       setSyncError(false);
       return true;
     } catch (err) {
       console.error('Error updating lead:', err);
       toast.error('Failed to update lead');
       setSyncError(true);
-      setLeads(prev); // rollback
+      setLeads(prev);
       return false;
     }
   }, []);
 
   const updateLeadStatus = useCallback(async (id: string, status: LeadStatus) => {
     const prev = leadsRef.current;
+    const existing = prev.find(l => l.id === id);
+    const oldStatus = existing?.status;
     const now = new Date().toISOString();
 
-    // Optimistic
-    setLeads(curr => curr.map(l => l.id === id ? { ...l, status, updatedAt: now } : l));
+    // Auto-tag on stage change
+    let newTags = existing?.tags ?? [];
+    if (existing) {
+      newTags = computeAutoTags(existing.tags, existing.source, status, prev, existing.phone, id);
+    }
+
+    setLeads(curr => curr.map(l => l.id === id ? { ...l, status, tags: newTags, updatedAt: now } : l));
 
     try {
       await withRetry(async () => {
-        const { error } = await supabase.from('leads').update({ status, updated_at: now }).eq('id', id);
+        const { error } = await supabase.from('leads').update({ status, tags: newTags, updated_at: now }).eq('id', id);
         if (error) throw error;
       });
+      logInteraction(id, 'stage_change', oldStatus, status);
+      toast.success(`Stage → ${status}`);
       setSyncError(false);
     } catch (err) {
       console.error('Error updating status:', err);
@@ -287,8 +348,6 @@ export function useLeads() {
 
   const deleteLead = useCallback(async (id: string) => {
     const prev = leadsRef.current;
-
-    // Optimistic
     setLeads(curr => curr.filter(l => l.id !== id));
 
     try {
@@ -307,9 +366,16 @@ export function useLeads() {
   }, []);
 
   const getLeadsByStatus = useCallback(
-    (status: LeadStatus) => leads.filter(l => l.status === status),
+    (status: LeadStatus) => {
+      if (status === 'No Response') {
+        return leads.filter(l => l.status === 'No Response' || l.status === 'Cancelled');
+      }
+      return leads.filter(l => l.status === status);
+    },
     [leads]
   );
+
+  const pipelineValue = leads.reduce((sum, l) => sum + parseBudget(l.budget), 0);
 
   const stats = {
     total: leads.length,
@@ -319,6 +385,7 @@ export function useLeads() {
     conversionRate: leads.length
       ? Math.round((leads.filter(l => l.status === 'Completed').length / leads.length) * 100)
       : 0,
+    pipelineValue,
   };
 
   return { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads: fetchLeads };

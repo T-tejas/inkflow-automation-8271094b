@@ -1,62 +1,189 @@
-import { Lead, STATUS_TEXT_COLORS } from '@/types/lead';
+import { Lead, LeadStatus, LEAD_STATUSES, parseBudget } from '@/types/lead';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Calendar, MessageCircle } from 'lucide-react';
+import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useState } from 'react';
 
 interface LeadCardProps {
   lead: Lead;
   onClick: (lead: Lead) => void;
+  onEdit?: (lead: Lead) => void;
+  onStatusChange?: (leadId: string, status: LeadStatus) => void;
+  onTagClick?: (tag: string) => void;
 }
 
-export function LeadCard({ lead, onClick }: LeadCardProps) {
+function getBorderColor(lead: Lead): string {
+  const budget = parseBudget(lead.budget);
+  if (lead.status === 'Booked') return 'border-l-pipeline-booked';
+  if (lead.status === 'Completed') return 'border-l-pipeline-completed';
+  if (budget >= 5000) return 'border-l-warning';
+  return 'border-l-transparent';
+}
+
+export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick }: LeadCardProps) {
+  const [stageOpen, setStageOpen] = useState(false);
+
+  const handleQuickAction = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      whileHover={{ scale: 1.02 }}
-      onClick={() => onClick(lead)}
-      className="glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm text-foreground truncate">{lead.fullName}</h4>
-        {lead.whatsappOptIn && (
-          <MessageCircle className="h-3.5 w-3.5 text-success shrink-0" />
-        )}
-      </div>
-
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Phone className="h-3 w-3" />
-        <span>{lead.phone}</span>
-      </div>
-
-      <div className="flex flex-wrap gap-1">
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
-          {lead.tattooStyle}
-        </Badge>
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border text-muted-foreground">
-          {lead.size}
-        </Badge>
-      </div>
-
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Calendar className="h-3 w-3" />
-          {lead.preferredDate ? new Date(lead.preferredDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
-        </span>
-        <span>{lead.source}</span>
-      </div>
-
-      {lead.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {lead.tags.map(tag => (
-            <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-              {tag}
-            </span>
-          ))}
+    <TooltipProvider delayDuration={300}>
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        whileHover={{ scale: 1.01 }}
+        onClick={() => onClick(lead)}
+        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group`}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="font-medium text-sm text-foreground truncate">{lead.fullName}</h4>
+          <div className="flex items-center gap-1 shrink-0">
+            {lead.whatsappOptIn && (
+              <MessageCircle className="h-3.5 w-3.5 text-success" />
+            )}
+          </div>
         </div>
-      )}
-    </motion.div>
+
+        {/* Phone + Budget */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Phone className="h-3 w-3" />
+            <span>{lead.phone}</span>
+          </div>
+          {lead.budget && (
+            <div className="flex items-center gap-0.5 text-xs font-semibold text-warning">
+              <IndianRupee className="h-3 w-3" />
+              <span>{lead.budget.replace('₹', '')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Style + Size badges */}
+        <div className="flex flex-wrap gap-1">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
+            {lead.tattooStyle}
+          </Badge>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border text-muted-foreground">
+            {lead.size}
+          </Badge>
+        </div>
+
+        {/* Date + Source */}
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {lead.preferredDate ? new Date(lead.preferredDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}
+          </span>
+          <span>{lead.source}</span>
+        </div>
+
+        {/* Tags */}
+        {lead.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {lead.tags.map(tag => (
+              <button
+                key={tag}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTagClick?.(tag);
+                }}
+                className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Quick Actions — visible on hover */}
+        <div className="flex items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onEdit(lead))}
+                  className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Edit lead"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Edit</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={(e) => handleQuickAction(e, () => onClick(lead))}
+                className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Add note"
+              >
+                <StickyNote className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[10px]">Add Note</TooltipContent>
+          </Tooltip>
+          {onStatusChange && (
+            <Popover open={stageOpen} onOpenChange={setStageOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1.5 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="Change stage"
+                    >
+                      <ArrowRightLeft className="h-3 w-3" />
+                    </button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[10px]">Change Stage</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-40 p-1" align="start" onClick={(e) => e.stopPropagation()}>
+                {LEAD_STATUSES.map(s => (
+                  <button
+                    key={s}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStatusChange(lead.id, s);
+                      setStageOpen(false);
+                    }}
+                    className={`w-full text-left text-xs px-2 py-1.5 rounded hover:bg-muted/50 transition-colors ${
+                      lead.status === s ? 'font-semibold text-primary' : 'text-foreground'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
+          {lead.whatsappOptIn && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1.5 rounded-md hover:bg-success/10 text-success transition-colors"
+                  aria-label="WhatsApp chat"
+                >
+                  <MessageCircle className="h-3 w-3" />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">WhatsApp</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      </motion.div>
+    </TooltipProvider>
   );
 }
