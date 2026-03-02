@@ -6,12 +6,12 @@ import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Lead } from '@/types/lead';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Index = () => {
-  const { leads, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats } = useLeads();
+  const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
   const [formOpen, setFormOpen] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
@@ -28,17 +28,39 @@ const Index = () => {
     setFormOpen(true);
   };
 
-  const handleFormSubmit = async (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleFormSubmit = async (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
     if (editLead) {
-      await updateLead(editLead.id, data);
+      return await updateLead(editLead.id, data);
     } else {
-      await addLead(data);
+      return await addLead(data);
     }
-    setEditLead(null);
+  };
+
+  const handleFormClose = (open: boolean) => {
+    setFormOpen(open);
+    if (!open) setEditLead(null);
   };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Sync Error Banner */}
+      <AnimatePresence>
+        {syncError && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-destructive/10 border-b border-destructive/30 px-6 py-2 flex items-center justify-center gap-3"
+          >
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <span className="text-sm text-destructive">Failed to sync with server</span>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={refetchLeads}>
+              <RefreshCw className="h-3 w-3" /> Retry
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="border-b border-border/50 px-6 py-4">
         <div className="flex items-center justify-between max-w-[1600px] mx-auto">
@@ -86,7 +108,7 @@ const Index = () => {
       {/* Dialogs */}
       <LeadFormDialog
         open={formOpen}
-        onOpenChange={o => { setFormOpen(o); if (!o) setEditLead(null); }}
+        onOpenChange={handleFormClose}
         onSubmit={handleFormSubmit}
         editLead={editLead}
       />
