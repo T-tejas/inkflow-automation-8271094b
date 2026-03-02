@@ -62,22 +62,29 @@ export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all leads
-  useEffect(() => {
-    const fetchLeads = async () => {
+  // Fetch all leads with retry
+  const fetchLeads = useCallback(async () => {
+    setLoading(true);
+    for (let attempt = 0; attempt < 3; attempt++) {
       const { data, error } = await supabase
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching leads:', error);
-        toast.error('Failed to load leads');
-      } else {
+      if (!error && data) {
         setLeads((data as DbLead[]).map(dbToLead));
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    };
+
+      console.error(`Fetch leads attempt ${attempt + 1} failed:`, error);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+    toast.error('Failed to load leads');
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
     fetchLeads();
 
     // Realtime subscription
@@ -122,8 +129,14 @@ export function useLeads() {
       toast.error('Failed to add lead');
       return null;
     }
-    // Realtime will handle state update
-    return dbToLead(data as DbLead);
+    const newLead = dbToLead(data as DbLead);
+    // Optimistically add in case realtime is delayed
+    setLeads(prev => {
+      if (prev.some(l => l.id === newLead.id)) return prev;
+      return [newLead, ...prev];
+    });
+    toast.success(`Lead "${newLead.fullName}" added`);
+    return newLead;
   }, []);
 
   const updateLead = useCallback(async (id: string, updates: Partial<Lead>) => {
