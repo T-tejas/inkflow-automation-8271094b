@@ -14,36 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      leads: {
+        Row: {
+          budget: string | null
+          created_at: string
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          placement: string | null
+          preferred_date: string | null
+          size: string | null
+          source: string
+          status: string
+          tags: string[]
+          tattoo_style: string | null
+          updated_at: string
+          whatsapp_opt_in: boolean
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          placement?: string | null
+          preferred_date?: string | null
+          size?: string | null
+          source?: string
+          status?: string
+          tags?: string[]
+          tattoo_style?: string | null
+          updated_at?: string
+          whatsapp_opt_in?: boolean
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          placement?: string | null
+          preferred_date?: string | null
+          size?: string | null
+          source?: string
+          status?: string
+          tags?: string[]
+          tattoo_style?: string | null
+          updated_at?: string
+          whatsapp_opt_in?: boolean
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
           error_message: string | null
           id: string
           lead_name: string
           lead_phone: string
           meta_message_id: string | null
+          read_at: string | null
           status: string
           template_name: string
           template_type: string
         }
         Insert: {
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           error_message?: string | null
           id?: string
           lead_name: string
           lead_phone: string
           meta_message_id?: string | null
+          read_at?: string | null
           status?: string
           template_name: string
           template_type: string
         }
         Update: {
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           error_message?: string | null
           id?: string
           lead_name?: string
           lead_phone?: string
           meta_message_id?: string | null
+          read_at?: string | null
           status?: string
           template_name?: string
           template_type?: string

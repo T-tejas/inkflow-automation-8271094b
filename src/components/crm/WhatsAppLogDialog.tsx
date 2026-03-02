@@ -28,12 +28,14 @@ const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle; color: string; l
   delivered: { icon: CheckCircle, color: 'text-primary', label: 'Delivered' },
   read: { icon: Eye, color: 'text-success', label: 'Read' },
   failed: { icon: AlertCircle, color: 'text-destructive', label: 'Failed' },
+  received: { icon: MessageCircle, color: 'text-chart-4', label: 'Received' },
 };
 
 const TYPE_COLORS: Record<string, string> = {
   confirmation: 'bg-success/15 text-success border-success/30',
   reminder: 'bg-primary/15 text-primary border-primary/30',
   promo: 'bg-accent/15 text-accent-foreground border-accent/30',
+  incoming: 'bg-chart-4/15 text-chart-4 border-chart-4/30',
 };
 
 export function WhatsAppLogDialog({ open, onOpenChange }: WhatsAppLogDialogProps) {
