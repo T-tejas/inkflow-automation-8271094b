@@ -1,72 +1,27 @@
 
-Issue recap I found:
-- The app is intermittently failing backend requests (`TypeError: Load failed`) from the browser.
-- Lead creation UX currently closes the dialog immediately, even when save fails, so it feels like “Add Lead is broken.”
-- Lead status updates rely mostly on realtime updates (not optimistic local updates), so pipeline columns and stats can feel out-of-sync when network/realtime is unstable.
-- Form state is initialized once and not reliably reset between Add/Edit flows, which can cause inconsistent behavior.
 
-Implementation plan:
+## Root Cause
 
-1) Fix Add Lead submission reliability (UI + flow)
-- Update `LeadFormDialog` to support async submit properly:
-  - Change `onSubmit` contract to return success/failure (`Promise<boolean>`).
-  - Add `isSubmitting` state and disable submit while request is in progress.
-  - Only close dialog when save succeeds.
-  - Keep form open and show clear inline error/toast if save fails.
-- Reset form on dialog open + mode switch (Add vs Edit) using `useEffect`, so Add always starts from clean defaults and Edit always loads selected lead.
+The `leads` table has an RLS policy created as **RESTRICTIVE** instead of **PERMISSIVE**. In PostgreSQL, if there are no permissive policies, all access is denied by default — restrictive policies can only further narrow access granted by permissive ones. This means every INSERT/SELECT/UPDATE/DELETE silently fails with no data returned, which the retry logic interprets as transient errors.
 
-2) Make leads/pipeline/stats update from one resilient local source
-- In `useLeads`, add optimistic local updates for:
-  - `updateLead`
-  - `updateLeadStatus`
-  - `deleteLead`
-- Keep rollback logic if API call fails.
-- Keep realtime subscription, but treat it as sync reinforcement (not sole source of UI updates).
-- Ensure add/update/delete all produce immediate consistent changes across:
-  - Pipeline columns
-  - Column counts
-  - Stats cards
+## Plan
 
-3) Improve recovery from temporary backend connectivity errors
-- Add shared retry helper for mutations (not just initial fetch).
-- Expose `refetchLeads()` from `useLeads`.
-- Auto-refetch on reconnect/focus to recover from transient failures.
-- Show a lightweight “sync issue” banner with Retry action if loading/mutation errors persist.
+### 1. Fix the RLS policy (database migration)
+- Drop the existing restrictive policy `Allow all access to leads`
+- Create a new **PERMISSIVE** policy with the same `true` conditions for ALL operations
+- This immediately unblocks all CRUD operations
 
-4) Wire page-level integration
-- Update `Index.tsx` to pass/handle the new async boolean submit flow.
-- Add loading/sync UI state so users can tell whether data is still syncing or failed.
+### 2. Remove `as any` casts in useLeads.ts
+- Use proper typed inserts/updates via the generated `TablesInsert` and `TablesUpdate` types from `src/integrations/supabase/types.ts`
+- Build the insert/update objects with explicit typed fields instead of dynamic `leadToDb` mapping with `Record<string, unknown>`
+- This ensures TypeScript catches field name mismatches at compile time
 
-5) Validation checklist (end-to-end)
-- Add a lead with status “Contacted” and confirm it appears in the correct pipeline column immediately.
-- Add a lead with status “Booked” and confirm booked stats update immediately.
-- Edit a lead and move via drag/drop; verify counts/cards update instantly.
-- Refresh page and verify all changes persist from backend.
-- Temporarily simulate request failure and confirm:
-  - form does not close on failure
-  - user sees actionable error
-  - retry succeeds without losing entered data.
+### 3. Add phone validation in LeadFormDialog.tsx
+- Validate phone is not just the default `+91 ` prefix before allowing submit
+- Show inline error if phone is empty/invalid
 
-Files to update:
-- `src/components/crm/LeadFormDialog.tsx`
-- `src/hooks/useLeads.ts`
-- `src/pages/Index.tsx`
-- (optional small UI helper component for error banner if needed)
+### Files to change
+- **Database migration**: Fix RLS policy from restrictive to permissive
+- `src/hooks/useLeads.ts`: Remove `as any` casts, use typed Supabase operations
+- `src/components/crm/LeadFormDialog.tsx`: Add phone validation
 
-Technical details:
-```text
-Current:
-LeadFormDialog submit -> onSubmit() fire-and-forget -> dialog closes
-                                    |
-                                    v
-                           network may fail silently for user
-
-Target:
-LeadFormDialog submit -> await onSubmit() -> success? close : keep open + error
-                                    |
-                                    v
-                   useLeads does optimistic local update + rollback on error
-                                    |
-                                    v
-                  Pipeline + Stats stay synchronized from same local state
-```
