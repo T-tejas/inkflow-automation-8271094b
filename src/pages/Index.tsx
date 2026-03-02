@@ -10,6 +10,7 @@ import { Plus, MessageCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Lead } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// CRM Dashboard
 const Index = () => {
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
   const [formOpen, setFormOpen] = useState(false);
