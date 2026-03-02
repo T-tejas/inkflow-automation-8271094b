@@ -1,4 +1,4 @@
-import { Lead, LeadStatus, LEAD_STATUSES, STATUS_COLORS } from '@/types/lead';
+import { Lead, LeadStatus, LEAD_STATUSES, LEAD_SOURCES } from '@/types/lead';
 import { LeadCard } from './LeadCard';
 import { AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +25,9 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
     <div className="flex gap-3 overflow-x-auto pb-4 min-h-[500px]">
       {LEAD_STATUSES.map(status => {
         const statusLeads = getLeadsByStatus(status);
+        const sourceBreakdown = LEAD_SOURCES
+          .map(source => ({ source, count: statusLeads.filter(lead => lead.source === source).length }))
+          .filter(item => item.count > 0);
         return (
           <div
             key={status}
@@ -44,6 +47,19 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                 {statusLeads.length}
               </span>
             </div>
+
+            {sourceBreakdown.length > 0 && (
+              <div className="mb-2 px-1 flex flex-wrap gap-1">
+                {sourceBreakdown.map(({ source, count }) => (
+                  <span
+                    key={`${status}-${source}`}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground"
+                  >
+                    {source}: {count}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <ScrollArea className="flex-1 rounded-lg bg-muted/30 p-2">
               <div className="space-y-2 min-h-[60px]">
