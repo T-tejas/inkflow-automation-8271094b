@@ -1,4 +1,5 @@
-import { Lead, LEAD_STATUSES, STATUS_COLORS, STATUS_TEXT_COLORS, AUTOMATION_TAGS } from '@/types/lead';
+import { useState } from 'react';
+import { Lead, LEAD_STATUSES } from '@/types/lead';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -7,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -19,8 +22,50 @@ interface LeadDetailDialogProps {
   onDelete: (id: string) => void;
 }
 
+type TemplateType = 'confirmation' | 'reminder' | 'promo';
+
 export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete }: LeadDetailDialogProps) {
+  const [sending, setSending] = useState<TemplateType | null>(null);
+  const [lastSent, setLastSent] = useState<TemplateType | null>(null);
+
   if (!lead) return null;
+
+  const sendWhatsApp = async (templateType: TemplateType) => {
+    if (!lead.whatsappOptIn) {
+      toast.error('This lead has not opted in to WhatsApp messages');
+      return;
+    }
+
+    setSending(templateType);
+    setLastSent(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          phone: lead.phone,
+          leadName: lead.fullName,
+          templateType,
+          parameters: [lead.fullName],
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setLastSent(templateType);
+      toast.success(`${templateType.charAt(0).toUpperCase() + templateType.slice(1)} template sent to ${lead.fullName}`);
+    } catch (err: any) {
+      toast.error(`Failed to send: ${err.message}`);
+    } finally {
+      setSending(null);
+    }
+  };
+
+  const whatsappTemplates: { type: TemplateType; label: string; description: string }[] = [
+    { type: 'confirmation', label: 'Booking Confirmation', description: 'Confirm their appointment' },
+    { type: 'reminder', label: 'Appointment Reminder', description: '48h before session' },
+    { type: 'promo', label: 'Promo Offer', description: 'Re-engagement or special deal' },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,6 +115,40 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
           {lead.notes && (
             <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
               {lead.notes}
+            </div>
+          )}
+
+          {/* WhatsApp Templates Section */}
+          {lead.whatsappOptIn && (
+            <div className="border border-border rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <MessageCircle className="h-3.5 w-3.5 text-success" />
+                Send WhatsApp Template
+              </div>
+              <div className="space-y-1.5">
+                {whatsappTemplates.map(tpl => (
+                  <button
+                    key={tpl.type}
+                    onClick={() => sendWhatsApp(tpl.type)}
+                    disabled={sending !== null}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-muted/40 hover:bg-muted/70 border border-border/50 transition-colors text-left disabled:opacity-50"
+                  >
+                    <div>
+                      <p className="text-xs font-medium text-foreground">{tpl.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{tpl.description}</p>
+                    </div>
+                    <div className="flex items-center">
+                      {sending === tpl.type ? (
+                        <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
+                      ) : lastSent === tpl.type ? (
+                        <CheckCircle className="h-3.5 w-3.5 text-success" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
