@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Lead, LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 interface DbLead {
   id: string;
@@ -186,12 +187,25 @@ export function useLeads() {
 
   // Returns true on success, false on failure
   const addLead = useCallback(async (lead: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> => {
-    const dbData = leadToDb(lead);
+    const insertData: TablesInsert<'leads'> = {
+      full_name: lead.fullName,
+      phone: lead.phone,
+      source: lead.source,
+      whatsapp_opt_in: lead.whatsappOptIn,
+      tattoo_style: lead.tattooStyle,
+      size: lead.size,
+      placement: lead.placement,
+      budget: lead.budget,
+      preferred_date: lead.preferredDate,
+      status: lead.status,
+      tags: lead.tags,
+      notes: lead.notes,
+    };
     try {
       const result = await withRetry(async () => {
         const { data, error } = await supabase
           .from('leads')
-          .insert(dbData as any)
+          .insert(insertData)
           .select()
           .single();
         if (error) throw error;
@@ -216,15 +230,27 @@ export function useLeads() {
   // Returns true on success
   const updateLead = useCallback(async (id: string, updates: Partial<Lead>): Promise<boolean> => {
     const prev = leadsRef.current;
-    const dbData = leadToDb(updates);
-    dbData.updated_at = new Date().toISOString();
+    const now = new Date().toISOString();
+    const updateData: TablesUpdate<'leads'> = { updated_at: now };
+    if (updates.fullName !== undefined) updateData.full_name = updates.fullName;
+    if (updates.phone !== undefined) updateData.phone = updates.phone;
+    if (updates.source !== undefined) updateData.source = updates.source;
+    if (updates.whatsappOptIn !== undefined) updateData.whatsapp_opt_in = updates.whatsappOptIn;
+    if (updates.tattooStyle !== undefined) updateData.tattoo_style = updates.tattooStyle;
+    if (updates.size !== undefined) updateData.size = updates.size;
+    if (updates.placement !== undefined) updateData.placement = updates.placement;
+    if (updates.budget !== undefined) updateData.budget = updates.budget;
+    if (updates.preferredDate !== undefined) updateData.preferred_date = updates.preferredDate;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.tags !== undefined) updateData.tags = updates.tags;
+    if (updates.notes !== undefined) updateData.notes = updates.notes;
 
     // Optimistic update
-    setLeads(curr => curr.map(l => l.id === id ? { ...l, ...updates, updatedAt: dbData.updated_at as string } : l));
+    setLeads(curr => curr.map(l => l.id === id ? { ...l, ...updates, updatedAt: now } : l));
 
     try {
       await withRetry(async () => {
-        const { error } = await supabase.from('leads').update(dbData as any).eq('id', id);
+        const { error } = await supabase.from('leads').update(updateData).eq('id', id);
         if (error) throw error;
       });
       setSyncError(false);
