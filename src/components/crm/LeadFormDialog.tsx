@@ -41,6 +41,7 @@ const DEFAULT_FORM = {
 export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadFormDialogProps) {
   const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   // Reset form when dialog opens or editLead changes
   useEffect(() => {
@@ -68,11 +69,20 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedPhone = form.phone.replace(/\s+/g, '');
+    if (!trimmedPhone || trimmedPhone === '+91' || trimmedPhone.length < 6) {
+      setPhoneError('Please enter a valid phone number');
+      return;
+    }
+    setPhoneError('');
     setIsSubmitting(true);
-    const success = await onSubmit(form);
-    setIsSubmitting(false);
-    if (success) {
-      onOpenChange(false);
+    try {
+      const success = await onSubmit(form);
+      if (success) {
+        onOpenChange(false);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -100,7 +110,8 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadF
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Phone (+91)</Label>
-              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} required placeholder="+91 98765 43210" className="bg-muted/50 border-border" disabled={isSubmitting} />
+              <Input value={form.phone} onChange={e => { setPhoneError(''); setForm(f => ({ ...f, phone: e.target.value })); }} required placeholder="+91 98765 43210" className={`bg-muted/50 border-border ${phoneError ? 'border-destructive' : ''}`} disabled={isSubmitting} />
+              {phoneError && <p className="text-destructive text-[11px] mt-0.5">{phoneError}</p>}
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Source</Label>
