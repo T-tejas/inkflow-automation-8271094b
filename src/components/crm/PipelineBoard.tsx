@@ -1,4 +1,4 @@
-import { Lead, LeadStatus, LEAD_STATUSES, LEAD_SOURCES } from '@/types/lead';
+import { Lead, LeadStatus, KANBAN_STATUSES, LEAD_SOURCES } from '@/types/lead';
 import { LeadCard } from './LeadCard';
 import { AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,22 +8,29 @@ interface PipelineBoardProps {
   getLeadsByStatus: (status: LeadStatus) => Lead[];
   onLeadClick: (lead: Lead) => void;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  onEdit?: (lead: Lead) => void;
+  onTagClick?: (tag: string) => void;
 }
 
-const STATUS_DOT_COLORS: Record<LeadStatus, string> = {
+const STATUS_DOT_COLORS: Record<string, string> = {
   'New Lead': 'bg-pipeline-new',
   'Contacted': 'bg-pipeline-contacted',
-  'Consultation Scheduled': 'bg-pipeline-consultation',
+  'Interested': 'bg-pipeline-interested',
+  'Negotiating': 'bg-pipeline-negotiating',
   'Booked': 'bg-pipeline-booked',
   'Completed': 'bg-pipeline-completed',
   'No Response': 'bg-pipeline-no-response',
   'Cancelled': 'bg-pipeline-cancelled',
 };
 
-export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange }: PipelineBoardProps) {
+const COLUMN_LABELS: Record<string, string> = {
+  'No Response': 'No Response / Cancelled',
+};
+
+export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick }: PipelineBoardProps) {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 min-h-[500px]">
-      {LEAD_STATUSES.map(status => {
+    <div className="flex gap-3 overflow-x-auto pb-4 min-h-[500px] snap-x snap-mandatory md:snap-none">
+      {KANBAN_STATUSES.map(status => {
         const statusLeads = getLeadsByStatus(status);
         const sourceBreakdown = LEAD_SOURCES
           .map(source => ({ source, count: statusLeads.filter(lead => lead.source === source).length }))
@@ -31,7 +38,7 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
         return (
           <div
             key={status}
-            className="flex-shrink-0 w-[260px] flex flex-col"
+            className="flex-shrink-0 w-[260px] snap-start flex flex-col"
             onDragOver={e => e.preventDefault()}
             onDrop={e => {
               const leadId = e.dataTransfer.getData('leadId');
@@ -39,9 +46,9 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
             }}
           >
             <div className="flex items-center gap-2 mb-3 px-1">
-              <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status]}`} />
+              <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-muted'}`} />
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {status}
+                {COLUMN_LABELS[status] || status}
               </h3>
               <span className="ml-auto text-xs text-muted-foreground font-medium">
                 {statusLeads.length}
@@ -70,7 +77,13 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                       draggable
                       onDragStart={e => e.dataTransfer.setData('leadId', lead.id)}
                     >
-                      <LeadCard lead={lead} onClick={onLeadClick} />
+                      <LeadCard
+                        lead={lead}
+                        onClick={onLeadClick}
+                        onEdit={onEdit}
+                        onStatusChange={onStatusChange}
+                        onTagClick={onTagClick}
+                      />
                     </div>
                   ))}
                 </AnimatePresence>

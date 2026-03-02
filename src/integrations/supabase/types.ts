@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      lead_interactions: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          lead_id: string
+          new_value: string | null
+          note: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          new_value?: string | null
+          note?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          new_value?: string | null
+          note?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           budget: string | null

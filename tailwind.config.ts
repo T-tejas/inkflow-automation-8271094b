@@ -97,7 +97,8 @@ export default {
   			pipeline: {
   				new: 'hsl(var(--pipeline-new))',
   				contacted: 'hsl(var(--pipeline-contacted))',
-  				consultation: 'hsl(var(--pipeline-consultation))',
+  				interested: 'hsl(var(--pipeline-interested))',
+  				negotiating: 'hsl(var(--pipeline-negotiating))',
   				booked: 'hsl(var(--pipeline-booked))',
   				completed: 'hsl(var(--pipeline-completed))',
   				'no-response': 'hsl(var(--pipeline-no-response))',

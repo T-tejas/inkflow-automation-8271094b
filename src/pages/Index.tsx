@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLeads } from '@/hooks/useLeads';
 import { StatsCards } from '@/components/crm/StatsCards';
+import { DashboardCharts } from '@/components/crm/DashboardCharts';
 import { PipelineBoard } from '@/components/crm/PipelineBoard';
 import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
@@ -10,7 +11,6 @@ import { Plus, MessageCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Lead } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// CRM Dashboard
 const Index = () => {
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
   const [formOpen, setFormOpen] = useState(false);
@@ -18,6 +18,7 @@ const Index = () => {
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [whatsappLogOpen, setWhatsappLogOpen] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   const handleLeadClick = (lead: Lead) => {
     setDetailLead(lead);
@@ -41,6 +42,13 @@ const Index = () => {
     setFormOpen(open);
     if (!open) setEditLead(null);
   };
+
+  const handleTagClick = (tag: string) => {
+    setTagFilter(prev => prev === tag ? null : tag);
+  };
+
+  // Filter leads by tag if active
+  const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,14 +102,30 @@ const Index = () => {
       {/* Main Content */}
       <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
         <StatsCards stats={stats} />
+        <DashboardCharts leads={leads} />
+
+        {/* Tag filter indicator */}
+        {tagFilter && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Filtering by tag:</span>
+            <button
+              onClick={() => setTagFilter(null)}
+              className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              {tagFilter} ✕
+            </button>
+          </div>
+        )}
 
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Pipeline</h2>
           <PipelineBoard
-            leads={leads}
+            leads={filteredLeads}
             getLeadsByStatus={getLeadsByStatus}
             onLeadClick={handleLeadClick}
             onStatusChange={updateLeadStatus}
+            onEdit={handleEdit}
+            onTagClick={handleTagClick}
           />
         </div>
       </main>

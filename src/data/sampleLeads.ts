@@ -29,7 +29,7 @@ export const sampleLeads: Lead[] = [
     placement: 'Wrist',
     budget: '₹3,000 - ₹5,000',
     preferredDate: '2026-03-10',
-    status: 'Consultation Scheduled',
+    status: 'Interested',
     tags: ['whatsapp_inquiry', 'booked_whatsapp'],
     notes: 'Small infinity symbol with initials',
     createdAt: '2026-02-25T14:00:00Z',

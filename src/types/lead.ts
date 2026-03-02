@@ -1,9 +1,10 @@
-export type LeadSource = 'Instagram' | 'WhatsApp' | 'Walk-in' | 'Referral';
+export type LeadSource = 'Instagram' | 'WhatsApp' | 'Walk-in' | 'Referral' | 'Website' | 'Facebook';
 
 export type LeadStatus =
   | 'New Lead'
   | 'Contacted'
-  | 'Consultation Scheduled'
+  | 'Interested'
+  | 'Negotiating'
   | 'Booked'
   | 'Completed'
   | 'No Response'
@@ -27,6 +28,8 @@ export type TattooStyle =
   | 'Blackwork'
   | 'Dotwork'
   | 'Lettering'
+  | 'Portrait'
+  | 'Minimal'
   | 'Other';
 
 export type TattooSize = 'Small (2-4 in)' | 'Medium (4-6 in)' | 'Large (6-10 in)' | 'Extra Large (10+ in)' | 'Full Sleeve' | 'Half Sleeve';
@@ -52,18 +55,30 @@ export interface Lead {
 export const LEAD_STATUSES: LeadStatus[] = [
   'New Lead',
   'Contacted',
-  'Consultation Scheduled',
+  'Interested',
+  'Negotiating',
   'Booked',
   'Completed',
   'No Response',
   'Cancelled',
 ];
 
-export const LEAD_SOURCES: LeadSource[] = ['Instagram', 'WhatsApp', 'Walk-in', 'Referral'];
+// Display statuses for Kanban columns (No Response + Cancelled share a column)
+export const KANBAN_STATUSES: LeadStatus[] = [
+  'New Lead',
+  'Contacted',
+  'Interested',
+  'Negotiating',
+  'Booked',
+  'Completed',
+  'No Response', // "No Response / Cancelled" column
+];
+
+export const LEAD_SOURCES: LeadSource[] = ['Instagram', 'WhatsApp', 'Walk-in', 'Referral', 'Website', 'Facebook'];
 
 export const TATTOO_STYLES: TattooStyle[] = [
   'Traditional', 'Neo-Traditional', 'Realism', 'Watercolor', 'Geometric',
-  'Minimalist', 'Japanese', 'Tribal', 'Blackwork', 'Dotwork', 'Lettering', 'Other',
+  'Minimalist', 'Japanese', 'Tribal', 'Blackwork', 'Dotwork', 'Lettering', 'Portrait', 'Minimal', 'Other',
 ];
 
 export const TATTOO_SIZES: TattooSize[] = [
@@ -77,7 +92,8 @@ export const AUTOMATION_TAGS: AutomationTag[] = [
 export const STATUS_COLORS: Record<LeadStatus, string> = {
   'New Lead': 'bg-pipeline-new',
   'Contacted': 'bg-pipeline-contacted',
-  'Consultation Scheduled': 'bg-pipeline-consultation',
+  'Interested': 'bg-pipeline-interested',
+  'Negotiating': 'bg-pipeline-negotiating',
   'Booked': 'bg-pipeline-booked',
   'Completed': 'bg-pipeline-completed',
   'No Response': 'bg-pipeline-no-response',
@@ -87,9 +103,17 @@ export const STATUS_COLORS: Record<LeadStatus, string> = {
 export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
   'New Lead': 'text-pipeline-new',
   'Contacted': 'text-pipeline-contacted',
-  'Consultation Scheduled': 'text-pipeline-consultation',
+  'Interested': 'text-pipeline-interested',
+  'Negotiating': 'text-pipeline-negotiating',
   'Booked': 'text-pipeline-booked',
   'Completed': 'text-pipeline-completed',
   'No Response': 'text-pipeline-no-response',
   'Cancelled': 'text-pipeline-cancelled',
 };
+
+export function parseBudget(budget: string): number {
+  if (!budget) return 0;
+  const numbers = budget.replace(/[₹,\s]/g, '').match(/\d+/g);
+  if (!numbers) return 0;
+  return Math.max(...numbers.map(Number));
+}
