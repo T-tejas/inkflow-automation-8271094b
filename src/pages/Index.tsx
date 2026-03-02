@@ -28,11 +28,11 @@ const Index = () => {
     setFormOpen(true);
   };
 
-  const handleFormSubmit = (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleFormSubmit = async (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editLead) {
-      updateLead(editLead.id, data);
+      await updateLead(editLead.id, data);
     } else {
-      addLead(data);
+      await addLead(data);
     }
     setEditLead(null);
   };
