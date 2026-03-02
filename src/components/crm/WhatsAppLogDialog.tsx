@@ -45,15 +45,22 @@ export function WhatsAppLogDialog({ open, onOpenChange }: WhatsAppLogDialogProps
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    supabase
-      .from('whatsapp_messages')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
+    const fetchMessages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('whatsapp_messages')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (error) console.error('WhatsApp log fetch error:', error);
         setMessages((data as WhatsAppMessage[]) || []);
+      } catch (err) {
+        console.error('WhatsApp log error:', err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchMessages();
   }, [open]);
 
   return (
