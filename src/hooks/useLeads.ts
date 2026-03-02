@@ -82,7 +82,7 @@ function writeCachedLeads(leads: Lead[]) {
   }
 }
 
-async function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 10000): Promise<T> {
+async function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 30000): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   try {
     return await Promise.race([
