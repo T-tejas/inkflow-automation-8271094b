@@ -58,45 +58,91 @@ function leadToDb(lead: Partial<Lead>): Record<string, unknown> {
   return map;
 }
 
-// Retry helper for mutations
-async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+const LEADS_CACHE_KEY = 'crm_leads_cache_v1';
+
+function readCachedLeads(): Lead[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(LEADS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as Lead[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedLeads(leads: Lead[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LEADS_CACHE_KEY, JSON.stringify(leads));
+  } catch {
+    // Ignore storage write errors
+  }
+}
+
+async function withTimeout<T>(fn: () => Promise<T>, timeoutMs = 10000): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      fn(),
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+// Retry helper for mutations and fetches
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, timeoutMs = 10000): Promise<T> {
+  let lastError: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
-      return await fn();
+      return await withTimeout(fn, timeoutMs);
     } catch (err) {
+      lastError = err;
       if (i === attempts - 1) throw err;
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }
-  throw new Error('Retry exhausted');
+  throw lastError instanceof Error ? lastError : new Error('Retry exhausted');
 }
 
 export function useLeads() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(() => readCachedLeads());
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState(false);
   const leadsRef = useRef(leads);
   leadsRef.current = leads;
 
+  useEffect(() => {
+    writeCachedLeads(leads);
+  }, [leads]);
+
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     setSyncError(false);
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const { data, error } = await supabase
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setLeads((data as DbLead[]).map(dbToLead));
-        setLoading(false);
-        return;
-      }
-      console.error(`Fetch leads attempt ${attempt + 1} failed:`, error);
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    try {
+      const rows = await withRetry(async () => {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error || !data) throw error ?? new Error('No leads data returned');
+        return data as DbLead[];
+      });
+
+      setLeads(rows.map(dbToLead));
+    } catch (error) {
+      console.error('Fetch leads failed after retries:', error);
+      setSyncError(true);
+    } finally {
+      setLoading(false);
     }
-    setSyncError(true);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -161,6 +207,7 @@ export function useLeads() {
       return true;
     } catch (err) {
       console.error('Error adding lead:', err);
+      setSyncError(true);
       toast.error('Failed to add lead. Please try again.');
       return false;
     }
@@ -185,6 +232,7 @@ export function useLeads() {
     } catch (err) {
       console.error('Error updating lead:', err);
       toast.error('Failed to update lead');
+      setSyncError(true);
       setLeads(prev); // rollback
       return false;
     }
@@ -206,6 +254,7 @@ export function useLeads() {
     } catch (err) {
       console.error('Error updating status:', err);
       toast.error('Failed to update status');
+      setSyncError(true);
       setLeads(prev);
     }
   }, []);
@@ -226,6 +275,7 @@ export function useLeads() {
     } catch (err) {
       console.error('Error deleting lead:', err);
       toast.error('Failed to delete lead');
+      setSyncError(true);
       setLeads(prev);
     }
   }, []);
