@@ -1,12 +1,40 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Lead, parseBudget } from '@/types/lead';
 import { format, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+
+function exportCSV(leads: Lead[]) {
+  const headers = ['Client', 'Phone', 'Style', 'Price', 'Date', 'Status'];
+  const rows = leads.map(l => [
+    l.fullName,
+    l.phone,
+    l.tattooStyle,
+    parseBudget(l.budget).toString(),
+    format(parseISO(l.createdAt), 'dd MMM yyyy'),
+    'Paid',
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `completed-tattoos-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function CompletedTable({ leads }: { leads: Lead[] }) {
   return (
     <div className="bg-[#111] border border-[#222] rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-[#222]">
+      <div className="px-5 py-3 border-b border-[#222] flex items-center justify-between">
         <h3 className="text-sm font-medium text-neutral-300">Completed Tattoos</h3>
+        {leads.length > 0 && (
+          <Button variant="ghost" size="sm" className="text-neutral-400 hover:text-white gap-1.5 h-7 text-xs" onClick={() => exportCSV(leads)}>
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </Button>
+        )}
       </div>
       {leads.length === 0 ? (
         <p className="text-xs text-neutral-500 p-8 text-center">No completed tattoos found</p>
