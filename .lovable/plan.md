@@ -1,83 +1,135 @@
 
 
-## Plan: F19 Owner Revenue Dashboard
+## Plan: WhatsApp-Style Chat System for F19 Tattoo CRM
 
 ### Overview
-Create a secure, dark-themed admin revenue dashboard at `/admin` with authentication via Supabase Auth, protected routes, and comprehensive revenue analytics from the existing `leads` table.
+Replace the "Messages" dialog with a full-page WhatsApp Web-style chat interface at `/chat`, featuring a contact list on the left, conversation view on the right, real-time message sync, and quick lead actions.
 
-### Architecture
+### Current State
+- `whatsapp_messages` table stores template sends and incoming messages but lacks a `message_body` column for actual text content
+- `WhatsAppLogDialog` is a simple modal showing message history
+- `send-whatsapp` edge function sends template messages only
+- `whatsapp-webhook` edge function receives incoming messages and logs them
+- Real-time subscription exists for `leads` table but not for `whatsapp_messages`
 
-```text
-/admin/login  → AdminLogin page (email+password auth)
-/admin        → AdminDashboard (protected, redirects if not logged in)
+### Scope Decisions
+Given practical constraints (Meta WhatsApp API only allows template messages for business-initiated conversations, and free-text replies within 24-hour windows), the chat system will:
+- Display all message history per lead in a chat-bubble UI
+- Support sending templates via quick-reply buttons
+- Show incoming messages from the webhook
+- Support internal notes (private, not sent to client)
+- NOT implement file/image/emoji sending (requires Media API setup not currently configured)
+- NOT implement typing indicators (not available from WhatsApp API)
+- Sound notifications and unread badges will be included
+
+---
+
+### Step 1: Database Changes
+
+**Alter `whatsapp_messages` table:**
+- Add `message_body` (text, nullable) -- actual message content
+- Add `is_internal_note` (boolean, default false) -- private notes
+- Add `starred` (boolean, default false)
+- Add `lead_id` (uuid, nullable, FK to leads) -- direct lead association
+
+**Enable realtime:**
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.whatsapp_messages;
 ```
 
-### Step 1: Database — Admin Role Setup
-- Create `user_roles` table with `app_role` enum (`admin`, `user`)
-- Create `has_role()` security definer function
-- RLS policy: only admins can read `user_roles`
-- After migration, manually insert a single admin row for the seeded admin user
+### Step 2: New Route & Layout
 
-### Step 2: Auth — Seed Admin Account
-- Enable auto-confirm for the admin setup (or instruct you to confirm manually)
-- The admin signs up with their email+password via the login page on first use
-- After signup, their `user_id` gets an `admin` role in `user_roles`
-- Alternative: ask for the admin email now, create the user and role via migration
+**`/chat`** -- Full-screen WhatsApp Web clone
 
-**Decision needed**: Since you said "hardcoded for now," the simplest secure approach is:
-- Admin logs in with Supabase Auth (email+password)
-- A server-side `has_role()` check gates access
-- We seed one admin role row for a specific email
+```text
++------------------+----------------------------------+
+| Contact List     | Chat Window                      |
+| - Search bar     | - Header (name, phone, status)   |
+| - Filter tabs    | - Message bubbles (scrollable)   |
+| - Lead list      | - Input bar (templates + notes)  |
+|   with avatars,  |                                  |
+|   last msg,      |                                  |
+|   timestamps,    |                                  |
+|   unread count   |                                  |
++------------------+----------------------------------+
+```
 
-### Step 3: Auth Pages & Protection
-- **`src/pages/AdminLogin.tsx`** — email + password form, calls `supabase.auth.signInWithPassword()`, redirects to `/admin` on success
-- **`src/components/admin/ProtectedAdminRoute.tsx`** — wrapper that checks auth session + `has_role(uid, 'admin')` via RPC, redirects to `/admin/login` if unauthorized
-- Routes added in `App.tsx`
+### Step 3: Components to Create
 
-### Step 4: Revenue Dashboard Page — `src/pages/AdminDashboard.tsx`
-Uses the existing `leads` table data (fetched server-side with Supabase client).
+| Component | Purpose |
+|-----------|---------|
+| `src/pages/Chat.tsx` | Full-page layout with left/right panels |
+| `src/components/chat/ContactList.tsx` | Left panel: lead list with search, filters, avatars, last message, unread count |
+| `src/components/chat/ChatWindow.tsx` | Right panel: message bubbles, auto-scroll, header with quick actions |
+| `src/components/chat/MessageBubble.tsx` | Individual message with ticks, timestamps, styling |
+| `src/components/chat/ChatInput.tsx` | Bottom input bar: template quick replies, internal note toggle |
+| `src/components/chat/QuickReplyTemplates.tsx` | Dropdown with pre-built templates (Deposit, Booking confirmation, Aftercare) |
+| `src/hooks/useChat.ts` | Hook: fetch messages per lead, realtime subscription, send template, add note |
 
-**3 Revenue Cards:**
-1. **Completed Revenue** — `status = 'Completed'`, sum `parseBudget(budget)`, count
-2. **Booked Value** — `status = 'Booked'`, sum + count
-3. **Pending Value** — `status IN ('New Lead','Contacted','Interested','Negotiating')`, sum + count
+### Step 4: Contact List (Left Panel)
 
-**Filters (client-side):**
-- Date range: This Week / This Month / Custom (date picker)
-- Tattoo style multi-select
-- Lead source multi-select
+- Shows all leads that have WhatsApp opt-in or existing messages
+- Avatar: first-letter circle with color derived from name
+- Shows last message preview (truncated), timestamp
+- Unread badge: count messages with `status = 'received'` that are newer than last viewed
+- Filter tabs: All | Unread | Booked | Completed | Hot Leads (Interested + Negotiating)
+- Search by name or phone
+- Click selects lead and loads chat
 
-**Charts (Recharts):**
-- Monthly completed revenue bar chart
-- Pipeline value line chart (Booked + Pending over time)
+### Step 5: Chat Window (Right Panel)
 
-**Table:**
-- Completed tattoos: Client Name, Phone, Style, Final Price, Date, Payment Status (derived from status)
+- **Header**: Lead name, phone, status badge, quick action buttons (Call via `tel:`, View Lead Detail, Mark as Booked, Mark as Completed)
+- **Messages**: Grouped by date, outgoing (green, right-aligned), incoming (dark card, left-aligned), internal notes (yellow, left, with lock icon)
+- **Delivery ticks**: Single check (sent), double check (delivered), blue double check (read), red alert (failed)
+- **Auto-scroll** to latest message on load and new message
+- **Starred messages**: Click to star, filter starred
 
-### Step 5: Dark Theme
-The app already has a `.dark` theme in CSS. The admin dashboard will force dark mode using a `dark` class wrapper on its layout, giving it a distinct professional financial look without affecting the main CRM.
+### Step 6: Chat Input Bar
 
-### Step 6: Navigation
-- Add an "Admin" link in the main CRM header (visible only when logged in as admin)
-- Admin dashboard has its own header with logout button and back-to-CRM link
+- Quick reply template buttons (Booking Confirmation, Deposit Request, Aftercare, Reminder)
+- Internal note toggle (switch to note mode, sends to DB only, not WhatsApp)
+- Enter to send (template selection or note)
+- Text input for notes (free text is note-only since WhatsApp API requires templates for business-initiated messages)
+
+### Step 7: Real-time & Notifications
+
+- Subscribe to `whatsapp_messages` postgres_changes for INSERT events
+- New incoming message: update contact list order, increment unread badge
+- Audio notification: play a short sound on new incoming message (using `new Audio()`)
+- Browser notification permission request (optional enhancement)
+
+### Step 8: Navigation Changes
+
+- Replace "Messages" button in CRM header with "Chat" button that navigates to `/chat`
+- Add route in `App.tsx`
+- Chat page has back-to-CRM button in header
+
+### Step 9: Webhook Enhancement
+
+- Update `whatsapp-webhook` edge function to populate `message_body` and `lead_id` when logging incoming messages
+- Update `send-whatsapp` to populate `message_body` with template name/parameters and `lead_id`
 
 ### Files to Create/Modify
+
 | File | Action |
 |------|--------|
-| `supabase/migrations/...` | Create `user_roles` table, `has_role()` function, RLS |
-| `src/pages/AdminLogin.tsx` | New — login form |
-| `src/pages/AdminDashboard.tsx` | New — revenue dashboard |
-| `src/components/admin/ProtectedAdminRoute.tsx` | New — auth guard |
-| `src/components/admin/RevenueCards.tsx` | New — 3 stat cards |
-| `src/components/admin/RevenueCharts.tsx` | New — monthly charts |
-| `src/components/admin/CompletedTable.tsx` | New — completed tattoos table |
-| `src/components/admin/RevenueFilters.tsx` | New — date/style/source filters |
-| `src/App.tsx` | Add `/admin` and `/admin/login` routes |
-| `src/pages/Index.tsx` | Add admin link in header (conditional) |
+| Migration SQL | Add columns to `whatsapp_messages`, enable realtime |
+| `src/pages/Chat.tsx` | New -- full page layout |
+| `src/components/chat/ContactList.tsx` | New -- left panel |
+| `src/components/chat/ChatWindow.tsx` | New -- right panel |
+| `src/components/chat/MessageBubble.tsx` | New -- bubble component |
+| `src/components/chat/ChatInput.tsx` | New -- input bar with templates |
+| `src/components/chat/QuickReplyTemplates.tsx` | New -- template dropdown |
+| `src/hooks/useChat.ts` | New -- chat data hook |
+| `src/App.tsx` | Add `/chat` route |
+| `src/pages/Index.tsx` | Replace Messages button with Chat navigation |
+| `supabase/functions/send-whatsapp/index.ts` | Add `message_body` and `lead_id` to insert |
+| `supabase/functions/whatsapp-webhook/index.ts` | Add `message_body` and `lead_id` to insert |
 
-### Security
-- Authentication via Supabase Auth (not localStorage or hardcoded credentials)
-- Role check via `has_role()` security definer function (server-side)
-- RLS on `user_roles` table
-- No client-side role storage
+### Not Included (Future Enhancements)
+- Image/PDF sending (requires Meta Media API configuration)
+- Emoji picker (can add later)
+- Role-based chat visibility (currently all chats visible; staff assignment requires an `assigned_to` column on leads)
+- "Last seen" (not available from WhatsApp API)
+- Sound file needs to be a small inline base64 or hosted asset
 
