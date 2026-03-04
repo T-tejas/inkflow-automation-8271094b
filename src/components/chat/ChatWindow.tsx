@@ -1,13 +1,27 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChatMessage, ChatContact } from '@/hooks/useChat';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Phone, Calendar, CheckCircle2, MoreVertical, Search, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isSameDay } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+const STATUS_OPTIONS = [
+  { label: 'New Lead', color: '#6b7280' },
+  { label: 'Contacted', color: '#3b82f6' },
+  { label: 'Interested', color: '#8b5cf6' },
+  { label: 'Negotiating', color: '#f59e0b' },
+  { label: 'Booked', color: '#22c55e' },
+  { label: 'Completed', color: '#15803d' },
+  { label: 'No Response', color: '#ef4444' },
+];
+
+function getStatusColor(status: string) {
+  return STATUS_OPTIONS.find(s => s.label.toLowerCase() === status.toLowerCase())?.color || '#6b7280';
+}
 
 interface Props {
   contact: ChatContact | null;
@@ -15,28 +29,26 @@ interface Props {
   loading: boolean;
   onSendTemplate: (type: 'confirmation' | 'reminder' | 'promo', name: string) => void;
   onSendNote: (text: string) => void;
+  onSendMessage: (text: string) => void;
+  onSendAttachment: (url: string, fileName: string, isImage: boolean) => void;
   onToggleStar: (id: string, starred: boolean) => void;
+  onStatusChange: (leadId: string, newStatus: string, oldStatus: string) => void;
+  onRetryMessage: (message: ChatMessage) => void;
 }
 
-export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onToggleStar }: Props) {
+export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage }: Props) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleMarkBooked = async () => {
-    if (!contact) return;
-    await supabase.from('leads').update({ status: 'Booked' }).eq('id', contact.leadId);
-    toast({ title: 'Lead marked as Booked' });
-  };
-
-  const handleMarkCompleted = async () => {
-    if (!contact) return;
-    await supabase.from('leads').update({ status: 'Completed' }).eq('id', contact.leadId);
-    toast({ title: 'Lead marked as Completed' });
-  };
+  // Error banner detection
+  const recentFailed = messages.filter(m => (m.status === 'failed' || m.deliveryStatus === 'failed'));
+  const tokenExpired = recentFailed.some(m => m.errorMessage?.toLowerCase().includes('token') || m.errorMessage?.toLowerCase().includes('expired') || m.errorMessage?.toLowerCase().includes('oauth'));
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   if (!contact) {
     return (
@@ -73,8 +85,21 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
     }
   }
 
+  const statusColor = getStatusColor(contact.leadStatus);
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {/* Error banner */}
+      {tokenExpired && !bannerDismissed && (
+        <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca' }}>
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          WhatsApp token expired — update in settings to continue sending messages
+          <button onClick={() => setBannerDismissed(true)} className="ml-auto p-1 rounded hover:bg-red-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #e9edef' }}>
         <div className="flex items-center gap-2 min-w-0">
@@ -88,8 +113,49 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
             {contact.leadName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <div className="text-[15px] font-medium truncate" style={{ color: '#111b21' }}>
-              {contact.leadName}
+            <div className="flex items-center gap-2">
+              <span className="text-[15px] font-medium truncate" style={{ color: '#111b21' }}>
+                {contact.leadName}
+              </span>
+              {/* Status badge with dropdown */}
+              <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: statusColor + '20', color: statusColor, border: `1px solid ${statusColor}40` }}
+                  >
+                    {contact.leadStatus}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-48 p-1 rounded-lg shadow-xl border"
+                  style={{ backgroundColor: '#ffffff', borderColor: '#e9edef' }}
+                  side="bottom"
+                  align="start"
+                >
+                  <div className="text-[10px] px-3 py-1.5 uppercase tracking-wider font-semibold" style={{ color: '#8696a0' }}>
+                    Change Status
+                  </div>
+                  {STATUS_OPTIONS.map(s => (
+                    <button
+                      key={s.label}
+                      className={cn(
+                        'w-full text-left px-3 py-2 text-sm rounded flex items-center gap-2 transition-colors hover:bg-gray-50',
+                        contact.leadStatus === s.label && 'font-semibold'
+                      )}
+                      onClick={() => {
+                        if (contact.leadStatus !== s.label) {
+                          onStatusChange(contact.leadId, s.label, contact.leadStatus);
+                        }
+                        setStatusOpen(false);
+                      }}
+                    >
+                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span style={{ color: '#111b21' }}>{s.label}</span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="text-xs" style={{ color: '#667781' }}>
               {contact.leadPhone}
@@ -101,11 +167,8 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
           <IconBtn href={`tel:${contact.leadPhone}`} title="Call">
             <Phone className="h-5 w-5" />
           </IconBtn>
-          <IconBtn onClick={handleMarkBooked} title="Mark as Booked">
-            <Calendar className="h-5 w-5" />
-          </IconBtn>
-          <IconBtn onClick={handleMarkCompleted} title="Mark as Completed">
-            <CheckCircle2 className="h-5 w-5" />
+          <IconBtn title="Search">
+            <Search className="h-5 w-5" />
           </IconBtn>
           <IconBtn title="More options">
             <MoreVertical className="h-5 w-5" />
@@ -127,7 +190,7 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
           </div>
         ) : messages.length === 0 ? (
           <p className="text-sm text-center py-20" style={{ color: '#8696a0' }}>
-            No messages yet. Send a template to start the conversation.
+            No messages yet. Send a message or template to start the conversation.
           </p>
         ) : (
           groupedMessages.map(group => (
@@ -137,13 +200,11 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
                   className="text-xs px-3 py-1 rounded-lg shadow-sm"
                   style={{ backgroundColor: '#ffffff', color: '#54656f', boxShadow: '0 1px 0.5px rgba(11,20,26,.13)' }}
                 >
-                  {isSameDay(parseISO(group.date), new Date())
-                    ? 'TODAY'
-                    : format(parseISO(group.date), 'dd/MM/yyyy')}
+                  {isSameDay(parseISO(group.date), new Date()) ? 'TODAY' : format(parseISO(group.date), 'dd/MM/yyyy')}
                 </span>
               </div>
               {group.msgs.map(msg => (
-                <MessageBubble key={msg.id} message={msg} onToggleStar={onToggleStar} />
+                <MessageBubble key={msg.id} message={msg} onToggleStar={onToggleStar} onRetry={onRetryMessage} />
               ))}
             </div>
           ))
@@ -154,7 +215,9 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
       {/* Input */}
       <ChatInput
         onSendTemplate={onSendTemplate}
-        onSendNote={(text) => onSendNote(text)}
+        onSendNote={onSendNote}
+        onSendMessage={onSendMessage}
+        onSendAttachment={onSendAttachment}
         disabled={false}
       />
     </div>

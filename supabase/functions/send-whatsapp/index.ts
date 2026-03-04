@@ -9,10 +9,14 @@ const corsHeaders = {
 interface SendRequest {
   phone: string;
   leadName: string;
-  templateType: "confirmation" | "reminder" | "promo";
-  templateName: string;
+  // Template fields
+  templateType?: "confirmation" | "reminder" | "promo";
+  templateName?: string;
   templateLanguage?: string;
   parameters?: string[];
+  // Text message fields
+  type?: "text" | "template";
+  messageBody?: string;
 }
 
 const TEMPLATE_DEFAULTS: Record<string, { name: string; language: string }> = {
@@ -38,47 +42,59 @@ Deno.serve(async (req) => {
     }
 
     const body: SendRequest = await req.json();
-    const { phone, leadName, templateType, templateName, templateLanguage, parameters } = body;
+    const { phone, leadName, type, messageBody, templateType, templateName, templateLanguage, parameters } = body;
 
-    if (!phone || !leadName || !templateType) {
+    if (!phone || !leadName) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: phone, leadName, templateType" }),
+        JSON.stringify({ error: "Missing required fields: phone, leadName" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Normalize phone: remove spaces, ensure starts with country code
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
+    const isTextMessage = type === "text" && messageBody;
 
-    const defaults = TEMPLATE_DEFAULTS[templateType];
-    const finalTemplateName = templateName || defaults.name;
-    const finalLanguage = templateLanguage || defaults.language;
+    let waPayload: Record<string, unknown>;
 
-    // Build Meta Cloud API payload
-    const waPayload: Record<string, unknown> = {
-      messaging_product: "whatsapp",
-      to: cleanPhone,
-      type: "template",
-      template: {
-        name: finalTemplateName,
-        language: { code: finalLanguage },
-        ...(parameters && parameters.length > 0
-          ? {
-              components: [
-                {
+    if (isTextMessage) {
+      // Free-text message
+      waPayload = {
+        messaging_product: "whatsapp",
+        to: cleanPhone,
+        type: "text",
+        text: { body: messageBody },
+      };
+    } else {
+      // Template message
+      if (!templateType) {
+        return new Response(
+          JSON.stringify({ error: "Missing templateType for template message" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const defaults = TEMPLATE_DEFAULTS[templateType];
+      const finalTemplateName = templateName || defaults.name;
+      const finalLanguage = templateLanguage || defaults.language;
+
+      waPayload = {
+        messaging_product: "whatsapp",
+        to: cleanPhone,
+        type: "template",
+        template: {
+          name: finalTemplateName,
+          language: { code: finalLanguage },
+          ...(parameters && parameters.length > 0
+            ? {
+                components: [{
                   type: "body",
-                  parameters: parameters.map((p) => ({
-                    type: "text",
-                    text: p,
-                  })),
-                },
-              ],
-            }
-          : {}),
-      },
-    };
+                  parameters: parameters.map((p) => ({ type: "text", text: p })),
+                }],
+              }
+            : {}),
+        },
+      };
+    }
 
-    // Send via Meta Graph API
     const metaResponse = await fetch(
       `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
       {
@@ -93,7 +109,6 @@ Deno.serve(async (req) => {
 
     const metaResult = await metaResponse.json();
 
-    // Log to database
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -101,19 +116,21 @@ Deno.serve(async (req) => {
 
     const messageId = metaResult?.messages?.[0]?.id || null;
     const status = metaResponse.ok ? "sent" : "failed";
-    const errorMessage = metaResponse.ok
-      ? null
-      : metaResult?.error?.message || "Unknown error";
+    const errorMessage = metaResponse.ok ? null : metaResult?.error?.message || "Unknown error";
+
+    const msgBody = isTextMessage
+      ? messageBody
+      : `📋 ${templateName || TEMPLATE_DEFAULTS[templateType!]?.name}${parameters ? ` (${parameters.join(', ')})` : ''}`;
 
     await supabase.from("whatsapp_messages").insert({
       lead_phone: phone,
       lead_name: leadName,
-      template_name: finalTemplateName,
-      template_type: templateType,
+      template_name: isTextMessage ? "text_message" : (templateName || TEMPLATE_DEFAULTS[templateType!]?.name),
+      template_type: isTextMessage ? "confirmation" : templateType,
       status,
       meta_message_id: messageId,
       error_message: errorMessage,
-      message_body: `📋 ${finalTemplateName}${parameters ? ` (${parameters.join(', ')})` : ''}`,
+      message_body: msgBody,
     });
 
     if (!metaResponse.ok) {
@@ -124,12 +141,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        messageId,
-        templateName: finalTemplateName,
-        templateType,
-      }),
+      JSON.stringify({ success: true, messageId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
