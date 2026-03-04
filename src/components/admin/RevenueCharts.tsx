@@ -39,7 +39,7 @@ export function RevenueCharts({ completed, booked, pending }: Props) {
       .reverse();
   }, [booked, pending]);
 
-  const fmt = (v: number) => `₹${(v / 1000).toFixed(0)}k`;
+  const fmt = (v: number) => v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}k`;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

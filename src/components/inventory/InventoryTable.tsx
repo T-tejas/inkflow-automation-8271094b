@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Input } from '@/components/ui/input';
 import { Trash2, Edit2, Minus, Info, Search } from 'lucide-react';
 import { InventoryItem, NEEDLE_TYPES } from '@/hooks/useInventory';
+import { formatINR } from '@/lib/currency';
 import { InventoryFormDialog } from './InventoryFormDialog';
 import { DeductDialog } from './DeductDialog';
 
@@ -89,8 +90,8 @@ export function InventoryTable({ items, category, onUpdate, onDelete, onDeduct }
                   {isNeedles && <TableCell><Badge variant="secondary" className="text-xs">{item.grouping || '–'}</Badge></TableCell>}
                   <TableCell className="text-center font-mono">{item.quantity_in_stock}</TableCell>
                   <TableCell className="text-center text-muted-foreground font-mono">{item.minimum_required}</TableCell>
-                  <TableCell className="text-right font-mono">₹{Number(item.cost_per_unit).toFixed(0)}</TableCell>
-                  <TableCell className="text-right font-mono">₹{(item.quantity_in_stock * item.cost_per_unit).toFixed(0)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatINR(Number(item.cost_per_unit))}</TableCell>
+                  <TableCell className="text-right font-mono">{formatINR(item.quantity_in_stock * item.cost_per_unit)}</TableCell>
                   <TableCell className="text-center">
                     {isLow ? (
                       <Badge variant="destructive" className="text-[10px]">LOW</Badge>
