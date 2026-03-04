@@ -3,7 +3,8 @@ import { ChatMessage, ChatContact } from '@/hooks/useChat';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Phone, Calendar, CheckCircle2, MoreVertical, Search, MessageSquare } from 'lucide-react';
+import { Phone, Calendar, CheckCircle2, MoreVertical, Search, MessageSquare, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onToggleStar }: Props) {
+  const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,7 +77,10 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #e9edef' }}>
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <IconBtn onClick={() => navigate('/')} title="Back to CRM">
+            <ArrowLeft className="h-5 w-5" />
+          </IconBtn>
           <div
             className="h-10 w-10 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
             style={{ backgroundColor: '#00a884' }}

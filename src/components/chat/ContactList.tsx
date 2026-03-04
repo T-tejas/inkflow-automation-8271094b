@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChatContact } from '@/hooks/useChat';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function ContactList({ contacts, selectedPhone, onSelect }: Props) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
 
@@ -50,7 +52,12 @@ export function ContactList({ contacts, selectedPhone, onSelect }: Props) {
     <div className="flex flex-col h-full" style={{ backgroundColor: '#ffffff' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: '#f0f2f5' }}>
-        <h2 className="text-lg font-semibold" style={{ color: '#111b21' }}>Chats</h2>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/')} className="p-1.5 rounded-full hover:bg-black/5 transition-colors" title="Back to CRM">
+            <ArrowLeft className="h-5 w-5" style={{ color: '#54656f' }} />
+          </button>
+          <h2 className="text-lg font-semibold" style={{ color: '#111b21' }}>Chats</h2>
+        </div>
         <button className="p-2 rounded-full hover:bg-black/5 transition-colors">
           <Filter className="h-5 w-5" style={{ color: '#54656f' }} />
         </button>
