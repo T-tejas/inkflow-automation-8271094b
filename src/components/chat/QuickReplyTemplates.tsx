@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Zap } from 'lucide-react';
 import { useState } from 'react';
@@ -28,20 +27,31 @@ export function QuickReplyTemplates({ onSelect, disabled }: Props) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-neutral-400 hover:text-emerald-400" disabled={disabled}>
-          <Zap className="h-4 w-4" />
-        </Button>
+        <button
+          className="p-2 rounded-full hover:bg-black/5 transition-colors disabled:opacity-40"
+          disabled={disabled}
+          style={{ color: '#54656f' }}
+        >
+          <Zap className="h-5 w-5" />
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-1 bg-[#111] border-[#333]" side="top" align="start">
-        <div className="text-[10px] text-neutral-500 px-3 py-1.5 uppercase tracking-wider font-semibold">Quick Templates</div>
+      <PopoverContent
+        className="w-72 p-1 rounded-lg shadow-xl border"
+        style={{ backgroundColor: '#ffffff', borderColor: '#e9edef' }}
+        side="top"
+        align="start"
+      >
+        <div className="text-[11px] px-3 py-2 uppercase tracking-wider font-semibold" style={{ color: '#8696a0' }}>
+          Quick Templates
+        </div>
         {TEMPLATES.map(t => (
           <button
             key={t.label}
-            className="w-full text-left px-3 py-2 hover:bg-[#1a1a2e] rounded text-sm transition-colors"
+            className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded text-sm transition-colors"
             onClick={() => { onSelect(t); setOpen(false); }}
           >
-            <span className="text-neutral-200">{t.label}</span>
-            <span className="block text-[11px] text-neutral-500">{t.description}</span>
+            <span style={{ color: '#111b21' }}>{t.label}</span>
+            <span className="block text-[11px] mt-0.5" style={{ color: '#667781' }}>{t.description}</span>
           </button>
         ))}
       </PopoverContent>

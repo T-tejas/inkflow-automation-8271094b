@@ -3,9 +3,7 @@ import { ChatMessage, ChatContact } from '@/hooks/useChat';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Phone, Calendar, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Phone, Calendar, CheckCircle2, MoreVertical, Search, MessageSquare } from 'lucide-react';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -40,11 +38,22 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
 
   if (!contact) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#060610]">
-        <div className="text-center">
-          <MessageSquare className="h-20 w-20 text-neutral-700 mx-auto mb-5" />
-          <h3 className="text-xl font-semibold text-neutral-500">Select a conversation</h3>
-          <p className="text-sm text-neutral-600 mt-2">Choose a contact from the left panel to start</p>
+      <div className="flex-1 flex flex-col items-center justify-center" style={{ backgroundColor: '#f0f2f5' }}>
+        <div className="mb-8">
+          <img
+            src="https://web.whatsapp.com/img/intro-connection-light_c98cc75f2aa905314d74571a2573d4ff.jpg"
+            alt=""
+            className="w-[320px] h-auto opacity-60"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
+        <h3 className="text-3xl font-light mb-3" style={{ color: '#41525d' }}>WhatsApp Web</h3>
+        <p className="text-sm text-center max-w-sm" style={{ color: '#667781' }}>
+          Send and receive messages. Select a conversation from the left panel to get started.
+        </p>
+        <div className="mt-8 flex items-center gap-2 text-xs" style={{ color: '#8696a0' }}>
+          <MessageSquare className="h-4 w-4" />
+          End-to-end encrypted
         </div>
       </div>
     );
@@ -63,53 +72,69 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#060610] min-h-0">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1a1a2e] bg-[#0a0a0f]">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="h-11 w-11 rounded-full bg-emerald-700 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #e9edef' }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="h-10 w-10 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+            style={{ backgroundColor: '#00a884' }}
+          >
             {contact.leadName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <span className="text-base font-bold text-neutral-200 truncate">{contact.leadName}</span>
-              <Badge variant="outline" className="text-[10px] h-5 px-2 border-emerald-800 text-emerald-400">
-                {contact.leadStatus}
-              </Badge>
+            <div className="text-[15px] font-medium truncate" style={{ color: '#111b21' }}>
+              {contact.leadName}
             </div>
-            <span className="text-xs text-neutral-500">{contact.leadPhone}</span>
+            <div className="text-xs" style={{ color: '#667781' }}>
+              {contact.leadPhone}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-neutral-400 hover:text-emerald-400" asChild>
-            <a href={`tel:${contact.leadPhone}`}><Phone className="h-4 w-4" /></a>
-          </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-neutral-400 hover:text-blue-400" onClick={handleMarkBooked} title="Mark as Booked">
-            <Calendar className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 text-neutral-400 hover:text-amber-400" onClick={handleMarkCompleted} title="Mark as Completed">
-            <CheckCircle2 className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-1">
+          <IconBtn href={`tel:${contact.leadPhone}`} title="Call">
+            <Phone className="h-5 w-5" />
+          </IconBtn>
+          <IconBtn onClick={handleMarkBooked} title="Mark as Booked">
+            <Calendar className="h-5 w-5" />
+          </IconBtn>
+          <IconBtn onClick={handleMarkCompleted} title="Mark as Completed">
+            <CheckCircle2 className="h-5 w-5" />
+          </IconBtn>
+          <IconBtn title="More options">
+            <MoreVertical className="h-5 w-5" />
+          </IconBtn>
         </div>
       </div>
 
-      {/* Messages area with wallpaper-like subtle pattern */}
-      <ScrollArea className="flex-1 px-6 py-4">
+      {/* Messages area */}
+      <ScrollArea
+        className="flex-1 px-16 py-4"
+        style={{
+          backgroundColor: '#efeae2',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M20 2a2 2 0 110 4 2 2 0 010-4z' fill='%23d4cfc6' opacity='0.3'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='200' height='200' fill='url(%23p)'/%3E%3C/svg%3E")`,
+        }}
+      >
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            <div className="h-8 w-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#00a884', borderTopColor: 'transparent' }} />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-neutral-600 text-center py-20">No messages yet. Send a template to start the conversation.</p>
+          <p className="text-sm text-center py-20" style={{ color: '#8696a0' }}>
+            No messages yet. Send a template to start the conversation.
+          </p>
         ) : (
           groupedMessages.map(group => (
             <div key={group.date}>
-              <div className="flex justify-center my-4">
-                <span className="text-[11px] text-neutral-500 bg-[#111] px-4 py-1 rounded-full shadow-sm">
+              <div className="flex justify-center my-3">
+                <span
+                  className="text-xs px-3 py-1 rounded-lg shadow-sm"
+                  style={{ backgroundColor: '#ffffff', color: '#54656f', boxShadow: '0 1px 0.5px rgba(11,20,26,.13)' }}
+                >
                   {isSameDay(parseISO(group.date), new Date())
-                    ? 'Today'
-                    : format(parseISO(group.date), 'dd MMM yyyy')}
+                    ? 'TODAY'
+                    : format(parseISO(group.date), 'dd/MM/yyyy')}
                 </span>
               </div>
               {group.msgs.map(msg => (
@@ -129,4 +154,13 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
       />
     </div>
   );
+}
+
+function IconBtn({ children, onClick, href, title }: { children: React.ReactNode; onClick?: () => void; href?: string; title?: string }) {
+  const cls = "p-2 rounded-full hover:bg-black/5 transition-colors";
+  const style = { color: '#54656f' };
+  if (href) {
+    return <a href={href} className={cls} style={style} title={title}>{children}</a>;
+  }
+  return <button onClick={onClick} className={cls} style={style} title={title}>{children}</button>;
 }

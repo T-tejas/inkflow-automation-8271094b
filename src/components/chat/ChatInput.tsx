@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Send, StickyNote } from 'lucide-react';
+import { Smile, Paperclip, Send, StickyNote } from 'lucide-react';
 import { QuickReplyTemplates } from './QuickReplyTemplates';
 import { cn } from '@/lib/utils';
 
@@ -30,50 +29,72 @@ export function ChatInput({ onSendTemplate, onSendNote, disabled }: Props) {
   };
 
   return (
-    <div className="border-t border-[#222] bg-[#0a0a0f] px-5 py-3">
-      {/* Note mode indicator */}
+    <div style={{ backgroundColor: '#f0f2f5', borderTop: '1px solid #e9edef' }}>
+      {/* Note mode banner */}
       {noteMode && (
-        <div className="flex items-center gap-2 text-xs text-amber-400 mb-2 px-1">
+        <div className="flex items-center gap-2 text-xs px-4 py-1.5 font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
           <StickyNote className="h-3.5 w-3.5" />
           Private note mode — not sent to client
+          <button
+            onClick={() => setNoteMode(false)}
+            className="ml-auto text-[11px] underline"
+          >
+            Cancel
+          </button>
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 px-4 py-2.5">
         <QuickReplyTemplates
           onSelect={(t) => onSendTemplate(t.type, t.name)}
           disabled={disabled}
         />
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn('h-10 w-10', noteMode ? 'text-amber-400 bg-amber-900/20' : 'text-neutral-400 hover:text-amber-400')}
+        <button
+          className={cn(
+            'p-2 rounded-full transition-colors',
+            noteMode ? 'bg-amber-100' : 'hover:bg-black/5'
+          )}
           onClick={() => setNoteMode(!noteMode)}
           disabled={disabled}
           title="Toggle private note mode"
+          style={{ color: noteMode ? '#92400e' : '#54656f' }}
         >
-          <StickyNote className="h-4.5 w-4.5" />
-        </Button>
+          <StickyNote className="h-5 w-5" />
+        </button>
 
-        <input
-          className="flex-1 bg-[#111] border border-[#2a2a3e] rounded-xl px-4 py-3 text-sm text-neutral-200 placeholder:text-neutral-600 outline-none focus:border-emerald-700 transition-colors"
-          placeholder={noteMode ? 'Type a private note...' : 'Select a template to send, or switch to note mode...'}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled || !noteMode}
-        />
+        <button className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: '#54656f' }}>
+          <Smile className="h-6 w-6" />
+        </button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 text-emerald-400 hover:text-emerald-300 disabled:text-neutral-600"
+        <button className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: '#54656f' }}>
+          <Paperclip className="h-5 w-5 rotate-45" />
+        </button>
+
+        <div className="flex-1">
+          <input
+            className="w-full rounded-lg px-3 py-2.5 text-sm outline-none"
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#111b21',
+              border: '1px solid #e9edef',
+            }}
+            placeholder={noteMode ? 'Type a private note...' : 'Select a template to send, or switch to note mode...'}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={disabled || !noteMode}
+          />
+        </div>
+
+        <button
+          className="p-2.5 rounded-full transition-colors disabled:opacity-40"
           onClick={handleSend}
           disabled={disabled || !text.trim() || !noteMode}
+          style={{ backgroundColor: text.trim() && noteMode ? '#00a884' : 'transparent', color: text.trim() && noteMode ? '#ffffff' : '#54656f' }}
         >
           <Send className="h-5 w-5" />
-        </Button>
+        </button>
       </div>
     </div>
   );
