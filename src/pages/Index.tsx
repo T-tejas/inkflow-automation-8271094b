@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
@@ -7,11 +8,13 @@ import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield } from 'lucide-react';
 import { Lead } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
+  const navigate = useNavigate();
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
   const [formOpen, setFormOpen] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
@@ -19,6 +22,19 @@ const Index = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [whatsappLogOpen, setWhatsappLogOpen] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+      setIsAdmin(data === true);
+    }
+    checkAdmin();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => checkAdmin());
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleLeadClick = (lead: Lead) => {
     setDetailLead(lead);
@@ -87,6 +103,12 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/admin')}>
+                <Shield className="h-4 w-4 text-amber-500" />
+                Admin
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setWhatsappLogOpen(true)}>
               <MessageCircle className="h-4 w-4 text-success" />
               Messages
