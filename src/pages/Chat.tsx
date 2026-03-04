@@ -50,19 +50,19 @@ const Chat = () => {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-[#1a1a2e] bg-[#0a0a0f]">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-400" onClick={() => navigate('/')}>
-          <ArrowLeft className="h-4 w-4" />
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1a1a2e] bg-[#0a0a0f]">
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-neutral-400" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-4.5 w-4.5" />
         </Button>
-        <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-[10px]">F19</span>
+        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+          <span className="text-primary-foreground font-bold text-xs">F19</span>
         </div>
-        <span className="text-sm font-semibold text-neutral-300">WhatsApp Chat</span>
+        <span className="text-base font-bold text-neutral-200">WhatsApp Chat</span>
       </div>
 
       {/* Main layout */}
       <div className="flex flex-1 min-h-0">
-        <div className="w-80 flex-shrink-0">
+        <div className="w-[340px] flex-shrink-0">
           <ContactList
             contacts={contacts}
             selectedPhone={selectedPhone}
