@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen text-white bg-popover-foreground">
+    <div className="min-h-screen text-white bg-zinc-950">
       {/* Header */}
       <header className="border-b border-[#1a1a1a] px-6 py-3">
         <div className="flex items-center justify-between max-w-[1400px] mx-auto">
