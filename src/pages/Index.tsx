@@ -109,9 +109,9 @@ const Index = () => {
                 Admin
               </Button>
             )}
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setWhatsappLogOpen(true)}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/chat')}>
               <MessageCircle className="h-4 w-4 text-success" />
-              Messages
+              Chat
             </Button>
             <Button onClick={() => { setEditLead(null); setFormOpen(true); }} size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />

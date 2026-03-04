@@ -141,6 +141,7 @@ Deno.serve(async (req) => {
               template_type: "incoming",
               status: "received",
               meta_message_id: message.id,
+              message_body: messageText || null,
             });
           }
         }
