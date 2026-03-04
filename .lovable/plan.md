@@ -1,135 +1,76 @@
 
 
-## Plan: WhatsApp-Style Chat System for F19 Tattoo CRM
+# WhatsApp Chat Module -- Functional Upgrade Plan
 
-### Overview
-Replace the "Messages" dialog with a full-page WhatsApp Web-style chat interface at `/chat`, featuring a contact list on the left, conversation view on the right, real-time message sync, and quick lead actions.
+## Overview
+Make all chat UI elements fully functional: lead status badge with dropdown, emoji picker, file attachments, free-text messaging, template preview/edit, error banners, and auto-resize textarea.
 
-### Current State
-- `whatsapp_messages` table stores template sends and incoming messages but lacks a `message_body` column for actual text content
-- `WhatsAppLogDialog` is a simple modal showing message history
-- `send-whatsapp` edge function sends template messages only
-- `whatsapp-webhook` edge function receives incoming messages and logs them
-- Real-time subscription exists for `leads` table but not for `whatsapp_messages`
+## 1. Lead Status Badge + Dropdown in Chat Header
+**File: `ChatWindow.tsx`**
+- Add a colored badge next to contact name showing `contact.leadStatus`
+- Color map: New Lead (grey), Contacted (blue), Interested (purple), Negotiating (orange), Booked (green), Completed (dark green)
+- Wrap badge in a Popover/DropdownMenu with all status options
+- On status change: update via `supabase.from('leads').update({ status })` and log interaction, show toast
+- Remove the individual "Mark as Booked" / "Mark as Completed" icon buttons (replaced by dropdown)
 
-### Scope Decisions
-Given practical constraints (Meta WhatsApp API only allows template messages for business-initiated conversations, and free-text replies within 24-hour windows), the chat system will:
-- Display all message history per lead in a chat-bubble UI
-- Support sending templates via quick-reply buttons
-- Show incoming messages from the webhook
-- Support internal notes (private, not sent to client)
-- NOT implement file/image/emoji sending (requires Media API setup not currently configured)
-- NOT implement typing indicators (not available from WhatsApp API)
-- Sound notifications and unread badges will be included
+## 2. Functional Emoji Picker
+**File: `ChatInput.tsx`**
+- Build a simple emoji grid popover (common emojis organized in categories) using Radix Popover
+- On emoji click: insert at cursor position in the textarea
+- No external library needed -- use a curated set of ~100 common emojis
 
----
+## 3. File Attachment Button
+**File: `ChatInput.tsx`, new component `ChatAttachmentPreview.tsx`**
+- Hidden file input triggered by Paperclip button, accept images + PDFs
+- Show preview overlay before sending (image thumbnail or PDF icon + filename)
+- Upload file to existing `f19` storage bucket via Supabase Storage
+- Save message record with `message_body` containing the public URL and a new field or convention (prefix `[file]` or store URL)
+- Display attachments in `MessageBubble.tsx` -- detect URL pattern and render image or PDF link
 
-### Step 1: Database Changes
+## 4. Free-Text Send + Template Preview
+**File: `ChatInput.tsx`**
+- Change input from disabled to always enabled in message mode
+- Send button: works for both note mode AND message mode (free text sends via `send-whatsapp` edge function as a text message, or stores as outgoing)
+- Template selector: when template selected, load template text into textarea for editing before sending
+- Enter key sends in both modes
+- Update `QuickReplyTemplates.tsx` to return template text to input instead of immediately sending
 
-**Alter `whatsapp_messages` table:**
-- Add `message_body` (text, nullable) -- actual message content
-- Add `is_internal_note` (boolean, default false) -- private notes
-- Add `starred` (boolean, default false)
-- Add `lead_id` (uuid, nullable, FK to leads) -- direct lead association
+**File: `send-whatsapp/index.ts`**
+- Add support for `type: "text"` messages (not just templates) for free-text sending via Meta API
 
-**Enable realtime:**
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.whatsapp_messages;
-```
+## 5. Auto-Resize Textarea
+**File: `ChatInput.tsx`**
+- Replace `<input>` with `<textarea>` that auto-resizes (max 5 rows)
+- Use `onInput` to adjust height based on `scrollHeight`
 
-### Step 2: New Route & Layout
+## 6. Error Banner System
+**File: `ChatWindow.tsx`**
+- Check for recent failed messages with specific error patterns
+- Token expired: red banner at top "WhatsApp token expired -- update in settings"
+- Number not allowed: yellow warning in message bubble (already partially done)
+- API failure: add retry button on failed message bubbles in `MessageBubble.tsx`
 
-**`/chat`** -- Full-screen WhatsApp Web clone
+## 7. Retry Failed Messages
+**File: `MessageBubble.tsx`**
+- For `status === 'failed'` messages, show a "Retry" button
+- On click: re-invoke `send-whatsapp` with same parameters, update the message record
 
-```text
-+------------------+----------------------------------+
-| Contact List     | Chat Window                      |
-| - Search bar     | - Header (name, phone, status)   |
-| - Filter tabs    | - Message bubbles (scrollable)   |
-| - Lead list      | - Input bar (templates + notes)  |
-|   with avatars,  |                                  |
-|   last msg,      |                                  |
-|   timestamps,    |                                  |
-|   unread count   |                                  |
-+------------------+----------------------------------+
-```
+## 8. Contact Status Refresh
+**File: `useChat.ts`**
+- After status change in chat header, call `fetchContacts()` to refresh sidebar
+- Pass `fetchContacts` or a status update callback to ChatWindow
 
-### Step 3: Components to Create
-
-| Component | Purpose |
-|-----------|---------|
-| `src/pages/Chat.tsx` | Full-page layout with left/right panels |
-| `src/components/chat/ContactList.tsx` | Left panel: lead list with search, filters, avatars, last message, unread count |
-| `src/components/chat/ChatWindow.tsx` | Right panel: message bubbles, auto-scroll, header with quick actions |
-| `src/components/chat/MessageBubble.tsx` | Individual message with ticks, timestamps, styling |
-| `src/components/chat/ChatInput.tsx` | Bottom input bar: template quick replies, internal note toggle |
-| `src/components/chat/QuickReplyTemplates.tsx` | Dropdown with pre-built templates (Deposit, Booking confirmation, Aftercare) |
-| `src/hooks/useChat.ts` | Hook: fetch messages per lead, realtime subscription, send template, add note |
-
-### Step 4: Contact List (Left Panel)
-
-- Shows all leads that have WhatsApp opt-in or existing messages
-- Avatar: first-letter circle with color derived from name
-- Shows last message preview (truncated), timestamp
-- Unread badge: count messages with `status = 'received'` that are newer than last viewed
-- Filter tabs: All | Unread | Booked | Completed | Hot Leads (Interested + Negotiating)
-- Search by name or phone
-- Click selects lead and loads chat
-
-### Step 5: Chat Window (Right Panel)
-
-- **Header**: Lead name, phone, status badge, quick action buttons (Call via `tel:`, View Lead Detail, Mark as Booked, Mark as Completed)
-- **Messages**: Grouped by date, outgoing (green, right-aligned), incoming (dark card, left-aligned), internal notes (yellow, left, with lock icon)
-- **Delivery ticks**: Single check (sent), double check (delivered), blue double check (read), red alert (failed)
-- **Auto-scroll** to latest message on load and new message
-- **Starred messages**: Click to star, filter starred
-
-### Step 6: Chat Input Bar
-
-- Quick reply template buttons (Booking Confirmation, Deposit Request, Aftercare, Reminder)
-- Internal note toggle (switch to note mode, sends to DB only, not WhatsApp)
-- Enter to send (template selection or note)
-- Text input for notes (free text is note-only since WhatsApp API requires templates for business-initiated messages)
-
-### Step 7: Real-time & Notifications
-
-- Subscribe to `whatsapp_messages` postgres_changes for INSERT events
-- New incoming message: update contact list order, increment unread badge
-- Audio notification: play a short sound on new incoming message (using `new Audio()`)
-- Browser notification permission request (optional enhancement)
-
-### Step 8: Navigation Changes
-
-- Replace "Messages" button in CRM header with "Chat" button that navigates to `/chat`
-- Add route in `App.tsx`
-- Chat page has back-to-CRM button in header
-
-### Step 9: Webhook Enhancement
-
-- Update `whatsapp-webhook` edge function to populate `message_body` and `lead_id` when logging incoming messages
-- Update `send-whatsapp` to populate `message_body` with template name/parameters and `lead_id`
-
-### Files to Create/Modify
-
+## Files to Create/Edit
 | File | Action |
 |------|--------|
-| Migration SQL | Add columns to `whatsapp_messages`, enable realtime |
-| `src/pages/Chat.tsx` | New -- full page layout |
-| `src/components/chat/ContactList.tsx` | New -- left panel |
-| `src/components/chat/ChatWindow.tsx` | New -- right panel |
-| `src/components/chat/MessageBubble.tsx` | New -- bubble component |
-| `src/components/chat/ChatInput.tsx` | New -- input bar with templates |
-| `src/components/chat/QuickReplyTemplates.tsx` | New -- template dropdown |
-| `src/hooks/useChat.ts` | New -- chat data hook |
-| `src/App.tsx` | Add `/chat` route |
-| `src/pages/Index.tsx` | Replace Messages button with Chat navigation |
-| `supabase/functions/send-whatsapp/index.ts` | Add `message_body` and `lead_id` to insert |
-| `supabase/functions/whatsapp-webhook/index.ts` | Add `message_body` and `lead_id` to insert |
+| `src/components/chat/ChatWindow.tsx` | Status badge, dropdown, error banner, remove old buttons |
+| `src/components/chat/ChatInput.tsx` | Emoji picker, attachment, auto-resize textarea, free-text send |
+| `src/components/chat/MessageBubble.tsx` | Retry button, file/image rendering |
+| `src/components/chat/QuickReplyTemplates.tsx` | Return text to input instead of direct send |
+| `src/components/chat/EmojiPicker.tsx` | New: simple emoji grid popover |
+| `src/hooks/useChat.ts` | Add updateLeadStatus, retryMessage functions |
+| `supabase/functions/send-whatsapp/index.ts` | Add text message support |
+| `src/pages/Chat.tsx` | Wire new callbacks |
 
-### Not Included (Future Enhancements)
-- Image/PDF sending (requires Meta Media API configuration)
-- Emoji picker (can add later)
-- Role-based chat visibility (currently all chats visible; staff assignment requires an `assigned_to` column on leads)
-- "Last seen" (not available from WhatsApp API)
-- Sound file needs to be a small inline base64 or hosted asset
+No database migrations needed -- existing schema supports all changes.
 
