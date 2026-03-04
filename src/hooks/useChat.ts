@@ -52,7 +52,6 @@ function mapRow(row: any): ChatMessage {
   };
 }
 
-// Notification sound as inline base64 (short beep)
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+Onp2XjHVjWGJ0hZSdmpKCcGFfbX+QnZuUh3ZoYWp6i5iamZOGdmhlanqLmJqZk4Z2aA==';
 
 export function useChat() {
@@ -63,13 +62,11 @@ export function useChat() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Init audio
   useEffect(() => {
     audioRef.current = new Audio(NOTIFICATION_SOUND);
     audioRef.current.volume = 0.5;
   }, []);
 
-  // Fetch contacts (all leads with their last message info)
   const fetchContacts = useCallback(async () => {
     const { data: leads } = await supabase
       .from('leads')
@@ -78,7 +75,6 @@ export function useChat() {
 
     if (!leads) { setLoading(false); return; }
 
-    // Get last message and unread counts per phone
     const { data: allMessages } = await supabase
       .from('whatsapp_messages')
       .select('lead_phone, message_body, template_name, template_type, status, created_at')
@@ -117,7 +113,6 @@ export function useChat() {
       };
     });
 
-    // Sort: contacts with messages first, then by last message time
     contactList.sort((a, b) => {
       if (a.lastMessageTime && !b.lastMessageTime) return -1;
       if (!a.lastMessageTime && b.lastMessageTime) return 1;
@@ -131,7 +126,6 @@ export function useChat() {
     setLoading(false);
   }, []);
 
-  // Fetch messages for selected phone
   const fetchMessages = useCallback(async (phone: string) => {
     setMessagesLoading(true);
     const { data } = await supabase
@@ -144,72 +138,72 @@ export function useChat() {
     setMessagesLoading(false);
   }, []);
 
-  // Select a contact
   const selectContact = useCallback((phone: string) => {
     setSelectedPhone(phone);
     fetchMessages(phone);
   }, [fetchMessages]);
 
-  // Initial load
-  useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
+  useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
-  // Realtime subscription
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel('chat-messages')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' },
-        (payload) => {
-          const newMsg = mapRow(payload.new);
-
-          // If it's for the currently selected contact, add to messages
-          if (newMsg.leadPhone === selectedPhone) {
-            setMessages(prev => [...prev, newMsg]);
-          }
-
-          // Play sound for incoming messages
-          if (newMsg.templateType === 'incoming' || newMsg.status === 'received') {
-            audioRef.current?.play().catch(() => {});
-          }
-
-          // Refresh contacts to update last message and unread
-          fetchContacts();
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
+        const newMsg = mapRow(payload.new);
+        if (newMsg.leadPhone === selectedPhone) {
+          setMessages(prev => [...prev, newMsg]);
         }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'whatsapp_messages' },
-        (payload) => {
-          const updated = mapRow(payload.new);
-          setMessages(prev => prev.map(m => m.id === updated.id ? updated : m));
+        if (newMsg.templateType === 'incoming' || newMsg.status === 'received') {
+          audioRef.current?.play().catch(() => {});
         }
-      )
+        fetchContacts();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
+        const updated = mapRow(payload.new);
+        setMessages(prev => prev.map(m => m.id === updated.id ? updated : m));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [selectedPhone, fetchContacts]);
 
-  // Send template message
   const sendTemplate = useCallback(async (
-    phone: string,
-    leadName: string,
-    leadId: string,
+    phone: string, leadName: string, leadId: string,
     templateType: 'confirmation' | 'reminder' | 'promo',
-    templateName: string,
-    parameters?: string[]
+    templateName: string, parameters?: string[]
   ) => {
     const { data, error } = await supabase.functions.invoke('send-whatsapp', {
       body: { phone, leadName, templateType, templateName, parameters },
     });
-
     if (error) throw error;
     return data;
   }, []);
 
-  // Add internal note
+  // Send free-text message via edge function
+  const sendMessage = useCallback(async (phone: string, leadName: string, leadId: string, text: string) => {
+    const { data, error } = await supabase.functions.invoke('send-whatsapp', {
+      body: { phone, leadName, type: 'text', messageBody: text },
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  // Send attachment message
+  const sendAttachment = useCallback(async (phone: string, leadName: string, leadId: string, url: string, fileName: string, isImage: boolean) => {
+    // Store as message with file URL
+    const { error } = await supabase.from('whatsapp_messages').insert({
+      lead_phone: phone,
+      lead_name: leadName,
+      lead_id: leadId,
+      template_name: 'attachment',
+      template_type: 'confirmation',
+      status: 'sent',
+      message_body: `[file]${url}`,
+    } as any);
+    if (error) throw error;
+  }, []);
+
   const addNote = useCallback(async (phone: string, leadName: string, leadId: string, noteText: string) => {
     const { error } = await supabase.from('whatsapp_messages').insert({
       lead_phone: phone,
@@ -221,18 +215,47 @@ export function useChat() {
       message_body: noteText,
       is_internal_note: true,
     } as any);
-
     if (error) throw error;
   }, []);
 
-  // Toggle star
   const toggleStar = useCallback(async (messageId: string, currentStarred: boolean) => {
     await supabase
       .from('whatsapp_messages')
       .update({ starred: !currentStarred } as any)
       .eq('id', messageId);
-
     setMessages(prev => prev.map(m => m.id === messageId ? { ...m, starred: !currentStarred } : m));
+  }, []);
+
+  // Update lead status
+  const updateLeadStatus = useCallback(async (leadId: string, newStatus: string, oldStatus: string) => {
+    const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
+    if (error) throw error;
+    // Log interaction
+    await supabase.from('lead_interactions').insert({
+      lead_id: leadId,
+      action_type: 'status_change',
+      old_value: oldStatus,
+      new_value: newStatus,
+    });
+    await fetchContacts();
+  }, [fetchContacts]);
+
+  // Retry failed message
+  const retryMessage = useCallback(async (message: ChatMessage) => {
+    if (!message.messageBody) return;
+    // Delete old failed message
+    await supabase.from('whatsapp_messages').delete().eq('id', message.id);
+    setMessages(prev => prev.filter(m => m.id !== message.id));
+    // Re-send
+    const { error } = await supabase.functions.invoke('send-whatsapp', {
+      body: {
+        phone: message.leadPhone,
+        leadName: message.leadName,
+        type: 'text',
+        messageBody: message.messageBody,
+      },
+    });
+    if (error) throw error;
   }, []);
 
   return {
@@ -243,8 +266,12 @@ export function useChat() {
     messagesLoading,
     selectContact,
     sendTemplate,
+    sendMessage,
+    sendAttachment,
     addNote,
     toggleStar,
     fetchContacts,
+    updateLeadStatus,
+    retryMessage,
   };
 }

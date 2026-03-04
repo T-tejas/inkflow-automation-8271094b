@@ -1,11 +1,24 @@
 import { ChatMessage } from '@/hooks/useChat';
-import { Check, CheckCheck, AlertCircle, Lock, Star } from 'lucide-react';
+import { Check, CheckCheck, AlertCircle, Lock, Star, RotateCw, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
 interface Props {
   message: ChatMessage;
   onToggleStar: (id: string, starred: boolean) => void;
+  onRetry?: (message: ChatMessage) => void;
+}
+
+function isImageUrl(url: string) {
+  return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+}
+
+function isPdfUrl(url: string) {
+  return /\.pdf(\?|$)/i.test(url);
+}
+
+function isFileMessage(body: string) {
+  return body.startsWith('[file]') || (body.startsWith('http') && (isImageUrl(body) || isPdfUrl(body)));
 }
 
 function DeliveryTicks({ message }: { message: ChatMessage }) {
@@ -17,15 +30,47 @@ function DeliveryTicks({ message }: { message: ChatMessage }) {
   return null;
 }
 
-export function MessageBubble({ message, onToggleStar }: Props) {
+function renderFileContent(body: string) {
+  const url = body.startsWith('[file]') ? body.replace('[file]', '').trim() : body;
+  
+  if (isImageUrl(url)) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img src={url} alt="attachment" className="max-w-[250px] max-h-[200px] rounded-lg object-cover" />
+      </a>
+    );
+  }
+  if (isPdfUrl(url)) {
+    const filename = url.split('/').pop()?.split('?')[0] || 'document.pdf';
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg"
+        style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+      >
+        <FileText className="h-8 w-8 flex-shrink-0" style={{ color: '#ea4335' }} />
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: '#111b21' }}>{filename}</p>
+          <p className="text-[11px]" style={{ color: '#667781' }}>PDF Document</p>
+        </div>
+      </a>
+    );
+  }
+  return null;
+}
+
+export function MessageBubble({ message, onToggleStar, onRetry }: Props) {
   const isOutgoing = message.templateType !== 'incoming' && message.status !== 'received' && !message.isInternalNote;
   const isNote = message.isInternalNote;
   const isIncoming = !isOutgoing && !isNote;
+  const isFailed = message.status === 'failed' || message.deliveryStatus === 'failed';
 
   const body = message.messageBody || `📋 Template: ${message.templateName}`;
   const time = format(parseISO(message.createdAt), 'HH:mm');
+  const fileMsg = body && isFileMessage(body);
 
-  // WhatsApp-style bubble colors
   const bubbleStyle: React.CSSProperties = isNote
     ? { backgroundColor: '#fef3c7', border: '1px solid #fde68a' }
     : isOutgoing
@@ -41,10 +86,7 @@ export function MessageBubble({ message, onToggleStar }: Props) {
           isIncoming && 'rounded-lg rounded-tl-none',
           isNote && 'rounded-lg'
         )}
-        style={{
-          ...bubbleStyle,
-          boxShadow: '0 1px 0.5px rgba(11,20,26,.13)',
-        }}
+        style={{ ...bubbleStyle, boxShadow: '0 1px 0.5px rgba(11,20,26,.13)' }}
       >
         {/* Tail */}
         {(isOutgoing || isIncoming) && (
@@ -66,12 +108,25 @@ export function MessageBubble({ message, onToggleStar }: Props) {
           </div>
         )}
 
-        <p className="whitespace-pre-wrap break-words" style={{ color: '#111b21' }}>{body}</p>
+        {fileMsg ? renderFileContent(body) : (
+          <p className="whitespace-pre-wrap break-words" style={{ color: '#111b21' }}>{body}</p>
+        )}
 
         {message.errorMessage && (
           <p className="text-[11px] mt-1 break-words line-clamp-2" style={{ color: '#ea0038' }}>
             ⚠ {message.errorMessage}
           </p>
+        )}
+
+        {/* Retry button for failed messages */}
+        {isFailed && onRetry && (
+          <button
+            onClick={() => onRetry(message)}
+            className="flex items-center gap-1 mt-1 text-[11px] font-medium px-2 py-1 rounded hover:bg-black/5 transition-colors"
+            style={{ color: '#ea0038' }}
+          >
+            <RotateCw className="h-3 w-3" /> Retry
+          </button>
         )}
 
         <div className={cn('flex items-center gap-1 mt-0.5 float-right ml-3 -mb-0.5 relative top-[3px]')}>
@@ -84,7 +139,6 @@ export function MessageBubble({ message, onToggleStar }: Props) {
           <span className="text-[11px]" style={{ color: '#667781' }}>{time}</span>
           {isOutgoing && <DeliveryTicks message={message} />}
         </div>
-        {/* Clearfix for float */}
         <div className="clear-both" />
       </div>
     </div>

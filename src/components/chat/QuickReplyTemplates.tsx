@@ -7,13 +7,14 @@ interface Template {
   type: 'confirmation' | 'reminder' | 'promo';
   name: string;
   description: string;
+  text: string;
 }
 
 const TEMPLATES: Template[] = [
-  { label: '✅ Booking Confirmation', type: 'confirmation', name: 'booking_confirmation', description: 'Confirm their tattoo appointment' },
-  { label: '💰 Deposit Request', type: 'promo', name: 'promo_offer', description: 'Request deposit payment' },
-  { label: '⏰ Appointment Reminder', type: 'reminder', name: 'appointment_reminder', description: 'Remind about upcoming session' },
-  { label: '🩹 Aftercare Instructions', type: 'promo', name: 'promo_offer', description: 'Send aftercare tips' },
+  { label: '✅ Booking Confirmation', type: 'confirmation', name: 'booking_confirmation', description: 'Confirm their tattoo appointment', text: 'Hi {{name}}, your tattoo appointment has been confirmed! Please arrive 15 minutes early. See you soon! 🎨' },
+  { label: '💰 Deposit Request', type: 'promo', name: 'promo_offer', description: 'Request deposit payment', text: 'Hi {{name}}, to secure your booking please complete the deposit payment. Let us know if you have any questions! 💰' },
+  { label: '⏰ Appointment Reminder', type: 'reminder', name: 'appointment_reminder', description: 'Remind about upcoming session', text: 'Hi {{name}}, just a reminder about your upcoming tattoo session. Please confirm your availability! ⏰' },
+  { label: '🩹 Aftercare Instructions', type: 'promo', name: 'promo_offer', description: 'Send aftercare tips', text: 'Hi {{name}}, here are your tattoo aftercare instructions: Keep it clean, moisturize regularly, avoid direct sunlight for 2 weeks. 🩹' },
 ];
 
 interface Props {
@@ -42,7 +43,7 @@ export function QuickReplyTemplates({ onSelect, disabled }: Props) {
         align="start"
       >
         <div className="text-[11px] px-3 py-2 uppercase tracking-wider font-semibold" style={{ color: '#8696a0' }}>
-          Quick Templates
+          Quick Templates — loads into input for editing
         </div>
         {TEMPLATES.map(t => (
           <button
