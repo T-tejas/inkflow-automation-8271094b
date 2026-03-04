@@ -131,10 +131,14 @@ export type Database = {
           delivery_status: string | null
           error_message: string | null
           id: string
+          is_internal_note: boolean
+          lead_id: string | null
           lead_name: string
           lead_phone: string
+          message_body: string | null
           meta_message_id: string | null
           read_at: string | null
+          starred: boolean
           status: string
           template_name: string
           template_type: string
@@ -145,10 +149,14 @@ export type Database = {
           delivery_status?: string | null
           error_message?: string | null
           id?: string
+          is_internal_note?: boolean
+          lead_id?: string | null
           lead_name: string
           lead_phone: string
+          message_body?: string | null
           meta_message_id?: string | null
           read_at?: string | null
+          starred?: boolean
           status?: string
           template_name: string
           template_type: string
@@ -159,15 +167,27 @@ export type Database = {
           delivery_status?: string | null
           error_message?: string | null
           id?: string
+          is_internal_note?: boolean
+          lead_id?: string | null
           lead_name?: string
           lead_phone?: string
+          message_body?: string | null
           meta_message_id?: string | null
           read_at?: string | null
+          starred?: boolean
           status?: string
           template_name?: string
           template_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

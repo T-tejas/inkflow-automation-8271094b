@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
       status,
       meta_message_id: messageId,
       error_message: errorMessage,
+      message_body: `📋 ${finalTemplateName}${parameters ? ` (${parameters.join(', ')})` : ''}`,
     });
 
     if (!metaResponse.ok) {
