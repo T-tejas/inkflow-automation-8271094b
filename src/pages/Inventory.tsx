@@ -9,7 +9,8 @@ import { InventoryExport } from '@/components/inventory/InventoryExport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, ArrowLeft, Package, TrendingDown, DollarSign, AlertTriangle } from 'lucide-react';
+import { Plus, ArrowLeft, Package, TrendingDown, IndianRupee, AlertTriangle } from 'lucide-react';
+import { formatINR } from '@/lib/currency';
 import { motion } from 'framer-motion';
 
 const Inventory = () => {
@@ -75,11 +76,11 @@ const Inventory = () => {
           <Card>
             <CardHeader className="pb-1 pt-4 px-4">
               <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <DollarSign className="h-3.5 w-3.5" /> Total Value
+                <IndianRupee className="h-3.5 w-3.5" /> Total Value
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <p className="text-2xl font-bold">₹{totalInventoryValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold">{formatINR(totalInventoryValue)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -89,7 +90,7 @@ const Inventory = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <p className="text-2xl font-bold">₹{totalNeedleValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold">{formatINR(totalNeedleValue)}</p>
             </CardContent>
           </Card>
           <Card className={lowStockItems.length > 0 ? 'border-destructive/30' : ''}>

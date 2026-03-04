@@ -1,4 +1,5 @@
 import { Users, CalendarCheck, CheckCircle, TrendingUp, IndianRupee } from 'lucide-react';
+import { formatINR } from '@/lib/currency';
 import { motion } from 'framer-motion';
 
 interface StatsCardsProps {
@@ -22,7 +23,7 @@ const cards = [
 
 function formatValue(val: number, format: string) {
   if (format === 'currency') {
-    return `₹${val.toLocaleString('en-IN')}`;
+    return formatINR(val);
   }
   return val.toString();
 }

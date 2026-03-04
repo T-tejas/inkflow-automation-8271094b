@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { StatsCards } from '@/components/crm/StatsCards';
@@ -8,12 +8,18 @@ import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut } from 'lucide-react';
 import { Lead } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
+import type { AppRole } from '@/hooks/useAuth';
 
-const Index = () => {
+interface IndexProps {
+  signOut: () => Promise<void>;
+  isAdmin: boolean;
+  userRole: AppRole | null;
+}
+
+const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const navigate = useNavigate();
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
   const [formOpen, setFormOpen] = useState(false);
@@ -22,19 +28,6 @@ const Index = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [whatsappLogOpen, setWhatsappLogOpen] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    async function checkAdmin() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
-      setIsAdmin(data === true);
-    }
-    checkAdmin();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => checkAdmin());
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleLeadClick = (lead: Lead) => {
     setDetailLead(lead);
@@ -63,7 +56,6 @@ const Index = () => {
     setTagFilter(prev => prev === tag ? null : tag);
   };
 
-  // Filter leads by tag if active
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
   return (
@@ -121,6 +113,10 @@ const Index = () => {
               <Plus className="h-4 w-4" />
               Add Lead
             </Button>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive" onClick={signOut}>
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
@@ -130,7 +126,6 @@ const Index = () => {
         <StatsCards stats={stats} />
         <DashboardCharts leads={leads} />
 
-        {/* Tag filter indicator */}
         {tagFilter && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Filtering by tag:</span>
@@ -156,7 +151,6 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Dialogs */}
       <LeadFormDialog
         open={formOpen}
         onOpenChange={handleFormClose}
