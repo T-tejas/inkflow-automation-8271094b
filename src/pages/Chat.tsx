@@ -1,13 +1,9 @@
 import { useChat } from '@/hooks/useChat';
 import { ContactList } from '@/components/chat/ContactList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
 const Chat = () => {
-  const navigate = useNavigate();
   const {
     contacts,
     messages,
@@ -48,27 +44,21 @@ const Chat = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1a1a2e] bg-[#0a0a0f]">
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-neutral-400" onClick={() => navigate('/')}>
-          <ArrowLeft className="h-4.5 w-4.5" />
-        </Button>
-        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-xs">F19</span>
-        </div>
-        <span className="text-base font-bold text-neutral-200">WhatsApp Chat</span>
-      </div>
-
-      {/* Main layout */}
-      <div className="flex flex-1 min-h-0">
-        <div className="w-[340px] flex-shrink-0">
+    <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#dddbd1' }}>
+      {/* WhatsApp green top bar */}
+      <div className="fixed top-0 left-0 right-0 h-[128px] z-0" style={{ backgroundColor: '#00a884' }} />
+      
+      {/* Main container */}
+      <div className="relative z-10 flex w-full max-w-[1600px] h-[calc(100vh-36px)] my-[18px] mx-4 shadow-xl rounded-sm overflow-hidden" style={{ backgroundColor: '#ffffff' }}>
+        {/* Left sidebar */}
+        <div className="w-[420px] flex-shrink-0 border-r" style={{ borderColor: '#e9edef' }}>
           <ContactList
             contacts={contacts}
             selectedPhone={selectedPhone}
             onSelect={selectContact}
           />
         </div>
+        {/* Chat window */}
         <ChatWindow
           contact={selectedContact}
           messages={messages}
