@@ -316,6 +316,48 @@ export function useLeads() {
     }
   }, []);
 
+  const autoDeductNeedles = useCallback(async (lead: Lead) => {
+    // Map tattoo styles to needle types for auto-deduction
+    const style = lead.tattooStyle?.toLowerCase() || '';
+    const needleTypesToDeduct: string[] = [];
+    if (['traditional', 'lettering', 'minimalist', 'minimal', 'geometric'].some(s => style.includes(s))) {
+      needleTypesToDeduct.push('RL'); // line work
+    }
+    if (['realism', 'portrait', 'watercolor', 'neo-traditional'].some(s => style.includes(s))) {
+      needleTypesToDeduct.push('RS', 'Bugpin');
+    }
+    if (['japanese', 'tribal', 'blackwork', 'dotwork'].some(s => style.includes(s))) {
+      needleTypesToDeduct.push('RL', 'M1');
+    }
+    if (needleTypesToDeduct.length === 0) needleTypesToDeduct.push('RL'); // default
+
+    const uniqueTypes = [...new Set(needleTypesToDeduct)];
+    for (const nt of uniqueTypes) {
+      const { data: needles } = await supabase
+        .from('inventory_items')
+        .select('id, quantity_in_stock')
+        .eq('category', 'Needles')
+        .eq('needle_type', nt)
+        .gt('quantity_in_stock', 0)
+        .order('quantity_in_stock', { ascending: false })
+        .limit(1);
+      if (needles && needles.length > 0) {
+        const needle = needles[0];
+        await supabase.from('inventory_items').update({
+          quantity_in_stock: Math.max(0, needle.quantity_in_stock - 1),
+          last_updated: new Date().toISOString(),
+        } as any).eq('id', needle.id);
+        await supabase.from('needle_usage_log').insert({
+          inventory_item_id: needle.id,
+          lead_id: lead.id,
+          quantity_used: 1,
+          usage_type: 'auto',
+          notes: `Auto-deducted for completed tattoo (${lead.tattooStyle})`,
+        } as any);
+      }
+    }
+  }, []);
+
   const updateLeadStatus = useCallback(async (id: string, status: LeadStatus) => {
     const prev = leadsRef.current;
     const existing = prev.find(l => l.id === id);
@@ -338,13 +380,18 @@ export function useLeads() {
       logInteraction(id, 'stage_change', oldStatus, status);
       toast.success(`Stage → ${status}`);
       setSyncError(false);
+
+      // Auto-deduct needles when tattoo is completed
+      if (status === 'Completed' && oldStatus !== 'Completed' && existing) {
+        autoDeductNeedles(existing);
+      }
     } catch (err) {
       console.error('Error updating status:', err);
       toast.error('Failed to update status');
       setSyncError(true);
       setLeads(prev);
     }
-  }, []);
+  }, [autoDeductNeedles]);
 
   const deleteLead = useCallback(async (id: string) => {
     const prev = leadsRef.current;

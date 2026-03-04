@@ -8,7 +8,7 @@ import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package } from 'lucide-react';
 import { Lead } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,6 +109,10 @@ const Index = () => {
                 Admin
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/inventory')}>
+              <Package className="h-4 w-4 text-warning" />
+              Inventory
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/chat')}>
               <MessageCircle className="h-4 w-4 text-success" />
               Chat

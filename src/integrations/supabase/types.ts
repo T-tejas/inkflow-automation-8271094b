@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      inventory_items: {
+        Row: {
+          category: string
+          cost_per_unit: number
+          created_at: string
+          gauge: string | null
+          grouping: string | null
+          id: string
+          item_name: string
+          last_updated: string
+          minimum_required: number
+          needle_type: string | null
+          purpose_notes: string | null
+          quantity_in_stock: number
+          supplier: string | null
+        }
+        Insert: {
+          category?: string
+          cost_per_unit?: number
+          created_at?: string
+          gauge?: string | null
+          grouping?: string | null
+          id?: string
+          item_name: string
+          last_updated?: string
+          minimum_required?: number
+          needle_type?: string | null
+          purpose_notes?: string | null
+          quantity_in_stock?: number
+          supplier?: string | null
+        }
+        Update: {
+          category?: string
+          cost_per_unit?: number
+          created_at?: string
+          gauge?: string | null
+          grouping?: string | null
+          id?: string
+          item_name?: string
+          last_updated?: string
+          minimum_required?: number
+          needle_type?: string | null
+          purpose_notes?: string | null
+          quantity_in_stock?: number
+          supplier?: string | null
+        }
+        Relationships: []
+      }
       lead_interactions: {
         Row: {
           action_type: string
@@ -105,6 +153,51 @@ export type Database = {
           whatsapp_opt_in?: boolean
         }
         Relationships: []
+      }
+      needle_usage_log: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          lead_id: string | null
+          notes: string | null
+          quantity_used: number
+          usage_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          lead_id?: string | null
+          notes?: string | null
+          quantity_used?: number
+          usage_type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          lead_id?: string | null
+          notes?: string | null
+          quantity_used?: number
+          usage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "needle_usage_log_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "needle_usage_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
