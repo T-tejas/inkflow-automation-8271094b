@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   const [filters, setFilters] = useState<AdminFilters>({
     dateRange: 'month',
     styles: [],
-    sources: [],
+    sources: []
   });
   const { completed, booked, pending, stats, loading } = useAdminLeads(filters);
 
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen text-white bg-popover-foreground">
       {/* Header */}
       <header className="border-b border-[#1a1a1a] px-6 py-3">
         <div className="flex items-center justify-between max-w-[1400px] mx-auto">
@@ -35,8 +35,8 @@ export default function AdminDashboard() {
               variant="ghost"
               size="sm"
               className="text-neutral-400 hover:text-white gap-1.5"
-              onClick={() => navigate('/')}
-            >
+              onClick={() => navigate('/')}>
+              
               <ArrowLeft className="h-4 w-4" />
               CRM
             </Button>
@@ -59,19 +59,19 @@ export default function AdminDashboard() {
 
       {/* Main */}
       <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
+        {loading ?
+        <div className="flex items-center justify-center py-20">
             <div className="animate-spin h-8 w-8 border-2 border-amber-500 border-t-transparent rounded-full" />
-          </div>
-        ) : (
-          <>
+          </div> :
+
+        <>
             <RevenueFilters filters={filters} onChange={setFilters} />
             <RevenueCards stats={stats} />
             <RevenueCharts completed={completed} booked={booked} pending={pending} />
             <CompletedTable leads={completed} />
           </>
-        )}
+        }
       </main>
-    </div>
-  );
+    </div>);
+
 }
