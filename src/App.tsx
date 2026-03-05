@@ -11,6 +11,7 @@ import Chat from "./pages/Chat";
 import Inventory from "./pages/Inventory";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import WhatsAppSettings from "./pages/WhatsAppSettings";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ function AuthenticatedApp() {
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
+      <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
