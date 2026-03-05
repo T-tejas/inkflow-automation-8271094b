@@ -7,7 +7,7 @@ import { RevenueFilters } from '@/components/admin/RevenueFilters';
 import { RevenueCharts } from '@/components/admin/RevenueCharts';
 import { CompletedTable } from '@/components/admin/CompletedTable';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut } from 'lucide-react';
+import { ArrowLeft, LogOut, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminDashboard() {
@@ -50,10 +50,16 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-neutral-400 hover:text-white gap-1.5">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/settings/whatsapp')} className="text-neutral-400 hover:text-white gap-1.5">
+              <Settings className="h-4 w-4" />
+              WhatsApp Settings
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-neutral-400 hover:text-white gap-1.5">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
