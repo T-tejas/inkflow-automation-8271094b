@@ -44,13 +44,19 @@ async function getSettingsFromDb(supabase: any): Promise<Record<string, string>>
 }
 
 async function resolvePhoneNumberIdFromWaba(wabaId: string, accessToken: string): Promise<string | null> {
+  console.log(`[send-whatsapp] Resolving phone numbers from WABA: ${wabaId}`);
   const response = await fetch(
-    `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number`,
+    `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
-  if (!response.ok) return null;
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`[send-whatsapp] WABA phone_numbers API failed: ${response.status} ${errText}`);
+    return null;
+  }
   try {
     const result = await response.json();
+    console.log(`[send-whatsapp] WABA phone_numbers response:`, JSON.stringify(result));
     const firstId = result?.data?.[0]?.id;
     return typeof firstId === "string" && firstId.length > 0 ? firstId : null;
   } catch {
@@ -82,10 +88,13 @@ Deno.serve(async (req) => {
 
     // Read credentials: prefer DB settings, fallback to env secrets
     const dbSettings = await getSettingsFromDb(supabase);
+    console.log(`[send-whatsapp] DB settings keys:`, Object.keys(dbSettings));
 
     const accessToken = dbSettings["access_token"] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
     const wabaId = dbSettings["whatsapp_business_account_id"];
     const envPhoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+
+    console.log(`[send-whatsapp] WABA ID: ${wabaId}, envPhoneId: ${envPhoneId}, hasAccessToken: ${!!accessToken}`);
 
     if (!accessToken) {
       return json({ error: "WhatsApp access token not configured. Add it in WhatsApp Settings." }, 500);
@@ -96,10 +105,12 @@ Deno.serve(async (req) => {
 
     if (wabaId) {
       phoneNumberId = await resolvePhoneNumberIdFromWaba(wabaId, accessToken);
+      console.log(`[send-whatsapp] Resolved from WABA: ${phoneNumberId}`);
     }
 
     if (!phoneNumberId && envPhoneId) {
       phoneNumberId = envPhoneId;
+      console.log(`[send-whatsapp] Fallback to env phoneId: ${phoneNumberId}`);
     }
 
     if (!phoneNumberId) {
