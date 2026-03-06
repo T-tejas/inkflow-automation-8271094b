@@ -58,8 +58,16 @@ export function ContactList({ contacts, selectedPhone, onSelect }: Props) {
           </button>
           <h2 className="text-lg font-semibold" style={{ color: '#111b21' }}>Chats</h2>
         </div>
-        <button className="p-2 rounded-full hover:bg-black/5 transition-colors">
-          <Filter className="h-5 w-5" style={{ color: '#54656f' }} />
+        <button
+          className="p-2 rounded-full hover:bg-black/5 transition-colors"
+          onClick={() => setFilter(prev => {
+            const keys = FILTERS.map(f => f.key);
+            const idx = keys.indexOf(prev);
+            return keys[(idx + 1) % keys.length];
+          })}
+          title={`Filter: ${FILTERS.find(f => f.key === filter)?.label}`}
+        >
+          <Filter className="h-5 w-5" style={{ color: filter !== 'all' ? '#00a884' : '#54656f' }} />
         </button>
       </div>
 

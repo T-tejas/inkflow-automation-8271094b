@@ -10,21 +10,12 @@ interface SendRequest {
   phone: string;
   leadName: string;
   leadId?: string;
-  // Template fields
   templateType?: "confirmation" | "reminder" | "promo";
   templateName?: string;
   templateLanguage?: string;
   parameters?: string[];
-  // Text message fields
   type?: "text" | "template";
   messageBody?: string;
-}
-
-interface MetaErrorInfo {
-  message: string;
-  code?: number;
-  subcode?: number;
-  type?: string;
 }
 
 const TEMPLATE_DEFAULTS: Record<string, { name: string; language: string }> = {
@@ -39,73 +30,43 @@ const json = (payload: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-async function sendToMeta(
-  phoneNumberId: string,
-  accessToken: string,
-  payload: Record<string, unknown>
-) {
-  const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  let result: Record<string, any> | null = null;
-  try {
-    result = await response.json();
-  } catch {
-    result = null;
+async function getSettingsFromDb(supabase: any): Promise<Record<string, string>> {
+  const { data } = await supabase
+    .from("whatsapp_settings")
+    .select("setting_key, setting_value");
+  const map: Record<string, string> = {};
+  if (data) {
+    for (const row of data) {
+      if (row.setting_value) map[row.setting_key] = row.setting_value;
+    }
   }
-
-  return { response, result };
+  return map;
 }
 
-async function resolvePhoneNumberIdFromWaba(objectId: string, accessToken: string) {
+async function resolvePhoneNumberIdFromWaba(wabaId: string, accessToken: string): Promise<string | null> {
   const response = await fetch(
-    `https://graph.facebook.com/v21.0/${objectId}/phone_numbers?fields=id,display_phone_number`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+    `https://graph.facebook.com/v21.0/${wabaId}/phone_numbers?fields=id,display_phone_number`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
-
   if (!response.ok) return null;
-
-  let result: Record<string, any> | null = null;
   try {
-    result = await response.json();
+    const result = await response.json();
+    const firstId = result?.data?.[0]?.id;
+    return typeof firstId === "string" && firstId.length > 0 ? firstId : null;
   } catch {
     return null;
   }
-
-  const firstPhoneId = result?.data?.[0]?.id;
-  return typeof firstPhoneId === "string" && firstPhoneId.length > 0 ? firstPhoneId : null;
 }
 
-function extractMetaError(metaResult: Record<string, any> | null): MetaErrorInfo {
-  return {
-    message: metaResult?.error?.message || "Unknown error",
-    code: metaResult?.error?.code,
-    subcode: metaResult?.error?.error_subcode,
-    type: metaResult?.error?.type,
-  };
-}
-
-function isUnsupportedObjectIdError(metaError: MetaErrorInfo): boolean {
-  return metaError.code === 100 && metaError.subcode === 33;
-}
-
-function buildConfigurationHint(metaError: MetaErrorInfo, configuredObjectId: string): string {
-  if (isUnsupportedObjectIdError(metaError)) {
-    return `Invalid WhatsApp object ID (${configuredObjectId}). Use WhatsApp Phone Number ID (not Facebook App ID or WABA ID), and ensure the access token belongs to the same Meta app/business.`;
-  }
-
-  return metaError.message;
+async function sendToMeta(phoneNumberId: string, accessToken: string, payload: Record<string, unknown>) {
+  const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  let result: Record<string, any> | null = null;
+  try { result = await response.json(); } catch { result = null; }
+  return { response, result };
 }
 
 Deno.serve(async (req) => {
@@ -114,11 +75,35 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const configuredObjectId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    if (!accessToken || !configuredObjectId) {
-      return json({ error: "WhatsApp credentials not configured" }, 500);
+    // Read credentials: prefer DB settings, fallback to env secrets
+    const dbSettings = await getSettingsFromDb(supabase);
+
+    const accessToken = dbSettings["access_token"] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+    const wabaId = dbSettings["whatsapp_business_account_id"];
+    const envPhoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+
+    if (!accessToken) {
+      return json({ error: "WhatsApp access token not configured. Add it in WhatsApp Settings." }, 500);
+    }
+
+    // Resolve Phone Number ID: try WABA → phone_numbers API first, then fallback to env secret
+    let phoneNumberId: string | null = null;
+
+    if (wabaId) {
+      phoneNumberId = await resolvePhoneNumberIdFromWaba(wabaId, accessToken);
+    }
+
+    if (!phoneNumberId && envPhoneId) {
+      phoneNumberId = envPhoneId;
+    }
+
+    if (!phoneNumberId) {
+      return json({ error: "Could not resolve WhatsApp Phone Number ID. Please set your WhatsApp Business Account ID in Settings." }, 500);
     }
 
     const body: SendRequest = await req.json();
@@ -144,7 +129,6 @@ Deno.serve(async (req) => {
       if (!templateType) {
         return json({ error: "Missing templateType for template message" }, 400);
       }
-
       const defaults = TEMPLATE_DEFAULTS[templateType];
       const finalTemplateName = templateName || defaults.name;
       const finalLanguage = templateLanguage || defaults.language;
@@ -157,47 +141,30 @@ Deno.serve(async (req) => {
           name: finalTemplateName,
           language: { code: finalLanguage },
           ...(parameters && parameters.length > 0
-            ? {
-                components: [
-                  {
-                    type: "body",
-                    parameters: parameters.map((p) => ({ type: "text", text: p })),
-                  },
-                ],
-              }
+            ? { components: [{ type: "body", parameters: parameters.map((p) => ({ type: "text", text: p })) }] }
             : {}),
         },
       };
     }
 
-    let usedPhoneNumberId = configuredObjectId;
-    let { response: metaResponse, result: metaResult } = await sendToMeta(usedPhoneNumberId, accessToken, waPayload);
+    // Send to Meta
+    let { response: metaResponse, result: metaResult } = await sendToMeta(phoneNumberId, accessToken, waPayload);
 
-    const firstMetaError = extractMetaError(metaResult);
-
-    // Auto-recovery: if user accidentally configured WABA ID in WHATSAPP_PHONE_NUMBER_ID,
-    // resolve the first phone number ID and retry once.
-    if (!metaResponse.ok && isUnsupportedObjectIdError(firstMetaError)) {
-      const resolvedPhoneId = await resolvePhoneNumberIdFromWaba(configuredObjectId, accessToken);
-      if (resolvedPhoneId) {
-        usedPhoneNumberId = resolvedPhoneId;
-        const retry = await sendToMeta(usedPhoneNumberId, accessToken, waPayload);
+    // If error 100/33 (wrong object type), the envPhoneId might be wrong - already resolved from WABA above
+    if (!metaResponse.ok && metaResult?.error?.code === 100 && metaResult?.error?.error_subcode === 33 && wabaId) {
+      // Try resolving again with fresh call
+      const freshId = await resolvePhoneNumberIdFromWaba(wabaId, accessToken);
+      if (freshId && freshId !== phoneNumberId) {
+        phoneNumberId = freshId;
+        const retry = await sendToMeta(phoneNumberId, accessToken, waPayload);
         metaResponse = retry.response;
         metaResult = retry.result;
       }
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     const messageId = metaResult?.messages?.[0]?.id || null;
     const status = metaResponse.ok ? "sent" : "failed";
-    const metaError = extractMetaError(metaResult);
-    const errorMessage = metaResponse.ok
-      ? null
-      : buildConfigurationHint(metaError, configuredObjectId);
+    const errorMessage = metaResponse.ok ? null : (metaResult?.error?.message || "Unknown error");
 
     const msgBody = isTextMessage
       ? messageBody
@@ -216,26 +183,22 @@ Deno.serve(async (req) => {
     });
 
     if (!metaResponse.ok) {
-      return json(
-        {
-          error: errorMessage,
-          details: metaResult,
-          troubleshooting: {
-            configuredObjectId,
-            usedPhoneNumberId,
-            steps: [
-              "Set WHATSAPP_PHONE_NUMBER_ID to the WhatsApp Phone Number ID from Meta API Setup (not App ID/WABA ID).",
-              "Use a permanent System User token with whatsapp_business_messaging and whatsapp_business_management permissions.",
-              "Ensure the token and phone number belong to the same Meta app/business.",
-              "If your app is in test mode, add recipient numbers to the allowed list.",
-            ],
-          },
+      return json({
+        error: errorMessage,
+        details: metaResult,
+        troubleshooting: {
+          resolvedPhoneNumberId: phoneNumberId,
+          wabaId: wabaId || "not configured",
+          steps: [
+            "Go to WhatsApp Settings and verify your WhatsApp Business Account ID is correct.",
+            "Ensure your Access Token has whatsapp_business_messaging permission.",
+            "The token and WABA must belong to the same Meta Business.",
+          ],
         },
-        502
-      );
+      }, 502);
     }
 
-    return json({ success: true, messageId, usedPhoneNumberId });
+    return json({ success: true, messageId, phoneNumberId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return json({ error: message }, 500);
