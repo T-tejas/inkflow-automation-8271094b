@@ -13,6 +13,7 @@ import Inventory from "./pages/Inventory";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import WhatsAppSettings from "./pages/WhatsAppSettings";
+import DesignTracker from "./pages/DesignTracker";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ function AuthenticatedApp() {
       <Route path="/chat" element={<Chat />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
+      <Route path="/designs" element={<DesignTracker />} />
       <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />

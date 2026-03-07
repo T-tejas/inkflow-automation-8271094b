@@ -8,7 +8,7 @@ import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette } from 'lucide-react';
 import { Lead } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
@@ -101,6 +101,10 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
                 Admin
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/designs')}>
+              <Palette className="h-4 w-4 text-purple-500" />
+              Designs
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/inventory')}>
               <Package className="h-4 w-4 text-warning" />
               Inventory
