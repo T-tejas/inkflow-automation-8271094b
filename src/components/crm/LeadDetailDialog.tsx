@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lead, LEAD_STATUSES } from '@/types/lead';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -25,6 +26,7 @@ interface LeadDetailDialogProps {
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
 
 export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete }: LeadDetailDialogProps) {
+  const navigate = useNavigate();
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
 
@@ -153,9 +155,17 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
           )}
 
           <div className="flex justify-between pt-2">
-            <Button variant="destructive" size="sm" onClick={() => { onDelete(lead.id); onOpenChange(false); }}>
-              <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="destructive" size="sm" onClick={() => { onDelete(lead.id); onOpenChange(false); }}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => {
+                onOpenChange(false);
+                navigate(`/designs?leadId=${lead.id}&name=${encodeURIComponent(lead.fullName)}&phone=${encodeURIComponent(lead.phone)}`);
+              }}>
+                <Palette className="h-3.5 w-3.5" /> Design Task
+              </Button>
+            </div>
             <Button size="sm" onClick={() => { onEdit(lead); onOpenChange(false); }}>
               <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
             </Button>
