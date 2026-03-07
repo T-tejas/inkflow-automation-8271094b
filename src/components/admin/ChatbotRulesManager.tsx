@@ -104,6 +104,37 @@ export function ChatbotRulesManager() {
     toast.success('Rule deleted');
   };
 
+  const startEdit = (rule: ChatbotRule) => {
+    setEditingId(rule.id);
+    setEditKeywords(rule.keywords.join(', '));
+    setEditReply(rule.reply_text);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditKeywords('');
+    setEditReply('');
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editKeywords.trim() || !editReply.trim()) {
+      toast.error('Keywords and reply cannot be empty');
+      return;
+    }
+    const keywords = editKeywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+    const { error } = await supabase
+      .from('chatbot_rules')
+      .update({ keywords, reply_text: editReply } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update rule');
+    } else {
+      setRules(prev => prev.map(r => r.id === id ? { ...r, keywords, reply_text: editReply } : r));
+      toast.success('Rule updated');
+      cancelEdit();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
