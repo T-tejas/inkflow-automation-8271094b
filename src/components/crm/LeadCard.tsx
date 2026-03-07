@@ -193,6 +193,34 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
               <TooltipContent side="bottom" className="text-[10px]">WhatsApp</TooltipContent>
             </Tooltip>
           )}
+          {/* Design Actions */}
+          {hasDesign && onViewDesign ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onViewDesign(lead.id))}
+                  className="p-1.5 rounded-md hover:bg-purple-500/10 text-purple-500 transition-colors"
+                  aria-label="View design"
+                >
+                  <Eye className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">View Design</TooltipContent>
+            </Tooltip>
+          ) : onAssignDesign ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onAssignDesign(lead))}
+                  className="p-1.5 rounded-md hover:bg-purple-500/10 text-purple-500 transition-colors"
+                  aria-label="Assign design"
+                >
+                  <Palette className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Assign Design 🎨</TooltipContent>
+            </Tooltip>
+          ) : null}
         </div>
       </motion.div>
     </TooltipProvider>
