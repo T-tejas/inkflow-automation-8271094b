@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
-  Bot, Plus, Trash2, GripVertical, MessageSquare, Sparkles, AlertTriangle, RefreshCw
+  Bot, Plus, Trash2, GripVertical, MessageSquare, Sparkles, AlertTriangle, RefreshCw, Pencil, Check, X
 } from 'lucide-react';
 
 interface ChatbotRule {
@@ -28,6 +28,9 @@ export function ChatbotRulesManager() {
   const [newKeywords, setNewKeywords] = useState('');
   const [newReply, setNewReply] = useState('');
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editKeywords, setEditKeywords] = useState('');
+  const [editReply, setEditReply] = useState('');
 
   useEffect(() => {
     fetchRules();
@@ -99,6 +102,37 @@ export function ChatbotRulesManager() {
     await supabase.from('chatbot_rules').delete().eq('id', id);
     setRules(prev => prev.filter(r => r.id !== id));
     toast.success('Rule deleted');
+  };
+
+  const startEdit = (rule: ChatbotRule) => {
+    setEditingId(rule.id);
+    setEditKeywords(rule.keywords.join(', '));
+    setEditReply(rule.reply_text);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditKeywords('');
+    setEditReply('');
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editKeywords.trim() || !editReply.trim()) {
+      toast.error('Keywords and reply cannot be empty');
+      return;
+    }
+    const keywords = editKeywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+    const { error } = await supabase
+      .from('chatbot_rules')
+      .update({ keywords, reply_text: editReply } as any)
+      .eq('id', id);
+    if (error) {
+      toast.error('Failed to update rule');
+    } else {
+      setRules(prev => prev.map(r => r.id === id ? { ...r, keywords, reply_text: editReply } : r));
+      toast.success('Rule updated');
+      cancelEdit();
+    }
   };
 
   if (loading) {
@@ -186,38 +220,71 @@ export function ChatbotRulesManager() {
                     : 'bg-zinc-900/50 border-zinc-800 opacity-60'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                      {rule.keywords.map(kw => (
-                        <Badge
-                          key={kw}
-                          className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] font-mono"
-                        >
-                          {kw}
-                        </Badge>
-                      ))}
-                    </div>
-                    <p className="text-xs text-zinc-300 line-clamp-2">
-                      <MessageSquare className="h-3 w-3 inline mr-1 text-zinc-500" />
-                      {rule.reply_text}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Switch
-                      checked={rule.is_active}
-                      onCheckedChange={() => toggleRule(rule.id, rule.is_active)}
+                {editingId === rule.id ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={editKeywords}
+                      onChange={e => setEditKeywords(e.target.value)}
+                      placeholder="Keywords (comma separated)"
+                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 text-xs"
                     />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      onClick={() => deleteRule(rule.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <Textarea
+                      value={editReply}
+                      onChange={e => setEditReply(e.target.value)}
+                      rows={2}
+                      className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 resize-none text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveEdit(rule.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 h-7 text-xs">
+                        <Check className="h-3 w-3" /> Save
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={cancelEdit} className="text-zinc-400 hover:text-white gap-1 h-7 text-xs">
+                        <X className="h-3 w-3" /> Cancel
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {rule.keywords.map(kw => (
+                          <Badge
+                            key={kw}
+                            className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] font-mono"
+                          >
+                            {kw}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-zinc-300 line-clamp-2">
+                        <MessageSquare className="h-3 w-3 inline mr-1 text-zinc-500" />
+                        {rule.reply_text}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                        onClick={() => startEdit(rule)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Switch
+                        checked={rule.is_active}
+                        onCheckedChange={() => toggleRule(rule.id, rule.is_active)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => deleteRule(rule.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             {rules.length === 0 && (
