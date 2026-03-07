@@ -207,6 +207,13 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onDelete={deleteLead}
       />
       <WhatsAppLogDialog open={whatsappLogOpen} onOpenChange={setWhatsappLogOpen} />
+      <DesignAssignDialog
+        lead={designAssignLead}
+        open={designAssignOpen}
+        onOpenChange={setDesignAssignOpen}
+        onDesignAssigned={handleDesignAssigned}
+        existingArtists={designArtists}
+      />
     </div>
   );
 };
