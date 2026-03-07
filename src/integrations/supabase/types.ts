@@ -194,6 +194,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          bot_enabled: boolean
           budget: string | null
           created_at: string
           full_name: string
@@ -211,6 +212,7 @@ export type Database = {
           whatsapp_opt_in: boolean
         }
         Insert: {
+          bot_enabled?: boolean
           budget?: string | null
           created_at?: string
           full_name: string
@@ -228,6 +230,7 @@ export type Database = {
           whatsapp_opt_in?: boolean
         }
         Update: {
+          bot_enabled?: boolean
           budget?: string | null
           created_at?: string
           full_name?: string
