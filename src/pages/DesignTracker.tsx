@@ -92,7 +92,7 @@ export default function DesignTracker() {
             { label: 'Pending', value: stats.pending, color: 'text-muted-foreground' },
             { label: 'Designing', value: stats.inProgress, color: 'text-primary' },
             { label: 'Overdue', value: stats.overdue, color: 'text-destructive' },
-            { label: 'Unpaid', value: stats.unpaid, color: 'text-amber-600' },
+            { label: 'Unpaid', value: stats.unpaid, color: 'text-warning' },
           ].map(s => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="bg-card rounded-lg border border-border p-3 text-center">
