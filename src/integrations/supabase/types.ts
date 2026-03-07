@@ -106,6 +106,74 @@ export type Database = {
         }
         Relationships: []
       }
+      design_tasks: {
+        Row: {
+          artist_name: string
+          client_name: string
+          client_phone: string
+          created_at: string
+          design_due_date: string
+          design_fee: number
+          design_start_date: string
+          design_status: string
+          design_type: string
+          fee_status: string
+          final_design_url: string | null
+          final_tattoo_date: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          reference_images: string[]
+          updated_at: string
+        }
+        Insert: {
+          artist_name: string
+          client_name: string
+          client_phone: string
+          created_at?: string
+          design_due_date: string
+          design_fee?: number
+          design_start_date?: string
+          design_status?: string
+          design_type?: string
+          fee_status?: string
+          final_design_url?: string | null
+          final_tattoo_date?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          reference_images?: string[]
+          updated_at?: string
+        }
+        Update: {
+          artist_name?: string
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          design_due_date?: string
+          design_fee?: number
+          design_start_date?: string
+          design_status?: string
+          design_type?: string
+          fee_status?: string
+          final_design_url?: string | null
+          final_tattoo_date?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          reference_images?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           category: string
