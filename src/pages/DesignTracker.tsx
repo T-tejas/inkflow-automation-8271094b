@@ -63,6 +63,10 @@ export default function DesignTracker() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/appointments')}>
+              <Calendar className="h-4 w-4 text-primary" />
+              Appointments
+            </Button>
             <Select value={artistFilter} onValueChange={v => setArtistFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-40 h-8 text-xs">
                 <Users className="h-3 w-3 mr-1" />
