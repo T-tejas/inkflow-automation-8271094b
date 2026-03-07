@@ -125,38 +125,33 @@ Deno.serve(async (req) => {
     }
 
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
-    const isTextMessage = type === "text" && messageBody;
 
-    let waPayload: Record<string, unknown>;
+    // Always send as free-text message (no approved templates needed)
+    // If messageBody is provided, use it directly. Otherwise, convert template to text.
+    let finalMessageBody = messageBody || "";
 
-    if (isTextMessage) {
-      waPayload = {
-        messaging_product: "whatsapp",
-        to: cleanPhone,
-        type: "text",
-        text: { body: messageBody },
+    if (!finalMessageBody && templateType) {
+      const templateTexts: Record<string, string> = {
+        confirmation: `Hi ${leadName}, your tattoo appointment has been confirmed! Please arrive 15 minutes early. See you soon! 🎨`,
+        reminder: `Hi ${leadName}, just a reminder about your upcoming tattoo session. Please confirm your availability! ⏰`,
+        promo: `Hi ${leadName}, we have exciting offers at F19 Tattoo Studio! Check out our latest designs and book your session today. 💰`,
       };
-    } else {
-      if (!templateType) {
-        return json({ error: "Missing templateType for template message" }, 400);
+      finalMessageBody = templateTexts[templateType] || `Hi ${leadName}, thanks for reaching out to F19 Tattoo Studio!`;
+      if (parameters && parameters.length > 0) {
+        finalMessageBody += `\n${parameters.join(", ")}`;
       }
-      const defaults = TEMPLATE_DEFAULTS[templateType];
-      const finalTemplateName = templateName || defaults.name;
-      const finalLanguage = templateLanguage || defaults.language;
-
-      waPayload = {
-        messaging_product: "whatsapp",
-        to: cleanPhone,
-        type: "template",
-        template: {
-          name: finalTemplateName,
-          language: { code: finalLanguage },
-          ...(parameters && parameters.length > 0
-            ? { components: [{ type: "body", parameters: parameters.map((p) => ({ type: "text", text: p })) }] }
-            : {}),
-        },
-      };
     }
+
+    if (!finalMessageBody) {
+      return json({ error: "No message body or template type provided" }, 400);
+    }
+
+    const waPayload: Record<string, unknown> = {
+      messaging_product: "whatsapp",
+      to: cleanPhone,
+      type: "text",
+      text: { body: finalMessageBody },
+    };
 
     // Send to Meta
     let { response: metaResponse, result: metaResult } = await sendToMeta(phoneNumberId, accessToken, waPayload);
@@ -177,20 +172,16 @@ Deno.serve(async (req) => {
     const status = metaResponse.ok ? "sent" : "failed";
     const errorMessage = metaResponse.ok ? null : (metaResult?.error?.message || "Unknown error");
 
-    const msgBody = isTextMessage
-      ? messageBody
-      : `📋 ${templateName || TEMPLATE_DEFAULTS[templateType!]?.name}${parameters ? ` (${parameters.join(", ")})` : ""}`;
-
     await supabase.from("whatsapp_messages").insert({
       lead_phone: phone,
       lead_name: leadName,
       lead_id: leadId ?? null,
-      template_name: isTextMessage ? "text_message" : (templateName || TEMPLATE_DEFAULTS[templateType!]?.name),
-      template_type: isTextMessage ? "confirmation" : templateType,
+      template_name: templateName || "text_message",
+      template_type: templateType || "confirmation",
       status,
       meta_message_id: messageId,
       error_message: errorMessage,
-      message_body: msgBody,
+      message_body: finalMessageBody,
     });
 
     if (!metaResponse.ok) {
