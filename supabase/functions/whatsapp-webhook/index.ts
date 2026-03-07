@@ -224,7 +224,40 @@ Deno.serve(async (req) => {
 
           for (const message of messages) {
             const senderPhone = message.from;
-            const messageText = message?.text?.body || message?.button?.text || "";
+            const msgType = message.type || "text";
+
+            // Extract message text from all supported message types
+            let messageText = "";
+            if (msgType === "text") {
+              messageText = message?.text?.body || "";
+            } else if (msgType === "button") {
+              messageText = message?.button?.text || "";
+            } else if (msgType === "interactive") {
+              const btnReply = message?.interactive?.button_reply;
+              const listReply = message?.interactive?.list_reply;
+              messageText = btnReply?.title || listReply?.title || "";
+            } else if (msgType === "image") {
+              messageText = message?.image?.caption ? `📷 ${message.image.caption}` : "📷 Image";
+            } else if (msgType === "video") {
+              messageText = message?.video?.caption ? `🎥 ${message.video.caption}` : "🎥 Video";
+            } else if (msgType === "audio" || msgType === "voice") {
+              messageText = "🎵 Voice message";
+            } else if (msgType === "document") {
+              messageText = message?.document?.filename ? `📄 ${message.document.filename}` : "📄 Document";
+            } else if (msgType === "sticker") {
+              messageText = "🏷️ Sticker";
+            } else if (msgType === "location") {
+              const loc = message?.location;
+              messageText = loc ? `📍 Location: ${loc.latitude}, ${loc.longitude}${loc.name ? ` — ${loc.name}` : ""}` : "📍 Location";
+            } else if (msgType === "contacts") {
+              const contactName = message?.contacts?.[0]?.name?.formatted_name || "Contact";
+              messageText = `👤 Contact: ${contactName}`;
+            } else if (msgType === "reaction") {
+              messageText = `${message?.reaction?.emoji || "👍"} Reaction`;
+            } else {
+              messageText = `[${msgType}]`;
+            }
+
             const buttonPayloadId = message?.button?.payload || message?.interactive?.button_reply?.id || "";
             const contactInfo = contacts.find((c: any) => c.wa_id === senderPhone);
             const senderName = contactInfo?.profile?.name || `WhatsApp ${senderPhone}`;
