@@ -1,7 +1,8 @@
-import { Lead, LEAD_SOURCES } from '@/types/lead';
+import { Lead, LEAD_SOURCES, KANBAN_STATUSES, parseBudget } from '@/types/lead';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { subDays, format, startOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
+import { formatINRShort } from '@/lib/currency';
 
 interface DashboardChartsProps {
   leads: Lead[];
@@ -35,8 +36,22 @@ export function DashboardCharts({ leads }: DashboardChartsProps) {
     value: leads.filter(l => l.source === source).length,
   })).filter(d => d.value > 0);
 
+  // Revenue distribution by stage
+  const stageRevenueData = KANBAN_STATUSES
+    .map(status => {
+      const stageLeads = leads.filter(l => l.status === status || (status === 'No Response' && l.status === 'Cancelled'));
+      const total = stageLeads.reduce((sum, l) => sum + parseBudget(l.budget), 0);
+      return { name: status === 'No Response' ? 'No Resp.' : status, value: total };
+    })
+    .filter(d => d.value > 0);
+
+  const STAGE_COLORS = [
+    'hsl(199, 89%, 48%)', 'hsl(220, 70%, 55%)', 'hsl(36, 90%, 55%)',
+    'hsl(25, 85%, 55%)', 'hsl(262, 83%, 58%)', 'hsl(142, 71%, 45%)', 'hsl(0, 50%, 55%)',
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,6 +126,42 @@ export function DashboardCharts({ leads }: DashboardChartsProps) {
             ))}
           </div>
         </div>
+      </motion.div>
+
+      {/* Revenue by Stage */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="glass-card rounded-xl p-4"
+      >
+        <h3 className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider mb-3">
+          Revenue by Stage
+        </h3>
+        {stageRevenueData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={stageRevenueData} layout="vertical">
+              <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} tickFormatter={v => formatINRShort(v)} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} width={65} />
+              <Tooltip
+                formatter={(value: number) => [formatINRShort(value), 'Value']}
+                contentStyle={{
+                  background: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+              />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                {stageRevenueData.map((_, i) => (
+                  <Cell key={i} fill={STAGE_COLORS[i % STAGE_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[180px] text-xs text-muted-foreground">No budget data</div>
+        )}
       </motion.div>
     </div>
   );
