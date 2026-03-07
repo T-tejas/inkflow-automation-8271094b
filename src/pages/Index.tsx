@@ -205,6 +205,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onStatusChange={updateLeadStatus}
         onEdit={handleEdit}
         onDelete={deleteLead}
+        onAssignDesign={handleAssignDesign}
       />
       <WhatsAppLogDialog open={whatsappLogOpen} onOpenChange={setWhatsappLogOpen} />
       <DesignAssignDialog
