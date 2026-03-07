@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
-  Bot, Plus, Trash2, GripVertical, MessageSquare, Sparkles, AlertTriangle, RefreshCw
+  Bot, Plus, Trash2, GripVertical, MessageSquare, Sparkles, AlertTriangle, RefreshCw, Pencil, Check, X
 } from 'lucide-react';
 
 interface ChatbotRule {
