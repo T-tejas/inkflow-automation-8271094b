@@ -45,11 +45,6 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
               if (leadId) onStatusChange(leadId, status);
             }}
           >
-            onDrop={e => {
-              const leadId = e.dataTransfer.getData('leadId');
-              if (leadId) onStatusChange(leadId, status);
-            }}
-          >
             <div className="flex items-center gap-2 mb-3 px-1 sticky top-0 z-10 bg-background py-1">
               <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-muted'}`} />
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
