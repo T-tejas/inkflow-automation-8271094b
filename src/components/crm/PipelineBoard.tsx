@@ -1,7 +1,7 @@
-import { Lead, LeadStatus, KANBAN_STATUSES, LEAD_SOURCES } from '@/types/lead';
+import { Lead, LeadStatus, KANBAN_STATUSES, LEAD_SOURCES, parseBudget } from '@/types/lead';
 import { LeadCard } from './LeadCard';
 import { AnimatePresence } from 'framer-motion';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatINR, formatINRShort } from '@/lib/currency';
 
 interface PipelineBoardProps {
   leads: Lead[];
@@ -35,6 +35,8 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
         const sourceBreakdown = LEAD_SOURCES
           .map(source => ({ source, count: statusLeads.filter(lead => lead.source === source).length }))
           .filter(item => item.count > 0);
+        const totalValue = statusLeads.reduce((sum, l) => sum + parseBudget(l.budget), 0);
+        const avgValue = statusLeads.length > 0 ? totalValue / statusLeads.length : 0;
         return (
           <div
             key={status}
@@ -45,7 +47,7 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
               if (leadId) onStatusChange(leadId, status);
             }}
           >
-            <div className="flex items-center gap-2 mb-3 px-1 sticky top-0 z-10 bg-background py-1">
+            <div className="flex items-center gap-2 mb-1 px-1 sticky top-0 z-10 bg-background py-1">
               <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-muted'}`} />
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {COLUMN_LABELS[status] || status}
@@ -54,6 +56,20 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                 {statusLeads.length}
               </span>
             </div>
+
+            {/* Price Analytics */}
+            {statusLeads.length > 0 && totalValue > 0 && (
+              <div className="mx-1 mb-2 px-2 py-1.5 rounded-md bg-card border border-border/60 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Total</p>
+                  <p className="text-xs font-bold text-foreground">{formatINRShort(totalValue)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground">Avg</p>
+                  <p className="text-xs font-semibold text-primary">{formatINRShort(avgValue)}</p>
+                </div>
+              </div>
+            )}
 
             {sourceBreakdown.length > 0 && (
               <div className="mb-2 px-1 flex flex-wrap gap-1">
