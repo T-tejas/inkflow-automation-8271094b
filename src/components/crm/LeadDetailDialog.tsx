@@ -21,6 +21,7 @@ interface LeadDetailDialogProps {
   onStatusChange: (id: string, status: LeadStatus) => void;
   onEdit: (lead: Lead) => void;
   onDelete: (id: string) => void;
+  onAssignDesign?: (lead: Lead) => void;
 }
 
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
