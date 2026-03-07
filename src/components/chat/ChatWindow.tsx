@@ -4,7 +4,8 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus, Bot, BotOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -35,9 +36,10 @@ interface Props {
   onStatusChange: (leadId: string, newStatus: string, oldStatus: string) => void;
   onRetryMessage: (message: ChatMessage) => void;
   onBookAppointment?: () => void;
+  onToggleBot?: (leadId: string, currentStatus: boolean) => void;
 }
 
-export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment }: Props) {
+export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment, onToggleBot }: Props) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [statusOpen, setStatusOpen] = useState(false);
@@ -46,7 +48,6 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Error banner detection
   const recentFailed = messages.filter(m => (m.status === 'failed' || m.deliveryStatus === 'failed'));
   const tokenExpired = recentFailed.some(m => m.errorMessage?.toLowerCase().includes('token') || m.errorMessage?.toLowerCase().includes('expired') || m.errorMessage?.toLowerCase().includes('oauth'));
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -87,6 +88,7 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   }
 
   const statusColor = getStatusColor(contact.leadStatus);
+  const botActive = contact.botEnabled !== false;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -98,6 +100,14 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
           <button onClick={() => setBannerDismissed(true)} className="ml-auto p-1 rounded hover:bg-red-100">
             <X className="h-4 w-4" />
           </button>
+        </div>
+      )}
+
+      {/* Bot disabled banner */}
+      {!botActive && (
+        <div className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold" style={{ backgroundColor: '#fff3cd', color: '#856404', borderBottom: '1px solid #ffc107' }}>
+          <BotOff className="h-3.5 w-3.5" />
+          AI Bot Disabled — Only human staff messages will be sent to this contact
         </div>
       )}
 
@@ -165,6 +175,20 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Bot toggle */}
+          {onToggleBot && (
+            <div className="flex items-center gap-1.5 mr-2 px-2 py-1 rounded-lg" style={{ backgroundColor: botActive ? '#dcfce7' : '#fee2e2' }}>
+              {botActive ? <Bot className="h-4 w-4" style={{ color: '#16a34a' }} /> : <BotOff className="h-4 w-4" style={{ color: '#dc2626' }} />}
+              <span className="text-[11px] font-semibold" style={{ color: botActive ? '#16a34a' : '#dc2626' }}>
+                {botActive ? 'Bot Active' : 'Bot Off'}
+              </span>
+              <Switch
+                checked={botActive}
+                onCheckedChange={() => onToggleBot(contact.leadId, botActive)}
+                className="scale-75"
+              />
+            </div>
+          )}
           {onBookAppointment && (
             <IconBtn title="Book Appointment" onClick={onBookAppointment}>
               <CalendarPlus className="h-5 w-5" style={{ color: '#22c55e' }} />

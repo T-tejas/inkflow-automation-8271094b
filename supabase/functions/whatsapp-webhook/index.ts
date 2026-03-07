@@ -14,10 +14,8 @@ interface ChatbotRule {
   priority: number;
 }
 
-/** Find the best matching chatbot rule for a message */
 function findMatchingRule(messageText: string, rules: ChatbotRule[]): ChatbotRule | null {
   const lower = messageText.toLowerCase().trim();
-  // Sort by priority desc
   const sorted = [...rules].sort((a, b) => b.priority - a.priority);
   for (const rule of sorted) {
     if (!rule.is_active) continue;
@@ -30,7 +28,49 @@ function findMatchingRule(messageText: string, rules: ChatbotRule[]): ChatbotRul
   return null;
 }
 
-/** Send an auto-reply via the Meta API */
+/** Send interactive button message via Meta API */
+async function sendInteractiveButtons(
+  phoneNumberId: string,
+  accessToken: string,
+  recipientPhone: string,
+  bodyText: string,
+  buttons: { id: string; title: string }[]
+): Promise<string | null> {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: recipientPhone,
+    type: "interactive",
+    interactive: {
+      type: "button",
+      body: { text: bodyText },
+      action: {
+        buttons: buttons.map((b) => ({
+          type: "reply",
+          reply: { id: b.id, title: b.title },
+        })),
+      },
+    },
+  };
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  let result: any = null;
+  try { result = await response.json(); } catch { /* ignore */ }
+  if (!response.ok) {
+    console.error(`[webhook] Interactive send failed:`, JSON.stringify(result));
+  }
+  return result?.messages?.[0]?.id || null;
+}
+
+/** Send a text auto-reply via the Meta API */
 async function sendAutoReply(
   phoneNumberId: string,
   accessToken: string,
@@ -59,7 +99,6 @@ async function sendAutoReply(
   return result?.messages?.[0]?.id || null;
 }
 
-/** Resolve phone number ID from WABA */
 async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promise<string | null> {
   try {
     const response = await fetch(
@@ -75,7 +114,6 @@ async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promis
 }
 
 Deno.serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -117,14 +155,12 @@ Deno.serve(async (req) => {
 
       const entries = body?.entry || [];
 
-      // Pre-load chatbot rules and credentials for auto-reply
       const { data: rulesData } = await supabase
         .from("chatbot_rules")
         .select("*")
         .eq("is_active", true);
       const chatbotRules: ChatbotRule[] = rulesData || [];
 
-      // Load WhatsApp credentials for auto-reply
       const { data: settingsData } = await supabase
         .from("whatsapp_settings")
         .select("setting_key, setting_value");
@@ -138,9 +174,8 @@ Deno.serve(async (req) => {
       const accessToken = settingsMap["access_token"] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
       const wabaId = settingsMap["whatsapp_business_account_id"];
       const envPhoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-      const chatbotEnabled = settingsMap["chatbot_enabled"] !== "false"; // default on
+      const chatbotEnabled = settingsMap["chatbot_enabled"] !== "false";
 
-      // Resolve phone number ID for auto-reply
       let phoneNumberId: string | null = null;
       if (wabaId && accessToken) {
         phoneNumberId = await resolvePhoneNumberId(wabaId, accessToken);
@@ -190,22 +225,25 @@ Deno.serve(async (req) => {
           for (const message of messages) {
             const senderPhone = message.from;
             const messageText = message?.text?.body || message?.button?.text || "";
+            const buttonPayloadId = message?.button?.payload || message?.interactive?.button_reply?.id || "";
             const contactInfo = contacts.find((c: any) => c.wa_id === senderPhone);
             const senderName = contactInfo?.profile?.name || `WhatsApp ${senderPhone}`;
 
-            console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText}`);
+            console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [buttonId: ${buttonPayloadId}]`);
 
             // Upsert lead
             const { data: existingLeads } = await supabase
               .from("leads")
-              .select("id, notes")
+              .select("id, notes, bot_enabled")
               .eq("phone", `+${senderPhone}`)
               .limit(1);
 
             let leadId: string | null = null;
+            let botEnabled = true;
 
             if (existingLeads && existingLeads.length > 0) {
               leadId = existingLeads[0].id;
+              botEnabled = existingLeads[0].bot_enabled !== false;
               const lead = existingLeads[0];
               const updatedNotes = `${lead.notes ? lead.notes + "\n" : ""}[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`.slice(0, 2000);
               await supabase
@@ -223,6 +261,7 @@ Deno.serve(async (req) => {
                   status: "New Lead",
                   tags: ["whatsapp_inquiry"],
                   notes: `[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`,
+                  bot_enabled: true,
                 })
                 .select()
                 .single();
@@ -232,18 +271,56 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Check chatbot auto-reply
-            let isEscalated = false;
-            let autoReplied = false;
+            // Handle "Talk to Human" button click
+            if (buttonPayloadId === "talk_to_human" || messageText.toLowerCase().includes("talk to human")) {
+              console.log(`[webhook] "Talk to Human" triggered for ${senderPhone}`);
+              if (leadId) {
+                await supabase
+                  .from("leads")
+                  .update({ bot_enabled: false, status: "Contacted" })
+                  .eq("id", leadId);
+              }
+              botEnabled = false;
 
-            if (chatbotEnabled && messageText && chatbotRules.length > 0) {
+              // Send confirmation
+              if (phoneNumberId && accessToken) {
+                const confirmMsgId = await sendAutoReply(
+                  phoneNumberId, accessToken, senderPhone,
+                  "You're now connected to our team! 👨‍💻 A staff member will respond shortly. Thank you for your patience."
+                );
+                await supabase.from("whatsapp_messages").insert({
+                  lead_phone: `+${senderPhone}`,
+                  lead_name: senderName,
+                  lead_id: leadId,
+                  template_name: "human_handoff",
+                  template_type: "confirmation",
+                  status: "sent",
+                  meta_message_id: confirmMsgId,
+                  message_body: "🤖→👨‍💻 You're now connected to our team! A staff member will respond shortly. Thank you for your patience.",
+                });
+              }
+            }
+
+            // Chatbot auto-reply (only if bot is enabled for this contact)
+            let isEscalated = false;
+
+            if (chatbotEnabled && botEnabled && messageText && chatbotRules.length > 0 && buttonPayloadId !== "talk_to_human") {
               const matchedRule = findMatchingRule(messageText, chatbotRules);
 
               if (matchedRule && phoneNumberId && accessToken) {
-                console.log(`[webhook] Chatbot matched rule: ${matchedRule.keywords.join(",")} → sending auto-reply`);
-                const replyMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, matchedRule.reply_text);
+                console.log(`[webhook] Chatbot matched rule: ${matchedRule.keywords.join(",")} → sending auto-reply with buttons`);
 
-                // Log auto-reply message
+                // Send auto-reply with interactive quick reply buttons
+                const replyMsgId = await sendInteractiveButtons(
+                  phoneNumberId, accessToken, senderPhone,
+                  `🤖 ${matchedRule.reply_text}`,
+                  [
+                    { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
+                    { id: "book_appointment", title: "Book Appointment 📅" },
+                    { id: "tattoo_price", title: "Tattoo Price 💰" },
+                  ]
+                );
+
                 await supabase.from("whatsapp_messages").insert({
                   lead_phone: `+${senderPhone}`,
                   lead_name: senderName,
@@ -254,12 +331,48 @@ Deno.serve(async (req) => {
                   meta_message_id: replyMsgId,
                   message_body: `🤖 ${matchedRule.reply_text}`,
                 });
-                autoReplied = true;
               } else if (!matchedRule) {
-                // No rule matched — escalate to staff
                 isEscalated = true;
                 console.log(`[webhook] No chatbot rule matched, escalating to staff`);
               }
+            } else if (chatbotEnabled && !botEnabled) {
+              console.log(`[webhook] Bot disabled for contact ${senderPhone}, skipping auto-reply`);
+              isEscalated = true;
+            }
+
+            // Handle "Book Appointment" and "Tattoo Price" button clicks
+            if (buttonPayloadId === "book_appointment" && phoneNumberId && accessToken) {
+              const bookMsgId = await sendAutoReply(
+                phoneNumberId, accessToken, senderPhone,
+                "📅 Great! To book an appointment, please share:\n\n1. Preferred date\n2. Tattoo style (e.g. Traditional, Realism, Geometric)\n3. Size & placement\n\nOur team will confirm your slot shortly!"
+              );
+              await supabase.from("whatsapp_messages").insert({
+                lead_phone: `+${senderPhone}`,
+                lead_name: senderName,
+                lead_id: leadId,
+                template_name: "chatbot_auto_reply",
+                template_type: "confirmation",
+                status: "sent",
+                meta_message_id: bookMsgId,
+                message_body: "🤖 📅 Great! To book an appointment, please share your preferred date, tattoo style, size & placement. Our team will confirm your slot shortly!",
+              });
+            }
+
+            if (buttonPayloadId === "tattoo_price" && phoneNumberId && accessToken) {
+              const priceMsgId = await sendAutoReply(
+                phoneNumberId, accessToken, senderPhone,
+                "💰 Our tattoo pricing depends on:\n\n• Size & detail level\n• Placement on body\n• Style (color vs black & grey)\n\nSmall tattoos start from ₹2,000. Send us your design idea for an exact quote!"
+              );
+              await supabase.from("whatsapp_messages").insert({
+                lead_phone: `+${senderPhone}`,
+                lead_name: senderName,
+                lead_id: leadId,
+                template_name: "chatbot_auto_reply",
+                template_type: "confirmation",
+                status: "sent",
+                meta_message_id: priceMsgId,
+                message_body: "🤖 💰 Our tattoo pricing depends on size, placement & style. Small tattoos start from ₹2,000. Send us your design idea for an exact quote!",
+              });
             }
 
             // Log incoming message

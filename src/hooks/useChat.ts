@@ -29,6 +29,7 @@ export interface ChatContact {
   lastMessageTime: string | null;
   unreadCount: number;
   whatsappOptIn: boolean;
+  botEnabled: boolean;
 }
 
 function mapRow(row: any): ChatMessage {
@@ -70,7 +71,7 @@ export function useChat() {
   const fetchContacts = useCallback(async () => {
     const { data: leads } = await supabase
       .from('leads')
-      .select('id, full_name, phone, status, whatsapp_opt_in')
+      .select('id, full_name, phone, status, whatsapp_opt_in, bot_enabled')
       .order('updated_at', { ascending: false });
 
     if (!leads) { setLoading(false); return; }
@@ -99,7 +100,7 @@ export function useChat() {
       }
     }
 
-    const contactList: ChatContact[] = leads.map(l => {
+    const contactList: ChatContact[] = leads.map((l: any) => {
       const info = msgMap.get(l.phone);
       return {
         leadId: l.id,
@@ -110,6 +111,7 @@ export function useChat() {
         lastMessageTime: info?.lastTime || null,
         unreadCount: info?.unread || 0,
         whatsappOptIn: l.whatsapp_opt_in,
+        botEnabled: l.bot_enabled !== false,
       };
     });
 
@@ -180,7 +182,6 @@ export function useChat() {
     return data;
   }, []);
 
-  // Send free-text message via edge function
   const sendMessage = useCallback(async (phone: string, leadName: string, leadId: string, text: string) => {
     const { data, error } = await supabase.functions.invoke('send-whatsapp', {
       body: { phone, leadName, type: 'text', messageBody: text },
@@ -189,9 +190,7 @@ export function useChat() {
     return data;
   }, []);
 
-  // Send attachment message
   const sendAttachment = useCallback(async (phone: string, leadName: string, leadId: string, url: string, fileName: string, isImage: boolean) => {
-    // Store as message with file URL
     const { error } = await supabase.from('whatsapp_messages').insert({
       lead_phone: phone,
       lead_name: leadName,
@@ -226,11 +225,9 @@ export function useChat() {
     setMessages(prev => prev.map(m => m.id === messageId ? { ...m, starred: !currentStarred } : m));
   }, []);
 
-  // Update lead status
   const updateLeadStatus = useCallback(async (leadId: string, newStatus: string, oldStatus: string) => {
     const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     if (error) throw error;
-    // Log interaction
     await supabase.from('lead_interactions').insert({
       lead_id: leadId,
       action_type: 'status_change',
@@ -240,13 +237,25 @@ export function useChat() {
     await fetchContacts();
   }, [fetchContacts]);
 
-  // Retry failed message
+  const toggleBotEnabled = useCallback(async (leadId: string, currentBotEnabled: boolean) => {
+    const newValue = !currentBotEnabled;
+    const { error } = await supabase.from('leads').update({ bot_enabled: newValue } as any).eq('id', leadId);
+    if (error) throw error;
+    // Update local contacts state
+    setContacts(prev => prev.map(c => c.leadId === leadId ? { ...c, botEnabled: newValue } : c));
+    // Log interaction
+    await supabase.from('lead_interactions').insert({
+      lead_id: leadId,
+      action_type: 'bot_toggle',
+      old_value: currentBotEnabled ? 'enabled' : 'disabled',
+      new_value: newValue ? 'enabled' : 'disabled',
+    });
+  }, []);
+
   const retryMessage = useCallback(async (message: ChatMessage) => {
     if (!message.messageBody) return;
-    // Delete old failed message
     await supabase.from('whatsapp_messages').delete().eq('id', message.id);
     setMessages(prev => prev.filter(m => m.id !== message.id));
-    // Re-send
     const { error } = await supabase.functions.invoke('send-whatsapp', {
       body: {
         phone: message.leadPhone,
@@ -272,6 +281,7 @@ export function useChat() {
     toggleStar,
     fetchContacts,
     updateLeadStatus,
+    toggleBotEnabled,
     retryMessage,
   };
 }
