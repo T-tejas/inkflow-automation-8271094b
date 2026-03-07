@@ -4,7 +4,7 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X } from 'lucide-react';
+import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -34,9 +34,10 @@ interface Props {
   onToggleStar: (id: string, starred: boolean) => void;
   onStatusChange: (leadId: string, newStatus: string, oldStatus: string) => void;
   onRetryMessage: (message: ChatMessage) => void;
+  onBookAppointment?: () => void;
 }
 
-export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage }: Props) {
+export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment }: Props) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [statusOpen, setStatusOpen] = useState(false);
@@ -164,6 +165,11 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
         </div>
 
         <div className="flex items-center gap-1">
+          {onBookAppointment && (
+            <IconBtn title="Book Appointment" onClick={onBookAppointment}>
+              <CalendarPlus className="h-5 w-5" style={{ color: '#22c55e' }} />
+            </IconBtn>
+          )}
           <IconBtn href={`tel:${contact.leadPhone}`} title="Call">
             <Phone className="h-5 w-5" />
           </IconBtn>
