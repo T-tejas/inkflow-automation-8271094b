@@ -7,7 +7,7 @@ import { DesignCalendarView } from '@/components/design/DesignCalendarView';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ArrowLeft, CalendarDays, Table2, Palette, Users } from 'lucide-react';
+import { Plus, ArrowLeft, CalendarDays, Table2, Palette, Users, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function DesignTracker() {
