@@ -105,6 +105,14 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </div>
         )}
 
+        {/* Design Assigned Indicator */}
+        {hasDesign && (
+          <div className="flex items-center gap-1 text-[10px] text-purple-500 font-medium">
+            <Palette className="h-3 w-3" />
+            Design Assigned
+          </div>
+        )}
+
         {/* Quick Actions — visible on hover */}
         <div className="flex items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onEdit && (
