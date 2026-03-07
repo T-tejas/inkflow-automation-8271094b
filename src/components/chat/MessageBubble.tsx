@@ -67,7 +67,7 @@ export function MessageBubble({ message, onToggleStar, onRetry }: Props) {
   const isIncoming = !isOutgoing && !isNote;
   const isFailed = message.status === 'failed' || message.deliveryStatus === 'failed';
 
-  const body = message.messageBody || `📋 Template: ${message.templateName}`;
+  const body = message.messageBody || (message.templateType === 'incoming' ? '💬 Message' : `📋 ${message.templateName}`);
   const time = format(parseISO(message.createdAt), 'HH:mm');
   const fileMsg = body && isFileMessage(body);
 
