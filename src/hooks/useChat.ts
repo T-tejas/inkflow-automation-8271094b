@@ -78,7 +78,7 @@ export function useChat() {
 
     const { data: allMessages } = await supabase
       .from('whatsapp_messages')
-      .select('lead_phone, message_body, template_name, template_type, status, created_at')
+      .select('lead_phone, message_body, template_name, template_type, status, created_at, read_at')
       .order('created_at', { ascending: false });
 
     const msgMap = new Map<string, { lastMsg: string; lastTime: string; unread: number }>();
@@ -93,7 +93,7 @@ export function useChat() {
             unread: 0,
           });
         }
-        if (m.status === 'received' || m.template_type === 'incoming') {
+        if ((m.status === 'received' || m.template_type === 'incoming') && !m.read_at) {
           const entry = msgMap.get(phone)!;
           entry.unread++;
         }
