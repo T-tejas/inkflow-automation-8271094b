@@ -7,7 +7,7 @@ import { DesignCalendarView } from '@/components/design/DesignCalendarView';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ArrowLeft, CalendarDays, Table2, Palette, Users } from 'lucide-react';
+import { Plus, ArrowLeft, CalendarDays, Table2, Palette, Users, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function DesignTracker() {
@@ -54,8 +54,8 @@ export default function DesignTracker() {
             <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Palette className="h-5 w-5 text-white" />
+            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
+              <Palette className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">Design </h1>
@@ -63,6 +63,10 @@ export default function DesignTracker() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/appointments')}>
+              <Calendar className="h-4 w-4 text-primary" />
+              Appointments
+            </Button>
             <Select value={artistFilter} onValueChange={v => setArtistFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-40 h-8 text-xs">
                 <Users className="h-3 w-3 mr-1" />
@@ -88,7 +92,7 @@ export default function DesignTracker() {
             { label: 'Pending', value: stats.pending, color: 'text-muted-foreground' },
             { label: 'Designing', value: stats.inProgress, color: 'text-primary' },
             { label: 'Overdue', value: stats.overdue, color: 'text-destructive' },
-            { label: 'Unpaid', value: stats.unpaid, color: 'text-amber-600' },
+            { label: 'Unpaid', value: stats.unpaid, color: 'text-warning' },
           ].map(s => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="bg-card rounded-lg border border-border p-3 text-center">
