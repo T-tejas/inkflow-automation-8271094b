@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS bot_enabled boolean NOT NULL DEFAULT true;
