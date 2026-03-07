@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      chatbot_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          keywords: string[]
+          priority: number
+          reply_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          priority?: number
+          reply_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          priority?: number
+          reply_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           category: string
@@ -224,6 +254,7 @@ export type Database = {
           delivery_status: string | null
           error_message: string | null
           id: string
+          is_escalated: boolean
           is_internal_note: boolean
           lead_id: string | null
           lead_name: string
@@ -242,6 +273,7 @@ export type Database = {
           delivery_status?: string | null
           error_message?: string | null
           id?: string
+          is_escalated?: boolean
           is_internal_note?: boolean
           lead_id?: string | null
           lead_name: string
@@ -260,6 +292,7 @@ export type Database = {
           delivery_status?: string | null
           error_message?: string | null
           id?: string
+          is_escalated?: boolean
           is_internal_note?: boolean
           lead_id?: string | null
           lead_name?: string
