@@ -34,6 +34,30 @@ export function DesignTaskFormDialog({ open, onOpenChange, onSubmit, editTask, d
   const [designStatus, setDesignStatus] = useState<DesignStatus>('Pending');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const syncFromLead = async () => {
+    const leadId = editTask?.lead_id || defaultLeadId;
+    if (!leadId) return;
+    setSyncing(true);
+    const { data, error } = await supabase.from('leads').select('*').eq('id', leadId).single();
+    if (error || !data) {
+      toast.error('Could not fetch lead data');
+      setSyncing(false);
+      return;
+    }
+    setClientName(data.full_name);
+    setClientPhone(data.phone);
+    const parts: string[] = [];
+    if (data.tattoo_style && data.tattoo_style !== 'Other') parts.push(`Style: ${data.tattoo_style}`);
+    if (data.size) parts.push(`Size: ${data.size}`);
+    if (data.placement) parts.push(`Placement: ${data.placement}`);
+    if (data.budget) parts.push(`Budget: ${data.budget}`);
+    if (data.notes) parts.push(`Lead Notes: ${data.notes}`);
+    setNotes(parts.join(' | '));
+    toast.success('Synced from lead');
+    setSyncing(false);
+  };
 
   useEffect(() => {
     if (editTask) {
