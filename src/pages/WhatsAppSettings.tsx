@@ -54,8 +54,10 @@ export default function WhatsAppSettings() {
     const value = editValues[key] || '';
     const { error } = await supabase
       .from('whatsapp_settings')
-      .update({ setting_value: value, updated_at: new Date().toISOString() } as any)
-      .eq('setting_key', key);
+      .upsert(
+        { setting_key: key, setting_value: value, updated_at: new Date().toISOString() } as any,
+        { onConflict: 'setting_key' }
+      );
 
     if (error) {
       toast.error(`Failed to save ${key}`);
