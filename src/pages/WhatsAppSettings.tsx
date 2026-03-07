@@ -12,8 +12,9 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Settings, Key, Phone, Calendar, Webhook, AppWindow,
   HelpCircle, ExternalLink, Shield, Eye, EyeOff, Bug, Unplug, RefreshCw,
-  CheckCircle2, XCircle, Info
+  CheckCircle2, XCircle, Info, Bot
 } from 'lucide-react';
+import { ChatbotRulesManager } from '@/components/admin/ChatbotRulesManager';
 
 type SettingsMap = Record<string, string>;
 
@@ -499,6 +500,26 @@ export default function WhatsAppSettings() {
                   Copy the <strong>Callback URL</strong> and <strong>Verify Token</strong> into your Meta App's WhatsApp webhook configuration. Click <strong>Test Webhook</strong> to verify the connection before configuring Meta.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Chatbot Auto-Reply */}
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">AI Chatbot Auto-Reply</CardTitle>
+                    <CardDescription className="text-zinc-500">Auto-respond to incoming WhatsApp messages with keyword-based rules</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ChatbotRulesManager />
             </CardContent>
           </Card>
 
