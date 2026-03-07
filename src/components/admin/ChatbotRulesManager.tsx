@@ -28,6 +28,9 @@ export function ChatbotRulesManager() {
   const [newKeywords, setNewKeywords] = useState('');
   const [newReply, setNewReply] = useState('');
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editKeywords, setEditKeywords] = useState('');
+  const [editReply, setEditReply] = useState('');
 
   useEffect(() => {
     fetchRules();
