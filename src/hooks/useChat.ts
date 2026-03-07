@@ -78,7 +78,7 @@ export function useChat() {
 
     const { data: allMessages } = await supabase
       .from('whatsapp_messages')
-      .select('lead_phone, message_body, template_name, template_type, status, created_at')
+      .select('lead_phone, message_body, template_name, template_type, status, created_at, read_at')
       .order('created_at', { ascending: false });
 
     const msgMap = new Map<string, { lastMsg: string; lastTime: string; unread: number }>();
@@ -93,7 +93,7 @@ export function useChat() {
             unread: 0,
           });
         }
-        if (m.status === 'received' || m.template_type === 'incoming') {
+        if ((m.status === 'received' || m.template_type === 'incoming') && !m.read_at) {
           const entry = msgMap.get(phone)!;
           entry.unread++;
         }
@@ -140,10 +140,24 @@ export function useChat() {
     setMessagesLoading(false);
   }, []);
 
+  const markAsRead = useCallback(async (phone: string) => {
+    // Update all unread incoming messages for this contact
+    await supabase
+      .from('whatsapp_messages')
+      .update({ read_at: new Date().toISOString() } as any)
+      .eq('lead_phone', phone)
+      .in('template_type', ['incoming'])
+      .is('read_at', null);
+
+    // Clear unread count locally
+    setContacts(prev => prev.map(c => c.leadPhone === phone ? { ...c, unreadCount: 0 } : c));
+  }, []);
+
   const selectContact = useCallback((phone: string) => {
     setSelectedPhone(phone);
     fetchMessages(phone);
-  }, [fetchMessages]);
+    markAsRead(phone);
+  }, [fetchMessages, markAsRead]);
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 

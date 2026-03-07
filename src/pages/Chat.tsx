@@ -109,6 +109,7 @@ const Chat = () => {
 
       {selectedContact && (
         <BookingDialog
+          key={selectedContact.leadId}
           open={bookingOpen}
           onClose={() => setBookingOpen(false)}
           leadId={selectedContact.leadId}
