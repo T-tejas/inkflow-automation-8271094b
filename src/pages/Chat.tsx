@@ -66,6 +66,15 @@ const Chat = () => {
     }
   };
 
+  const handleToggleBot = async (leadId: string, currentStatus: boolean) => {
+    try {
+      await toggleBotEnabled(leadId, currentStatus);
+      toast({ title: currentStatus ? 'AI Bot disabled for this contact' : 'AI Bot re-enabled for this contact' });
+    } catch {
+      toast({ title: 'Failed to toggle bot', variant: 'destructive' });
+    }
+  };
+
   const handleRetryMessage = async (message: any) => {
     try {
       await retryMessage(message);
@@ -94,6 +103,7 @@ const Chat = () => {
           onStatusChange={handleStatusChange}
           onRetryMessage={handleRetryMessage}
           onBookAppointment={() => setBookingOpen(true)}
+          onToggleBot={handleToggleBot}
         />
       </div>
 
