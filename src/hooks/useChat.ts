@@ -140,10 +140,24 @@ export function useChat() {
     setMessagesLoading(false);
   }, []);
 
+  const markAsRead = useCallback(async (phone: string) => {
+    // Update all unread incoming messages for this contact
+    await supabase
+      .from('whatsapp_messages')
+      .update({ read_at: new Date().toISOString() } as any)
+      .eq('lead_phone', phone)
+      .in('template_type', ['incoming'])
+      .is('read_at', null);
+
+    // Clear unread count locally
+    setContacts(prev => prev.map(c => c.leadPhone === phone ? { ...c, unreadCount: 0 } : c));
+  }, []);
+
   const selectContact = useCallback((phone: string) => {
     setSelectedPhone(phone);
     fetchMessages(phone);
-  }, [fetchMessages]);
+    markAsRead(phone);
+  }, [fetchMessages, markAsRead]);
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
