@@ -1,24 +1,20 @@
+import { useState } from 'react';
 import { useChat } from '@/hooks/useChat';
+import { useAppointments } from '@/hooks/useAppointments';
 import { ContactList } from '@/components/chat/ContactList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
+import { BookingDialog } from '@/components/appointments/BookingDialog';
 import { toast } from '@/hooks/use-toast';
 
 const Chat = () => {
   const {
-    contacts,
-    messages,
-    selectedPhone,
-    loading,
-    messagesLoading,
-    selectContact,
-    sendTemplate,
-    sendMessage,
-    sendAttachment,
-    addNote,
-    toggleStar,
-    updateLeadStatus,
-    retryMessage,
+    contacts, messages, selectedPhone, loading, messagesLoading,
+    selectContact, sendTemplate, sendMessage, sendAttachment,
+    addNote, toggleStar, updateLeadStatus, retryMessage,
   } = useChat();
+
+  const { getAvailableSlots, isDayAvailable, createAppointment } = useAppointments();
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   const selectedContact = contacts.find(c => c.leadPhone === selectedPhone) || null;
 
@@ -97,8 +93,22 @@ const Chat = () => {
           onToggleStar={toggleStar}
           onStatusChange={handleStatusChange}
           onRetryMessage={handleRetryMessage}
+          onBookAppointment={() => setBookingOpen(true)}
         />
       </div>
+
+      {selectedContact && (
+        <BookingDialog
+          open={bookingOpen}
+          onClose={() => setBookingOpen(false)}
+          leadId={selectedContact.leadId}
+          leadName={selectedContact.leadName}
+          leadPhone={selectedContact.leadPhone}
+          getAvailableSlots={getAvailableSlots}
+          isDayAvailable={isDayAvailable}
+          onBook={createAppointment}
+        />
+      )}
     </div>
   );
 };

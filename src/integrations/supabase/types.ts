@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          created_at: string
+          duration_minutes: number
+          followup_sent: boolean
+          id: string
+          lead_id: string | null
+          lead_name: string
+          lead_phone: string
+          notes: string | null
+          reminder_1d_sent: boolean
+          reminder_2h_sent: boolean
+          status: string
+          tattoo_style: string | null
+          time_slot: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          created_at?: string
+          duration_minutes?: number
+          followup_sent?: boolean
+          id?: string
+          lead_id?: string | null
+          lead_name: string
+          lead_phone: string
+          notes?: string | null
+          reminder_1d_sent?: boolean
+          reminder_2h_sent?: boolean
+          status?: string
+          tattoo_style?: string | null
+          time_slot: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          created_at?: string
+          duration_minutes?: number
+          followup_sent?: boolean
+          id?: string
+          lead_id?: string | null
+          lead_name?: string
+          lead_phone?: string
+          notes?: string | null
+          reminder_1d_sent?: boolean
+          reminder_2h_sent?: boolean
+          status?: string
+          tattoo_style?: string | null
+          time_slot?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chatbot_rules: {
         Row: {
           created_at: string
@@ -228,6 +290,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      studio_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number | null
+          end_time: string
+          id: string
+          is_available: boolean
+          specific_date: string | null
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number | null
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          specific_date?: string | null
+          start_time?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number | null
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          specific_date?: string | null
+          start_time?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
