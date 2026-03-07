@@ -1,92 +1,76 @@
 
 
-## Self-Hosting on Hostinger
+# WhatsApp Chat Module -- Functional Upgrade Plan
 
-Your Lovable app can be self-hosted. Here's what you need to do:
+## Overview
+Make all chat UI elements fully functional: lead status badge with dropdown, emoji picker, file attachments, free-text messaging, template preview/edit, error banners, and auto-resize textarea.
 
-### 1. Export Your Code
-- Connect your project to **GitHub** via Settings → Connectors → GitHub
-- This gives you the full source code in a repository
+## 1. Lead Status Badge + Dropdown in Chat Header
+**File: `ChatWindow.tsx`**
+- Add a colored badge next to contact name showing `contact.leadStatus`
+- Color map: New Lead (grey), Contacted (blue), Interested (purple), Negotiating (orange), Booked (green), Completed (dark green)
+- Wrap badge in a Popover/DropdownMenu with all status options
+- On status change: update via `supabase.from('leads').update({ status })` and log interaction, show toast
+- Remove the individual "Mark as Booked" / "Mark as Completed" icon buttons (replaced by dropdown)
 
-### 2. Build the Frontend
-On your local machine or Hostinger:
-```bash
-git clone <your-repo-url>
-cd <project-folder>
-npm install
-npm run build
-```
-This creates a `dist/` folder with static HTML/CSS/JS files.
+## 2. Functional Emoji Picker
+**File: `ChatInput.tsx`**
+- Build a simple emoji grid popover (common emojis organized in categories) using Radix Popover
+- On emoji click: insert at cursor position in the textarea
+- No external library needed -- use a curated set of ~100 common emojis
 
-### 3. Deploy on Hostinger
-- **If using Hostinger Shared Hosting**: Upload the contents of the `dist/` folder to your `public_html` directory via File Manager or FTP
-- **If using Hostinger VPS**: You can run it with Node.js or serve the static files with Nginx
+## 3. File Attachment Button
+**File: `ChatInput.tsx`, new component `ChatAttachmentPreview.tsx`**
+- Hidden file input triggered by Paperclip button, accept images + PDFs
+- Show preview overlay before sending (image thumbnail or PDF icon + filename)
+- Upload file to existing `f19` storage bucket via Supabase Storage
+- Save message record with `message_body` containing the public URL and a new field or convention (prefix `[file]` or store URL)
+- Display attachments in `MessageBubble.tsx` -- detect URL pattern and render image or PDF link
 
-### 4. Domain Setup
-- Point your domain's DNS to Hostinger's nameservers (Hostinger provides these in their dashboard)
-- Or set A records to your Hostinger server IP
+## 4. Free-Text Send + Template Preview
+**File: `ChatInput.tsx`**
+- Change input from disabled to always enabled in message mode
+- Send button: works for both note mode AND message mode (free text sends via `send-whatsapp` edge function as a text message, or stores as outgoing)
+- Template selector: when template selected, load template text into textarea for editing before sending
+- Enter key sends in both modes
+- Update `QuickReplyTemplates.tsx` to return template text to input instead of immediately sending
 
-### 5. Backend Consideration
-Your app currently uses **Lovable Cloud** for the database (leads, appointments, WhatsApp messages, design tasks, etc.). You have two options:
+**File: `send-whatsapp/index.ts`**
+- Add support for `type: "text"` messages (not just templates) for free-text sending via Meta API
 
-- **Option A (Recommended)**: Keep using Lovable Cloud as your backend — just update the `.env` file in your build with the existing Supabase URL and anon key. Your Hostinger-hosted frontend will connect to the same backend. No data migration needed.
+## 5. Auto-Resize Textarea
+**File: `ChatInput.tsx`**
+- Replace `<input>` with `<textarea>` that auto-resizes (max 5 rows)
+- Use `onInput` to adjust height based on `scrollHeight`
 
-- **Option B**: Migrate to your own database on Hostinger — this requires setting up PostgreSQL, recreating all tables, migrating data, and re
+## 6. Error Banner System
+**File: `ChatWindow.tsx`**
+- Check for recent failed messages with specific error patterns
+- Token expired: red banner at top "WhatsApp token expired -- update in settings"
+- Number not allowed: yellow warning in message bubble (already partially done)
+- API failure: add retry button on failed message bubbles in `MessageBubble.tsx`
 
-<lov-plan>
+## 7. Retry Failed Messages
+**File: `MessageBubble.tsx`**
+- For `status === 'failed'` messages, show a "Retry" button
+- On click: re-invoke `send-whatsapp` with same parameters, update the message record
 
-## Self-Hosting on Hostinger
+## 8. Contact Status Refresh
+**File: `useChat.ts`**
+- After status change in chat header, call `fetchContacts()` to refresh sidebar
+- Pass `fetchContacts` or a status update callback to ChatWindow
 
-Your Lovable app can be self-hosted. Here's what you need to do:
-
-### 1. Export Your Code
-- Connect your project to **GitHub** via Settings → Connectors → GitHub
-- This gives you the full source code in a repository
-
-### 2. Build the Frontend
-On your local machine or Hostinger:
-```bash
-git clone <your-repo-url>
-cd <project-folder>
-npm install
-npm run build
-```
-This creates a `dist/` folder with static HTML/CSS/JS files.
-
-### 3. Deploy on Hostinger
-- **If using Hostinger Shared Hosting**: Upload the contents of the `dist/` folder to your `public_html` directory via File Manager or FTP
-- **If using Hostinger VPS**: You can run it with Node.js or serve the static files with Nginx
-
-### 4. Domain Setup
-- Point your domain's DNS to Hostinger's nameservers (Hostinger provides these in their dashboard)
-- Or set A records to your Hostinger server IP
-
-### 5. Backend Consideration
-Your app currently uses **Lovable Cloud** for the database (leads, appointments, WhatsApp messages, design tasks, etc.). You have two options:
-
-- **Option A (Recommended)**: Keep using Lovable Cloud as your backend. Just deploy the frontend on Hostinger — it will connect to the same backend automatically. No data migration needed. Your domain serves the UI, Lovable Cloud handles the database and edge functions.
-
-- **Option B (Full migration)**: Set up your own PostgreSQL database on Hostinger VPS, recreate all 10+ tables (leads, design_tasks, appointments, whatsapp_messages, etc.), migrate existing data, and rewrite the edge functions (WhatsApp webhook, etc.) as Node.js APIs. This is a significant effort and not recommended unless you have a specific reason.
-
-### 6. Important: SPA Routing
-Since this is a React Single Page App, you need to add a `.htaccess` file in `public_html` for Hostinger shared hosting:
-```text
-RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
-```
-This ensures routes like `/appointments`, `/designs`, `/chat` work correctly.
-
-### Summary
-| Step | Action |
+## Files to Create/Edit
+| File | Action |
 |------|--------|
-| Code export | GitHub → Clone |
-| Build | `npm run build` |
-| Upload | `dist/` → `public_html` |
-| Domain | DNS to Hostinger |
-| Backend | Keep Lovable Cloud (recommended) |
-| Routing | Add `.htaccess` for SPA |
+| `src/components/chat/ChatWindow.tsx` | Status badge, dropdown, error banner, remove old buttons |
+| `src/components/chat/ChatInput.tsx` | Emoji picker, attachment, auto-resize textarea, free-text send |
+| `src/components/chat/MessageBubble.tsx` | Retry button, file/image rendering |
+| `src/components/chat/QuickReplyTemplates.tsx` | Return text to input instead of direct send |
+| `src/components/chat/EmojiPicker.tsx` | New: simple emoji grid popover |
+| `src/hooks/useChat.ts` | Add updateLeadStatus, retryMessage functions |
+| `supabase/functions/send-whatsapp/index.ts` | Add text message support |
+| `src/pages/Chat.tsx` | Wire new callbacks |
+
+No database migrations needed -- existing schema supports all changes.
 

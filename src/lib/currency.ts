@@ -7,10 +7,15 @@ export function formatINR(value: number): string {
 }
 
 /**
- * Short format for chart axes: ₹34k, ₹1.2L
+ * Short format for chart axes: ₹34k, ₹1.6k, ₹1.2L
  */
 export function formatINRShort(value: number): string {
-  if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
-  if (value >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
-  return `₹${value}`;
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+
+  const formatCompact = (num: number) => num.toFixed(1).replace(/\.0$/, '');
+
+  if (absValue >= 100000) return `${sign}₹${formatCompact(absValue / 100000)}L`;
+  if (absValue >= 1000) return `${sign}₹${formatCompact(absValue / 1000)}k`;
+  return `${sign}₹${Math.round(absValue)}`;
 }

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Lead, parseBudget } from '@/types/lead';
 import { format, parseISO } from 'date-fns';
+import { formatINRShort } from '@/lib/currency';
 
 interface Props {
   completed: Lead[];
@@ -39,7 +40,7 @@ export function RevenueCharts({ completed, booked, pending }: Props) {
       .reverse();
   }, [booked, pending]);
 
-  const fmt = (v: number) => v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}k`;
+  const fmt = (v: number) => formatINRShort(v);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
