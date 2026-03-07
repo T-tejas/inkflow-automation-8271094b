@@ -1,76 +1,32 @@
 
 
-# WhatsApp Chat Module -- Functional Upgrade Plan
+## WhatsApp Webhook Verification Fix
 
-## Overview
-Make all chat UI elements fully functional: lead status badge with dropdown, emoji picker, file attachments, free-text messaging, template preview/edit, error banners, and auto-resize textarea.
+### Problem
+Meta's "Verify and save" fails because:
 
-## 1. Lead Status Badge + Dropdown in Chat Header
-**File: `ChatWindow.tsx`**
-- Add a colored badge next to contact name showing `contact.leadStatus`
-- Color map: New Lead (grey), Contacted (blue), Interested (purple), Negotiating (orange), Booked (green), Completed (dark green)
-- Wrap badge in a Popover/DropdownMenu with all status options
-- On status change: update via `supabase.from('leads').update({ status })` and log interaction, show toast
-- Remove the individual "Mark as Booked" / "Mark as Completed" icon buttons (replaced by dropdown)
+1. **`config.toml` is missing `verify_jwt = false`** for the webhook function. Without this, Supabase rejects Meta's GET request (which has no JWT) with a 401 before the function code even runs.
 
-## 2. Functional Emoji Picker
-**File: `ChatInput.tsx`**
-- Build a simple emoji grid popover (common emojis organized in categories) using Radix Popover
-- On emoji click: insert at cursor position in the textarea
-- No external library needed -- use a curated set of ~100 common emojis
+2. **Verify token not saved in database.** The `whatsapp_settings` table has no row with `setting_key = 'webhook_verify_token'`. The screenshot shows the token `3c1194ae-f370-4cf0-810e-86b0dd8731bb` was entered in Meta's portal, but it was never saved to the DB from the Settings UI. The function falls back to default `"lovable_webhook_verify"` which doesn't match.
 
-## 3. File Attachment Button
-**File: `ChatInput.tsx`, new component `ChatAttachmentPreview.tsx`**
-- Hidden file input triggered by Paperclip button, accept images + PDFs
-- Show preview overlay before sending (image thumbnail or PDF icon + filename)
-- Upload file to existing `f19` storage bucket via Supabase Storage
-- Save message record with `message_body` containing the public URL and a new field or convention (prefix `[file]` or store URL)
-- Display attachments in `MessageBubble.tsx` -- detect URL pattern and render image or PDF link
+### Fix
 
-## 4. Free-Text Send + Template Preview
-**File: `ChatInput.tsx`**
-- Change input from disabled to always enabled in message mode
-- Send button: works for both note mode AND message mode (free text sends via `send-whatsapp` edge function as a text message, or stores as outgoing)
-- Template selector: when template selected, load template text into textarea for editing before sending
-- Enter key sends in both modes
-- Update `QuickReplyTemplates.tsx` to return template text to input instead of immediately sending
+**1. Update `supabase/config.toml`** — Add JWT bypass for the webhook function:
+```toml
+project_id = "edwmlzhbrtchnjfdntrc"
 
-**File: `send-whatsapp/index.ts`**
-- Add support for `type: "text"` messages (not just templates) for free-text sending via Meta API
+[functions.whatsapp-webhook]
+verify_jwt = false
+```
 
-## 5. Auto-Resize Textarea
-**File: `ChatInput.tsx`**
-- Replace `<input>` with `<textarea>` that auto-resizes (max 5 rows)
-- Use `onInput` to adjust height based on `scrollHeight`
+**2. Fix WhatsApp Settings UI (`src/pages/WhatsAppSettings.tsx`)** — Ensure the verify token save button actually upserts the token into `whatsapp_settings` with key `webhook_verify_token`. Verify the save handler works and pre-loads any existing token on page load.
 
-## 6. Error Banner System
-**File: `ChatWindow.tsx`**
-- Check for recent failed messages with specific error patterns
-- Token expired: red banner at top "WhatsApp token expired -- update in settings"
-- Number not allowed: yellow warning in message bubble (already partially done)
-- API failure: add retry button on failed message bubbles in `MessageBubble.tsx`
+**3. Redeploy the edge function** after config change to pick up `verify_jwt = false`.
 
-## 7. Retry Failed Messages
-**File: `MessageBubble.tsx`**
-- For `status === 'failed'` messages, show a "Retry" button
-- On click: re-invoke `send-whatsapp` with same parameters, update the message record
-
-## 8. Contact Status Refresh
-**File: `useChat.ts`**
-- After status change in chat header, call `fetchContacts()` to refresh sidebar
-- Pass `fetchContacts` or a status update callback to ChatWindow
-
-## Files to Create/Edit
-| File | Action |
-|------|--------|
-| `src/components/chat/ChatWindow.tsx` | Status badge, dropdown, error banner, remove old buttons |
-| `src/components/chat/ChatInput.tsx` | Emoji picker, attachment, auto-resize textarea, free-text send |
-| `src/components/chat/MessageBubble.tsx` | Retry button, file/image rendering |
-| `src/components/chat/QuickReplyTemplates.tsx` | Return text to input instead of direct send |
-| `src/components/chat/EmojiPicker.tsx` | New: simple emoji grid popover |
-| `src/hooks/useChat.ts` | Add updateLeadStatus, retryMessage functions |
-| `supabase/functions/send-whatsapp/index.ts` | Add text message support |
-| `src/pages/Chat.tsx` | Wire new callbacks |
-
-No database migrations needed -- existing schema supports all changes.
+### After fix — steps for Meta verification
+1. Go to WhatsApp Settings in the app → generate or enter verify token → save
+2. Go to Meta Developer Portal → WhatsApp → Configuration
+3. Callback URL: `https://edwmlzhbrtchnjfdntrc.supabase.co/functions/v1/whatsapp-webhook`
+4. Verify Token: paste the same token saved in step 1
+5. Click "Verify and save" — should succeed
 
