@@ -185,6 +185,9 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             onStatusChange={updateLeadStatus}
             onEdit={handleEdit}
             onTagClick={handleTagClick}
+            onAssignDesign={handleAssignDesign}
+            onViewDesign={handleViewDesign}
+            designLeadIds={designLeadIds}
           />
         </div>
       </main>
