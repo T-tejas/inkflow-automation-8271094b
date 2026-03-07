@@ -113,7 +113,15 @@ export function DesignTaskFormDialog({ open, onOpenChange, onSubmit, editTask, d
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{editTask ? 'Edit Design Task' : 'New Design Task'}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-foreground">{editTask ? 'Edit Design Task' : 'New Design Task'}</DialogTitle>
+            {editTask?.lead_id && (
+              <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" onClick={syncFromLead} disabled={syncing}>
+                <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
+                Sync from Lead
+              </Button>
+            )}
+          </div>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
