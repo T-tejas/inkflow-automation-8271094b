@@ -1,6 +1,6 @@
 import { Lead, LeadStatus, LEAD_STATUSES, parseBudget } from '@/types/lead';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft } from 'lucide-react';
+import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft, Palette, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,6 +12,9 @@ interface LeadCardProps {
   onEdit?: (lead: Lead) => void;
   onStatusChange?: (leadId: string, status: LeadStatus) => void;
   onTagClick?: (tag: string) => void;
+  onAssignDesign?: (lead: Lead) => void;
+  onViewDesign?: (leadId: string) => void;
+  hasDesign?: boolean;
 }
 
 function getBorderColor(lead: Lead): string {
@@ -22,7 +25,7 @@ function getBorderColor(lead: Lead): string {
   return 'border-l-transparent';
 }
 
-export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign }: LeadCardProps) {
   const [stageOpen, setStageOpen] = useState(false);
 
   const handleQuickAction = (e: React.MouseEvent, action: () => void) => {
@@ -99,6 +102,14 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick }: 
                 {tag}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Design Assigned Indicator */}
+        {hasDesign && (
+          <div className="flex items-center gap-1 text-[10px] text-purple-500 font-medium">
+            <Palette className="h-3 w-3" />
+            Design Assigned
           </div>
         )}
 
@@ -182,6 +193,34 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick }: 
               <TooltipContent side="bottom" className="text-[10px]">WhatsApp</TooltipContent>
             </Tooltip>
           )}
+          {/* Design Actions */}
+          {hasDesign && onViewDesign ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onViewDesign(lead.id))}
+                  className="p-1.5 rounded-md hover:bg-purple-500/10 text-purple-500 transition-colors"
+                  aria-label="View design"
+                >
+                  <Eye className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">View Design</TooltipContent>
+            </Tooltip>
+          ) : onAssignDesign ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onAssignDesign(lead))}
+                  className="p-1.5 rounded-md hover:bg-purple-500/10 text-purple-500 transition-colors"
+                  aria-label="Assign design"
+                >
+                  <Palette className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Assign Design 🎨</TooltipContent>
+            </Tooltip>
+          ) : null}
         </div>
       </motion.div>
     </TooltipProvider>

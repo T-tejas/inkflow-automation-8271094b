@@ -10,6 +10,9 @@ interface PipelineBoardProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onEdit?: (lead: Lead) => void;
   onTagClick?: (tag: string) => void;
+  onAssignDesign?: (lead: Lead) => void;
+  onViewDesign?: (leadId: string) => void;
+  designLeadIds?: Set<string>;
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
@@ -27,7 +30,7 @@ const COLUMN_LABELS: Record<string, string> = {
   'No Response': 'No Response / Cancelled',
 };
 
-export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick }: PipelineBoardProps) {
+export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds }: PipelineBoardProps) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:snap-none" style={{ height: 'calc(100vh - 320px)', minHeight: '400px' }}>
       {KANBAN_STATUSES.map(status => {
@@ -99,6 +102,9 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                         onEdit={onEdit}
                         onStatusChange={onStatusChange}
                         onTagClick={onTagClick}
+                        onAssignDesign={onAssignDesign}
+                        onViewDesign={onViewDesign}
+                        hasDesign={designLeadIds?.has(lead.id)}
                       />
                     </div>
                   ))}
