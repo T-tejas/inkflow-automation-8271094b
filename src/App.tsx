@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
+import Appointments from "./pages/Appointments";
 import Inventory from "./pages/Inventory";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -40,6 +41,7 @@ function AuthenticatedApp() {
     <Routes>
       <Route path="/" element={<Index signOut={signOut} isAdmin={isAdmin} userRole={role} />} />
       <Route path="/chat" element={<Chat />} />
+      <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
