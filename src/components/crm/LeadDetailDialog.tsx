@@ -162,7 +162,11 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
               </Button>
               <Button variant="outline" size="sm" className="gap-1" onClick={() => {
                 onOpenChange(false);
-                navigate(`/designs?leadId=${lead.id}&name=${encodeURIComponent(lead.fullName)}&phone=${encodeURIComponent(lead.phone)}`);
+                if (onAssignDesign) {
+                  onAssignDesign(lead);
+                } else {
+                  navigate(`/designs?leadId=${lead.id}&name=${encodeURIComponent(lead.fullName)}&phone=${encodeURIComponent(lead.phone)}`);
+                }
               }}>
                 <Palette className="h-3.5 w-3.5" /> Design Task
               </Button>
