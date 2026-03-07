@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
+import { useDesignTasks } from '@/hooks/useDesignTasks';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
 import { PipelineBoard } from '@/components/crm/PipelineBoard';
 import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
+import { DesignAssignDialog } from '@/components/crm/DesignAssignDialog';
 import { Button } from '@/components/ui/button';
 import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette } from 'lucide-react';
 import { Lead } from '@/types/lead';
@@ -22,12 +24,18 @@ interface IndexProps {
 const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const navigate = useNavigate();
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
+  const { tasks: designTasks, artists: designArtists, fetchTasks: refetchDesignTasks } = useDesignTasks();
   const [formOpen, setFormOpen] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [whatsappLogOpen, setWhatsappLogOpen] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [designAssignLead, setDesignAssignLead] = useState<Lead | null>(null);
+  const [designAssignOpen, setDesignAssignOpen] = useState(false);
+
+  // Set of lead IDs that have designs assigned
+  const designLeadIds = useMemo(() => new Set(designTasks.filter(t => t.lead_id).map(t => t.lead_id!)), [designTasks]);
 
   const handleLeadClick = (lead: Lead) => {
     setDetailLead(lead);
@@ -54,6 +62,32 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
 
   const handleTagClick = (tag: string) => {
     setTagFilter(prev => prev === tag ? null : tag);
+  };
+
+  const handleAssignDesign = (lead: Lead) => {
+    setDesignAssignLead(lead);
+    setDesignAssignOpen(true);
+  };
+
+  const handleDesignAssigned = async (leadId: string) => {
+    // Add "design_assigned" tag to lead
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) {
+      const newTags = [...lead.tags];
+      if (!newTags.includes('design_assigned' as any)) {
+        newTags.push('design_assigned' as any);
+      }
+      await updateLead(leadId, { tags: newTags as any });
+      // Optionally move to "Interested" if still "New Lead" or "Contacted"
+      if (['New Lead', 'Contacted'].includes(lead.status)) {
+        await updateLeadStatus(leadId, 'Interested');
+      }
+    }
+    refetchDesignTasks();
+  };
+
+  const handleViewDesign = (leadId: string) => {
+    navigate(`/designs?leadId=${leadId}`);
   };
 
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
