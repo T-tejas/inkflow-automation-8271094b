@@ -58,7 +58,7 @@ export default function DesignTracker() {
               <Palette className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Artist Design Tracker</h1>
+              <h1 className="text-lg font-bold text-foreground">Design </h1>
               <p className="text-[11px] text-muted-foreground">Track designs, deadlines & payments</p>
             </div>
           </div>
