@@ -318,41 +318,109 @@ export default function WhatsAppSettings() {
                   </div>
                   <div>
                     <CardTitle className="text-base text-white">Webhook Settings</CardTitle>
-                    <CardDescription className="text-zinc-500">Configure incoming message webhooks</CardDescription>
+                    <CardDescription className="text-zinc-500">Configure incoming message webhooks from Meta</CardDescription>
                   </div>
                 </div>
-                <Badge className={settings['webhook_enabled'] === 'true'
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                  : 'bg-zinc-700/50 text-zinc-400 border-zinc-600'
-                }>
-                  {settings['webhook_enabled'] === 'true' ? 'Active' : 'Inactive'}
-                </Badge>
+                {/* Status indicator */}
+                {(() => {
+                  const hasToken = isConfigured('webhook_verify_token');
+                  const enabled = settings['webhook_enabled'] === 'true';
+                  if (!hasToken) return (
+                    <Badge className="bg-red-500/10 text-red-400 border-red-500/20">
+                      <XCircle className="h-3 w-3 mr-1" /> Not Configured
+                    </Badge>
+                  );
+                  if (hasToken && enabled) return (
+                    <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Verified
+                    </Badge>
+                  );
+                  return (
+                    <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+                      <Info className="h-3 w-3 mr-1" /> Disabled
+                    </Badge>
+                  );
+                })()}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Callback URL */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-300">Webhook URL</label>
+                <label className="text-sm font-medium text-neutral-300">Callback URL</label>
                 <div className="flex gap-2">
                   <Input
-                    value={editValues['webhook_url'] || ''}
-                    onChange={e => setEditValues(prev => ({ ...prev, webhook_url: e.target.value }))}
-                    placeholder="https://your-project.supabase.co/functions/v1/whatsapp-webhook"
-                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                    readOnly
+                    value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`}
+                    className="bg-zinc-800 border-zinc-700 text-zinc-300 cursor-default"
                   />
                   <Button
                     size="sm"
-                    onClick={() => saveSetting('webhook_url')}
-                    disabled={saving === 'webhook_url'}
-                    className="bg-amber-500 hover:bg-amber-600 text-black font-medium"
+                    variant="outline"
+                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`);
+                      toast.success('Callback URL copied');
+                    }}
                   >
-                    {saving === 'webhook_url' ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Save'}
+                    Copy
                   </Button>
                 </div>
+                <p className="text-xs text-zinc-500">Paste this URL in your Meta App → WhatsApp → Configuration → Callback URL</p>
               </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {/* Verify Token */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Verify Token</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showSecrets['webhook_verify_token'] ? 'text' : 'password'}
+                      value={editValues['webhook_verify_token'] || ''}
+                      onChange={e => setEditValues(prev => ({ ...prev, webhook_verify_token: e.target.value }))}
+                      placeholder="Click Generate or enter your own token"
+                      className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 pr-10"
+                    />
+                    <button
+                      onClick={() => toggleVisibility('webhook_verify_token')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                    >
+                      {showSecrets['webhook_verify_token'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+                    onClick={() => {
+                      const token = crypto.randomUUID();
+                      setEditValues(prev => ({ ...prev, webhook_verify_token: token }));
+                      setShowSecrets(prev => ({ ...prev, webhook_verify_token: true }));
+                      toast.info('Token generated — click Save to apply');
+                    }}
+                  >
+                    Generate
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => saveSetting('webhook_verify_token')}
+                    disabled={saving === 'webhook_verify_token'}
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-medium whitespace-nowrap"
+                  >
+                    {saving === 'webhook_verify_token' ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">Paste this same token in your Meta App → WhatsApp → Configuration → Verify Token</p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {/* Enable/Disable toggle */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
                 <div>
                   <p className="text-sm font-medium text-white">Enable Webhook</p>
-                  <p className="text-xs text-zinc-500">Toggle webhook on/off</p>
+                  <p className="text-xs text-zinc-500">Toggle webhook processing on/off</p>
                 </div>
                 <Switch
                   checked={settings['webhook_enabled'] === 'true'}
@@ -367,6 +435,13 @@ export default function WhatsAppSettings() {
                     }
                   }}
                 />
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                <HelpCircle className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-cyan-300/80">
+                  Copy the <strong>Callback URL</strong> and <strong>Verify Token</strong> into your Meta App's WhatsApp webhook configuration. Meta will send a GET request to verify, then POST incoming messages here.
+                </p>
               </div>
             </CardContent>
           </Card>
