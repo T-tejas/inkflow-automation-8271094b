@@ -29,7 +29,7 @@ const COLUMN_LABELS: Record<string, string> = {
 
 export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick }: PipelineBoardProps) {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 min-h-[500px] snap-x snap-mandatory md:snap-none">
+    <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:snap-none" style={{ height: 'calc(100vh - 320px)', minHeight: '400px' }}>
       {KANBAN_STATUSES.map(status => {
         const statusLeads = getLeadsByStatus(status);
         const sourceBreakdown = LEAD_SOURCES
@@ -38,14 +38,19 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
         return (
           <div
             key={status}
-            className="flex-shrink-0 w-[260px] snap-start flex flex-col"
+            className="flex-shrink-0 w-[260px] snap-start flex flex-col h-full"
             onDragOver={e => e.preventDefault()}
             onDrop={e => {
               const leadId = e.dataTransfer.getData('leadId');
               if (leadId) onStatusChange(leadId, status);
             }}
           >
-            <div className="flex items-center gap-2 mb-3 px-1">
+            onDrop={e => {
+              const leadId = e.dataTransfer.getData('leadId');
+              if (leadId) onStatusChange(leadId, status);
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3 px-1 sticky top-0 z-10 bg-background py-1">
               <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-muted'}`} />
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {COLUMN_LABELS[status] || status}
@@ -68,7 +73,7 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
               </div>
             )}
 
-            <ScrollArea className="flex-1 rounded-lg bg-muted/30 p-2">
+            <div className="flex-1 rounded-lg bg-muted/30 p-2 overflow-y-auto">
               <div className="space-y-2 min-h-[60px]">
                 <AnimatePresence mode="popLayout">
                   {statusLeads.map(lead => (
@@ -93,7 +98,7 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         );
       })}
