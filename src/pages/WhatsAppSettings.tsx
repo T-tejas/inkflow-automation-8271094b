@@ -439,10 +439,64 @@ export default function WhatsAppSettings() {
                 />
               </div>
 
+              {/* Test Webhook Button */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-1.5 flex-1"
+                  onClick={async () => {
+                    const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
+                    const token = settings['webhook_verify_token'] || '';
+                    if (!token) {
+                      toast.error('Set a verify token first');
+                      return;
+                    }
+                    try {
+                      const testUrl = `${callbackUrl}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(token)}&hub.challenge=test_challenge_ok`;
+                      const res = await fetch(testUrl);
+                      const text = await res.text();
+                      if (res.ok && text === 'test_challenge_ok') {
+                        toast.success('✅ Webhook verified successfully!');
+                        // Auto-enable webhook on successful test
+                        await supabase
+                          .from('whatsapp_settings')
+                          .upsert(
+                            { setting_key: 'webhook_enabled', setting_value: 'true', updated_at: new Date().toISOString() } as any,
+                            { onConflict: 'setting_key' }
+                          );
+                        setSettings(prev => ({ ...prev, webhook_enabled: 'true' }));
+                      } else {
+                        toast.error(`❌ Webhook returned ${res.status}: ${text}`);
+                      }
+                    } catch (err: any) {
+                      toast.error(`❌ Webhook test failed: ${err.message}`);
+                    }
+                  }}
+                >
+                  <Bug className="h-3.5 w-3.5" /> Test Webhook
+                </Button>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {/* Required Webhook Subscriptions */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Required Webhook Fields</label>
+                <p className="text-xs text-zinc-500">Ensure these fields are subscribed in Meta App → WhatsApp → Configuration → Webhook fields:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['messages', 'message_echoes', 'message_template_status_update', 'phone_number_quality_update'].map(field => (
+                    <Badge key={field} className="bg-zinc-800 text-zinc-300 border-zinc-700 font-mono text-[10px]">
+                      {field}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex items-start gap-2 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
                 <HelpCircle className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-cyan-300/80">
-                  Copy the <strong>Callback URL</strong> and <strong>Verify Token</strong> into your Meta App's WhatsApp webhook configuration. Meta will send a GET request to verify, then POST incoming messages here.
+                  Copy the <strong>Callback URL</strong> and <strong>Verify Token</strong> into your Meta App's WhatsApp webhook configuration. Click <strong>Test Webhook</strong> to verify the connection before configuring Meta.
                 </p>
               </div>
             </CardContent>
