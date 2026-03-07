@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDesignTasks, type DesignTask, type DesignStatus, type FeeStatus } from '@/hooks/useDesignTasks';
 import { DesignTaskTable } from '@/components/design/DesignTaskTable';
 import { DesignTaskFormDialog } from '@/components/design/DesignTaskFormDialog';
@@ -12,10 +12,24 @@ import { motion } from 'framer-motion';
 
 export default function DesignTracker() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [artistFilter, setArtistFilter] = useState<string>('');
   const { tasks, loading, addTask, updateTask, deleteTask, uploadFile, artists } = useDesignTasks(artistFilter || undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [editTask, setEditTask] = useState<DesignTask | null>(null);
+
+  // Auto-open form when coming from CRM lead conversion
+  const leadId = searchParams.get('leadId');
+  const leadName = searchParams.get('name');
+  const leadPhone = searchParams.get('phone');
+
+  useEffect(() => {
+    if (leadId && leadName) {
+      setFormOpen(true);
+      // Clear params after opening
+      setSearchParams({}, { replace: true });
+    }
+  }, [leadId]);
 
   const handleEdit = (task: DesignTask) => { setEditTask(task); setFormOpen(true); };
   const handleFormClose = (open: boolean) => { setFormOpen(open); if (!open) setEditTask(null); };
@@ -116,6 +130,9 @@ export default function DesignTracker() {
         onOpenChange={handleFormClose}
         onSubmit={handleSubmit}
         editTask={editTask}
+        defaultClientName={leadName || undefined}
+        defaultClientPhone={leadPhone || undefined}
+        defaultLeadId={leadId || undefined}
       />
     </div>
   );
