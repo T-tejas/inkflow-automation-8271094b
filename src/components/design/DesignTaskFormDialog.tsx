@@ -7,6 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { DesignTask, DesignType, FeeStatus, DesignStatus } from '@/hooks/useDesignTasks';
 import { DESIGN_STATUSES } from '@/hooks/useDesignTasks';
+import { supabase } from '@/integrations/supabase/client';
+import { RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
