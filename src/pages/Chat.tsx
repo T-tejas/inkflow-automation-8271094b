@@ -10,7 +10,7 @@ const Chat = () => {
   const {
     contacts, messages, selectedPhone, loading, messagesLoading,
     selectContact, sendTemplate, sendMessage, sendAttachment,
-    addNote, toggleStar, updateLeadStatus, retryMessage,
+    addNote, toggleStar, updateLeadStatus, toggleBotEnabled, retryMessage,
   } = useChat();
 
   const { getAvailableSlots, isDayAvailable, createAppointment } = useAppointments();
