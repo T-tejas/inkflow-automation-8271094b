@@ -416,13 +416,16 @@ export type Database = {
           delivered_at: string | null
           delivery_status: string | null
           error_message: string | null
+          file_name: string | null
           id: string
           is_escalated: boolean
           is_internal_note: boolean
           lead_id: string | null
           lead_name: string
           lead_phone: string
+          media_url: string | null
           message_body: string | null
+          message_type: string | null
           meta_message_id: string | null
           read_at: string | null
           starred: boolean
@@ -435,13 +438,16 @@ export type Database = {
           delivered_at?: string | null
           delivery_status?: string | null
           error_message?: string | null
+          file_name?: string | null
           id?: string
           is_escalated?: boolean
           is_internal_note?: boolean
           lead_id?: string | null
           lead_name: string
           lead_phone: string
+          media_url?: string | null
           message_body?: string | null
+          message_type?: string | null
           meta_message_id?: string | null
           read_at?: string | null
           starred?: boolean
@@ -454,13 +460,16 @@ export type Database = {
           delivered_at?: string | null
           delivery_status?: string | null
           error_message?: string | null
+          file_name?: string | null
           id?: string
           is_escalated?: boolean
           is_internal_note?: boolean
           lead_id?: string | null
           lead_name?: string
           lead_phone?: string
+          media_url?: string | null
           message_body?: string | null
+          message_type?: string | null
           meta_message_id?: string | null
           read_at?: string | null
           starred?: boolean
