@@ -28,6 +28,21 @@ function findMatchingRule(messageText: string, rules: ChatbotRule[]): ChatbotRul
   return null;
 }
 
+/** Detect positive intent for booking flow */
+function detectPositiveIntent(text: string): boolean {
+  const patterns = [
+    /\b(haan|haa|ha)\b/i,
+    /\b(ho chalel|chalel|chalo)\b/i,
+    /\b(i want|want tattoo|want a tattoo|need tattoo)\b/i,
+    /\b(kitna charge|kitna hoga|price kya|rate kya|cost)\b/i,
+    /\b(karwana hai|karna hai|karana hai|krna hai)\b/i,
+    /\b(interested|yes please|sure|ok let's|lets do|book)\b/i,
+    /\b(mujhe chahiye|chahiye|lagwana|lagana)\b/i,
+    /\b(tattoo banwana|tattoo krwana)\b/i,
+  ];
+  return patterns.some(p => p.test(text));
+}
+
 /** Send interactive button message via Meta API */
 async function sendInteractiveButtons(
   phoneNumberId: string,
@@ -109,6 +124,60 @@ async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promis
     const result = await response.json();
     return result?.data?.[0]?.id || null;
   } catch {
+    return null;
+  }
+}
+
+/** Fetch media URL from WhatsApp Graph API using media ID */
+async function fetchMediaUrl(mediaId: string, accessToken: string): Promise<{ url: string; mimeType: string; fileName: string } | null> {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/${mediaId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    return {
+      url: data.url || "",
+      mimeType: data.mime_type || "",
+      fileName: data.sha256 ? `media_${mediaId.slice(-8)}` : `media_${mediaId.slice(-8)}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Download media from WhatsApp and upload to Supabase storage */
+async function downloadAndStoreMedia(
+  mediaUrl: string,
+  mimeType: string,
+  accessToken: string,
+  supabase: any
+): Promise<{ publicUrl: string; fileName: string } | null> {
+  try {
+    const mediaResponse = await fetch(mediaUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!mediaResponse.ok) return null;
+
+    const blob = await mediaResponse.blob();
+    const ext = mimeType.split("/")[1]?.split(";")[0] || "bin";
+    const fileName = `wa_media_${Date.now()}.${ext}`;
+    const path = `chat/${fileName}`;
+
+    const { error } = await supabase.storage.from("f19").upload(path, blob, {
+      contentType: mimeType,
+      upsert: false,
+    });
+    if (error) {
+      console.error("[webhook] Storage upload error:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage.from("f19").getPublicUrl(path);
+    return { publicUrl: urlData.publicUrl, fileName };
+  } catch (err) {
+    console.error("[webhook] Media download/store error:", err);
     return null;
   }
 }
@@ -226,43 +295,81 @@ Deno.serve(async (req) => {
             const senderPhone = message.from;
             const msgType = message.type || "text";
 
-            // Extract message text from all supported message types
+            // Extract message text and media info
             let messageText = "";
+            let mediaId: string | null = null;
+            let messageType = msgType;
+            let mediaUrl: string | null = null;
+            let fileName: string | null = null;
+
             if (msgType === "text") {
               messageText = message?.text?.body || "";
+              messageType = "text";
             } else if (msgType === "button") {
               messageText = message?.button?.text || "";
+              messageType = "text";
             } else if (msgType === "interactive") {
               const btnReply = message?.interactive?.button_reply;
               const listReply = message?.interactive?.list_reply;
               messageText = btnReply?.title || listReply?.title || "";
+              messageType = "text";
             } else if (msgType === "image") {
-              messageText = message?.image?.caption ? `📷 ${message.image.caption}` : "📷 Image";
+              mediaId = message?.image?.id || null;
+              messageText = message?.image?.caption || "📷 Image";
+              messageType = "image";
+              fileName = `image_${Date.now()}.jpg`;
             } else if (msgType === "video") {
-              messageText = message?.video?.caption ? `🎥 ${message.video.caption}` : "🎥 Video";
+              mediaId = message?.video?.id || null;
+              messageText = message?.video?.caption || "🎥 Video";
+              messageType = "video";
+              fileName = `video_${Date.now()}.mp4`;
             } else if (msgType === "audio" || msgType === "voice") {
+              mediaId = message?.audio?.id || message?.voice?.id || null;
               messageText = "🎵 Voice message";
+              messageType = "audio";
+              fileName = `audio_${Date.now()}.ogg`;
             } else if (msgType === "document") {
-              messageText = message?.document?.filename ? `📄 ${message.document.filename}` : "📄 Document";
+              mediaId = message?.document?.id || null;
+              messageText = message?.document?.filename || "📄 Document";
+              messageType = "document";
+              fileName = message?.document?.filename || `document_${Date.now()}`;
             } else if (msgType === "sticker") {
+              mediaId = message?.sticker?.id || null;
               messageText = "🏷️ Sticker";
+              messageType = "sticker";
+              fileName = `sticker_${Date.now()}.webp`;
             } else if (msgType === "location") {
               const loc = message?.location;
               messageText = loc ? `📍 Location: ${loc.latitude}, ${loc.longitude}${loc.name ? ` — ${loc.name}` : ""}` : "📍 Location";
+              messageType = "location";
             } else if (msgType === "contacts") {
               const contactName = message?.contacts?.[0]?.name?.formatted_name || "Contact";
               messageText = `👤 Contact: ${contactName}`;
+              messageType = "contacts";
             } else if (msgType === "reaction") {
               messageText = `${message?.reaction?.emoji || "👍"} Reaction`;
+              messageType = "reaction";
             } else {
               messageText = `[${msgType}]`;
+            }
+
+            // Fetch and store media if present
+            if (mediaId && accessToken) {
+              const mediaInfo = await fetchMediaUrl(mediaId, accessToken);
+              if (mediaInfo && mediaInfo.url) {
+                const stored = await downloadAndStoreMedia(mediaInfo.url, mediaInfo.mimeType, accessToken, supabase);
+                if (stored) {
+                  mediaUrl = stored.publicUrl;
+                  fileName = stored.fileName;
+                }
+              }
             }
 
             const buttonPayloadId = message?.button?.payload || message?.interactive?.button_reply?.id || "";
             const contactInfo = contacts.find((c: any) => c.wa_id === senderPhone);
             const senderName = contactInfo?.profile?.name || `WhatsApp ${senderPhone}`;
 
-            console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [buttonId: ${buttonPayloadId}]`);
+            console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [type: ${messageType}]`);
 
             // Upsert lead
             const { data: existingLeads } = await supabase
@@ -315,11 +422,10 @@ Deno.serve(async (req) => {
               }
               botEnabled = false;
 
-              // Send confirmation
               if (phoneNumberId && accessToken) {
                 const confirmMsgId = await sendAutoReply(
                   phoneNumberId, accessToken, senderPhone,
-                  "You're now connected to our team! 👨‍💻 A staff member will respond shortly. Thank you for your patience."
+                  "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨"
                 );
                 await supabase.from("whatsapp_messages").insert({
                   lead_phone: `+${senderPhone}`,
@@ -329,31 +435,32 @@ Deno.serve(async (req) => {
                   template_type: "confirmation",
                   status: "sent",
                   meta_message_id: confirmMsgId,
-                  message_body: "🤖→👨‍💻 You're now connected to our team! A staff member will respond shortly. Thank you for your patience.",
+                  message_body: "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨",
+                  message_type: "text",
                 });
               }
             }
 
-            // Chatbot auto-reply (only if bot is enabled for this contact)
+            // Chatbot auto-reply
             let isEscalated = false;
 
-            if (chatbotEnabled && botEnabled && messageText && chatbotRules.length > 0 && buttonPayloadId !== "talk_to_human") {
+            if (chatbotEnabled && botEnabled && messageText && messageType === "text" && buttonPayloadId !== "talk_to_human") {
+              // Check for positive intent first
+              const hasPositiveIntent = detectPositiveIntent(messageText);
               const matchedRule = findMatchingRule(messageText, chatbotRules);
 
-              if (matchedRule && phoneNumberId && accessToken) {
-                console.log(`[webhook] Chatbot matched rule: ${matchedRule.keywords.join(",")} → sending auto-reply with buttons`);
-
-                // Send auto-reply with interactive quick reply buttons
+              if (hasPositiveIntent && phoneNumberId && accessToken) {
+                // Warm booking nudge
+                const replyText = "That sounds like a great tattoo idea! 🔥 Would you like one of our artists to reach out and help plan it with you?";
                 const replyMsgId = await sendInteractiveButtons(
                   phoneNumberId, accessToken, senderPhone,
-                  `🤖 ${matchedRule.reply_text}`,
+                  replyText,
                   [
-                    { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
+                    { id: "talk_to_human", title: "Yes, connect me! 🙌" },
                     { id: "book_appointment", title: "Book Appointment 📅" },
-                    { id: "tattoo_price", title: "Tattoo Price 💰" },
+                    { id: "tattoo_price", title: "Check Prices 💰" },
                   ]
                 );
-
                 await supabase.from("whatsapp_messages").insert({
                   lead_phone: `+${senderPhone}`,
                   lead_name: senderName,
@@ -362,12 +469,67 @@ Deno.serve(async (req) => {
                   template_type: "confirmation",
                   status: "sent",
                   meta_message_id: replyMsgId,
-                  message_body: `🤖 ${matchedRule.reply_text}`,
+                  message_body: replyText,
+                  message_type: "text",
                 });
-              } else if (!matchedRule) {
+              } else if (matchedRule && phoneNumberId && accessToken) {
+                console.log(`[webhook] Chatbot matched rule: ${matchedRule.keywords.join(",")}`);
+                const replyMsgId = await sendInteractiveButtons(
+                  phoneNumberId, accessToken, senderPhone,
+                  matchedRule.reply_text,
+                  [
+                    { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
+                    { id: "book_appointment", title: "Book Appointment 📅" },
+                    { id: "tattoo_price", title: "Tattoo Price 💰" },
+                  ]
+                );
+                await supabase.from("whatsapp_messages").insert({
+                  lead_phone: `+${senderPhone}`,
+                  lead_name: senderName,
+                  lead_id: leadId,
+                  template_name: "chatbot_auto_reply",
+                  template_type: "confirmation",
+                  status: "sent",
+                  meta_message_id: replyMsgId,
+                  message_body: matchedRule.reply_text,
+                  message_type: "text",
+                });
+              } else if (!matchedRule && !hasPositiveIntent) {
+                // No rule matched — send friendly default + escalate
                 isEscalated = true;
+                if (phoneNumberId && accessToken && chatbotRules.length > 0) {
+                  const defaultReply = "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! In the meantime, feel free to ask about pricing, booking, or share your tattoo idea 🎨";
+                  const defMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, defaultReply);
+                  await supabase.from("whatsapp_messages").insert({
+                    lead_phone: `+${senderPhone}`,
+                    lead_name: senderName,
+                    lead_id: leadId,
+                    template_name: "chatbot_auto_reply",
+                    template_type: "confirmation",
+                    status: "sent",
+                    meta_message_id: defMsgId,
+                    message_body: defaultReply,
+                    message_type: "text",
+                  });
+                }
                 console.log(`[webhook] No chatbot rule matched, escalating to staff`);
               }
+            } else if (chatbotEnabled && botEnabled && messageType !== "text" && phoneNumberId && accessToken) {
+              // Media message — acknowledge and escalate
+              const mediaAck = "Got it! 👍 Our team will check this out and get back to you soon.";
+              const ackMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, mediaAck);
+              await supabase.from("whatsapp_messages").insert({
+                lead_phone: `+${senderPhone}`,
+                lead_name: senderName,
+                lead_id: leadId,
+                template_name: "chatbot_auto_reply",
+                template_type: "confirmation",
+                status: "sent",
+                meta_message_id: ackMsgId,
+                message_body: mediaAck,
+                message_type: "text",
+              });
+              isEscalated = true;
             } else if (chatbotEnabled && !botEnabled) {
               console.log(`[webhook] Bot disabled for contact ${senderPhone}, skipping auto-reply`);
               isEscalated = true;
@@ -375,10 +537,8 @@ Deno.serve(async (req) => {
 
             // Handle "Book Appointment" and "Tattoo Price" button clicks
             if (buttonPayloadId === "book_appointment" && phoneNumberId && accessToken) {
-              const bookMsgId = await sendAutoReply(
-                phoneNumberId, accessToken, senderPhone,
-                "📅 Great! To book an appointment, please share:\n\n1. Preferred date\n2. Tattoo style (e.g. Traditional, Realism, Geometric)\n3. Size & placement\n\nOur team will confirm your slot shortly!"
-              );
+              const bookReply = "Awesome! 📅 To book your session, just share:\n\n1️⃣ Your preferred date\n2️⃣ Tattoo style (Traditional, Realism, Geometric, etc.)\n3️⃣ Size & placement\n\nWe'll lock in your slot! 💪";
+              const bookMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, bookReply);
               await supabase.from("whatsapp_messages").insert({
                 lead_phone: `+${senderPhone}`,
                 lead_name: senderName,
@@ -387,15 +547,14 @@ Deno.serve(async (req) => {
                 template_type: "confirmation",
                 status: "sent",
                 meta_message_id: bookMsgId,
-                message_body: "🤖 📅 Great! To book an appointment, please share your preferred date, tattoo style, size & placement. Our team will confirm your slot shortly!",
+                message_body: bookReply,
+                message_type: "text",
               });
             }
 
             if (buttonPayloadId === "tattoo_price" && phoneNumberId && accessToken) {
-              const priceMsgId = await sendAutoReply(
-                phoneNumberId, accessToken, senderPhone,
-                "💰 Our tattoo pricing depends on:\n\n• Size & detail level\n• Placement on body\n• Style (color vs black & grey)\n\nSmall tattoos start from ₹2,000. Send us your design idea for an exact quote!"
-              );
+              const priceReply = "Our pricing depends on the design! 🎨\n\n• Small tattoos start from ₹2,000\n• Medium pieces from ₹5,000\n• Custom large work — let's chat!\n\nShare your design idea or reference pic and we'll give you an exact quote 💰";
+              const priceMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, priceReply);
               await supabase.from("whatsapp_messages").insert({
                 lead_phone: `+${senderPhone}`,
                 lead_name: senderName,
@@ -404,7 +563,8 @@ Deno.serve(async (req) => {
                 template_type: "confirmation",
                 status: "sent",
                 meta_message_id: priceMsgId,
-                message_body: "🤖 💰 Our tattoo pricing depends on size, placement & style. Small tattoos start from ₹2,000. Send us your design idea for an exact quote!",
+                message_body: priceReply,
+                message_type: "text",
               });
             }
 
@@ -419,6 +579,9 @@ Deno.serve(async (req) => {
               meta_message_id: message.id,
               message_body: messageText || null,
               is_escalated: isEscalated,
+              message_type: messageType,
+              media_url: mediaUrl,
+              file_name: fileName,
             });
           }
         }

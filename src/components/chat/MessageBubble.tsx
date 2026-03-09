@@ -1,5 +1,5 @@
 import { ChatMessage } from '@/hooks/useChat';
-import { Check, CheckCheck, AlertCircle, Lock, Star, RotateCw, FileText } from 'lucide-react';
+import { Check, CheckCheck, AlertCircle, Lock, Star, RotateCw, FileText, Download, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
@@ -17,6 +17,14 @@ function isPdfUrl(url: string) {
   return /\.pdf(\?|$)/i.test(url);
 }
 
+function isVideoUrl(url: string) {
+  return /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(url);
+}
+
+function isAudioUrl(url: string) {
+  return /\.(mp3|ogg|wav|m4a|aac|opus)(\?|$)/i.test(url);
+}
+
 function isFileMessage(body: string) {
   return body.startsWith('[file]') || (body.startsWith('http') && (isImageUrl(body) || isPdfUrl(body)));
 }
@@ -30,7 +38,90 @@ function DeliveryTicks({ message }: { message: ChatMessage }) {
   return null;
 }
 
-function renderFileContent(body: string) {
+/** Render media content based on message_type and media_url */
+function renderMediaContent(message: ChatMessage) {
+  const { messageType, mediaUrl, fileName, messageBody } = message;
+
+  if (!mediaUrl && !messageType) return null;
+
+  // Image
+  if (messageType === 'image' || (mediaUrl && isImageUrl(mediaUrl))) {
+    return (
+      <div className="mb-1">
+        <a href={mediaUrl || ''} target="_blank" rel="noopener noreferrer">
+          <img
+            src={mediaUrl || ''}
+            alt={fileName || 'image'}
+            className="max-w-[250px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+          />
+        </a>
+        {messageBody && !messageBody.startsWith('📷') && (
+          <p className="text-[13px] mt-1 whitespace-pre-wrap break-words" style={{ color: '#111b21' }}>{messageBody}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Video
+  if (messageType === 'video' || (mediaUrl && isVideoUrl(mediaUrl))) {
+    return (
+      <div className="mb-1">
+        <video
+          src={mediaUrl || ''}
+          controls
+          className="max-w-[280px] max-h-[200px] rounded-lg"
+          preload="metadata"
+        />
+        {messageBody && !messageBody.startsWith('🎥') && (
+          <p className="text-[13px] mt-1 whitespace-pre-wrap break-words" style={{ color: '#111b21' }}>{messageBody}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Audio / Voice
+  if (messageType === 'audio' || messageType === 'voice' || (mediaUrl && isAudioUrl(mediaUrl))) {
+    return (
+      <div className="mb-1">
+        <audio src={mediaUrl || ''} controls className="max-w-[250px]" preload="metadata" />
+      </div>
+    );
+  }
+
+  // Document
+  if (messageType === 'document' || (mediaUrl && isPdfUrl(mediaUrl))) {
+    const displayName = fileName || mediaUrl?.split('/').pop()?.split('?')[0] || 'Document';
+    return (
+      <a
+        href={mediaUrl || ''}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1 hover:opacity-80 transition-opacity"
+        style={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+      >
+        <FileText className="h-8 w-8 flex-shrink-0" style={{ color: '#ea4335' }} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate" style={{ color: '#111b21' }}>{displayName}</p>
+          <p className="text-[11px]" style={{ color: '#667781' }}>Document</p>
+        </div>
+        <Download className="h-4 w-4 flex-shrink-0" style={{ color: '#667781' }} />
+      </a>
+    );
+  }
+
+  // Sticker
+  if (messageType === 'sticker' && mediaUrl) {
+    return (
+      <div className="mb-1">
+        <img src={mediaUrl} alt="sticker" className="max-w-[150px] max-h-[150px]" />
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function renderLegacyFileContent(body: string) {
   const url = body.startsWith('[file]') ? body.replace('[file]', '').trim() : body;
   
   if (isImageUrl(url)) {
@@ -69,7 +160,8 @@ export function MessageBubble({ message, onToggleStar, onRetry }: Props) {
 
   const body = message.messageBody || (message.templateType === 'incoming' ? '💬 Message' : `📋 ${message.templateName}`);
   const time = format(parseISO(message.createdAt), 'HH:mm');
-  const fileMsg = body && isFileMessage(body);
+  const hasMedia = message.mediaUrl && message.messageType && message.messageType !== 'text';
+  const legacyFileMsg = body && isFileMessage(body);
 
   const bubbleStyle: React.CSSProperties = isNote
     ? { backgroundColor: '#fef3c7', border: '1px solid #fde68a' }
@@ -108,8 +200,19 @@ export function MessageBubble({ message, onToggleStar, onRetry }: Props) {
           </div>
         )}
 
-        {fileMsg ? renderFileContent(body) : (
+        {/* Render media content (new system) */}
+        {hasMedia && renderMediaContent(message)}
+
+        {/* Render legacy file content or text */}
+        {!hasMedia && (legacyFileMsg ? renderLegacyFileContent(body) : (
           <p className="whitespace-pre-wrap break-words" style={{ color: '#111b21' }}>{body}</p>
+        ))}
+
+        {/* Text-only (no media) messages that also have media_url but messageType is text */}
+        {!hasMedia && !legacyFileMsg && message.mediaUrl && (
+          <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline" style={{ color: '#027eb5' }}>
+            View attachment
+          </a>
         )}
 
         {message.errorMessage && (
@@ -118,7 +221,6 @@ export function MessageBubble({ message, onToggleStar, onRetry }: Props) {
           </p>
         )}
 
-        {/* Retry button for failed messages */}
         {isFailed && onRetry && (
           <button
             onClick={() => onRetry(message)}

@@ -18,6 +18,9 @@ export interface ChatMessage {
   isInternalNote: boolean;
   starred: boolean;
   createdAt: string;
+  messageType: string | null;
+  mediaUrl: string | null;
+  fileName: string | null;
 }
 
 export interface ChatContact {
@@ -50,6 +53,9 @@ function mapRow(row: any): ChatMessage {
     isInternalNote: row.is_internal_note,
     starred: row.starred,
     createdAt: row.created_at,
+    messageType: row.message_type || null,
+    mediaUrl: row.media_url || null,
+    fileName: row.file_name || null,
   };
 }
 
@@ -78,7 +84,7 @@ export function useChat() {
 
     const { data: allMessages } = await supabase
       .from('whatsapp_messages')
-      .select('lead_phone, message_body, template_name, template_type, status, created_at, read_at')
+      .select('lead_phone, message_body, template_name, template_type, status, created_at, read_at, message_type')
       .order('created_at', { ascending: false });
 
     const msgMap = new Map<string, { lastMsg: string; lastTime: string; unread: number }>();
@@ -87,8 +93,14 @@ export function useChat() {
       for (const m of allMessages) {
         const phone = m.lead_phone;
         if (!msgMap.has(phone)) {
+          let lastMsg = m.message_body || m.template_name;
+          // Show media type indicator for media messages
+          if ((m as any).message_type && (m as any).message_type !== 'text' && !m.message_body) {
+            const typeMap: Record<string, string> = { image: '📷 Photo', video: '🎥 Video', audio: '🎵 Audio', document: '📄 Document', sticker: '🏷️ Sticker' };
+            lastMsg = typeMap[(m as any).message_type] || m.template_name;
+          }
           msgMap.set(phone, {
-            lastMsg: m.message_body || m.template_name,
+            lastMsg,
             lastTime: m.created_at,
             unread: 0,
           });
@@ -141,7 +153,6 @@ export function useChat() {
   }, []);
 
   const markAsRead = useCallback(async (phone: string) => {
-    // Update all unread incoming messages for this contact
     await supabase
       .from('whatsapp_messages')
       .update({ read_at: new Date().toISOString() } as any)
@@ -149,7 +160,6 @@ export function useChat() {
       .in('template_type', ['incoming'])
       .is('read_at', null);
 
-    // Clear unread count locally
     setContacts(prev => prev.map(c => c.leadPhone === phone ? { ...c, unreadCount: 0 } : c));
   }, []);
 
@@ -205,6 +215,7 @@ export function useChat() {
   }, []);
 
   const sendAttachment = useCallback(async (phone: string, leadName: string, leadId: string, url: string, fileName: string, isImage: boolean) => {
+    const msgType = isImage ? 'image' : (fileName.endsWith('.pdf') ? 'document' : 'document');
     const { error } = await supabase.from('whatsapp_messages').insert({
       lead_phone: phone,
       lead_name: leadName,
@@ -213,6 +224,9 @@ export function useChat() {
       template_type: 'confirmation',
       status: 'sent',
       message_body: `[file]${url}`,
+      message_type: msgType,
+      media_url: url,
+      file_name: fileName,
     } as any);
     if (error) throw error;
   }, []);
@@ -227,6 +241,7 @@ export function useChat() {
       status: 'note',
       message_body: noteText,
       is_internal_note: true,
+      message_type: 'text',
     } as any);
     if (error) throw error;
   }, []);
@@ -255,9 +270,7 @@ export function useChat() {
     const newValue = !currentBotEnabled;
     const { error } = await supabase.from('leads').update({ bot_enabled: newValue } as any).eq('id', leadId);
     if (error) throw error;
-    // Update local contacts state
     setContacts(prev => prev.map(c => c.leadId === leadId ? { ...c, botEnabled: newValue } : c));
-    // Log interaction
     await supabase.from('lead_interactions').insert({
       lead_id: leadId,
       action_type: 'bot_toggle',
