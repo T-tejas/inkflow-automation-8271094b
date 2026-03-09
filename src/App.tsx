@@ -45,7 +45,7 @@ function AuthenticatedApp() {
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/designs" element={<DesignTracker />} />
-      <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="*" element={<NotFound />} />
