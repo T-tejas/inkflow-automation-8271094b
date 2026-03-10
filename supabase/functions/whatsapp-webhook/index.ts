@@ -557,6 +557,21 @@ Deno.serve(async (req) => {
               continue; // Skip AI reply
             }
 
+            // ---- Artist Consultation Trigger ----
+            if (leadId && messageText) {
+              const { data: freshLead } = await supabase
+                .from("leads")
+                .select("status, notes, placement, size, budget, source")
+                .eq("id", leadId)
+                .single();
+
+              const shouldTrigger = detectStrongIntent(messageText) || hasSharedEnoughDetails(freshLead?.notes || "");
+
+              if (shouldTrigger && freshLead && freshLead.status !== "Artist Consultation" && freshLead.status !== "Booked" && freshLead.status !== "Completed") {
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, freshLead.notes, freshLead);
+              }
+            }
+
             // AI-powered auto-reply
             if (chatbotEnabled && botEnabled && messageText && phoneNumberId && accessToken) {
               // Skip AI for reactions
