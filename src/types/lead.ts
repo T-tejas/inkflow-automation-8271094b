@@ -4,6 +4,7 @@ export type LeadStatus =
   | 'New Lead'
   | 'Contacted'
   | 'Interested'
+  | 'Artist Consultation'
   | 'Negotiating'
   | 'Booked'
   | 'Completed'
