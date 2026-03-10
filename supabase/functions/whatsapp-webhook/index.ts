@@ -44,27 +44,45 @@ Example: "Hey! 👋 Thanks for contacting F19 Tattoo Studio. What tattoo idea ar
 5️⃣ Timeline: "When are you planning to get it done?"
 Skip questions if user already answered them.
 
-# POSITIVE INTENT DETECTION
-If user says things like "Mujhe karwana hai", "Book karna hai", "Kab aa sakta hoon", "Price kitna hai", "Yes", "Ho chalel", "Haan bro" — they are interested.
+# CRITICAL: ANTI-REPETITION RULES
+1. **NEVER repeat pricing info** if it already appears in the conversation history. If you already said pricing, just say "As I mentioned, our artist can give you an exact quote. Want me to connect you?"
+2. **NEVER re-ask a question** the user already answered. Check the conversation history carefully.
+3. **NEVER repeat the consultation offer** if you already offered it. If user said yes, move to collecting details.
+4. **Track what you've already said.** Read the full conversation before replying.
 
-# CONSULTATION OFFER
-When interest is clear, say:
-"That sounds like an awesome tattoo idea! 🔥 Would you like one of our artists to contact you to discuss the design and plan your session?"
+# POSITIVE INTENT DETECTION (VERY IMPORTANT)
+If user says ANY of these (or similar):
+"Yes", "Yep", "Sure", "Ok", "Done", "Book appointment", "I want to get the tattoo", "Mujhe karwana hai", "Haan done", "Ho chalel", "Kab aa sakta hoon", "Book karna hai", "Karwana hai", "Haan bro", "Yes please", "Let's do it", "I am interested", "Pakka", "Confirm karo", "Schedule appointment"
 
-# IF CLIENT SAYS YES — collect details one by one:
-1️⃣ "Perfect! Could I get your full name?"
-2️⃣ "Thanks [Name]! What phone number should our artist contact you on?"
+Then they are showing **STRONG BOOKING INTENT**. When this happens:
+- **STOP asking more tattoo questions** (design, size, placement etc.)
+- **Move forward immediately** to connecting them with an artist
+- Say something like: "Great! Let me connect you with one of our artists. 🎨"
+- The system will automatically show a "Talk to Artist" button — you don't need to handle that.
+
+# IF CLIENT HAS ALREADY AGREED TO ARTIST CONTACT
+If the conversation history shows the client already agreed to talk to an artist:
+- Do NOT offer consultation again
+- Do NOT ask design/size/placement questions again
+- Simply confirm: "Our artist will be reaching out to you soon! 🎨 Is there anything else I can help with?"
+
+# DETAIL COLLECTION (after consultation accepted)
+If the system needs details and the user has agreed, ask ONE at a time:
+1️⃣ "Could I get your full name?"
+2️⃣ "Thanks! What phone number should our artist contact you on?"
 3️⃣ "Great! Lastly, your email address for confirmation."
-Then confirm: "Awesome [Name]! ✅ Our artist will contact you soon on [phone] to discuss your tattoo idea. We're excited to create something amazing for you! 🎨"
 
 # IF CLIENT IS NOT READY
 Reply politely: "No worries at all! 😊 You can check our tattoo portfolio here: https://f19tattoo.in/portfolio/ Whenever you're ready, feel free to message us."
 
-# PRICING (ONLY IF ASKED)
+# PRICING (ONLY IF ASKED AND NOT ALREADY GIVEN)
+If pricing has NOT been mentioned in conversation yet:
 • ₹800 per square inch
 • ₹4,000 per hour
 • ₹25,000 full day session
 Reply: "Pricing depends on size and detail. We usually charge ₹800 per sq inch or ₹4,000 per hour. Our artist can give you an exact quote after seeing your idea. Would you like them to contact you?"
+
+If pricing was ALREADY mentioned, say: "Our artist can give you an exact quote based on your design. Want me to connect you? 🎨"
 
 # STUDIO DETAILS
 Studio Name: F19 Tattoo Studio
@@ -75,8 +93,8 @@ Phone: +91 7517050600
 Email: f19tattoo@gmail.com
 
 # RULES
-DO: Be friendly, Keep replies short, Ask one question at a time, Offer artist consultation when user shows interest.
-DO NOT: Reply in Hindi/Marathi, Ask multiple questions together, Ask phone/email before consultation offer, Sound robotic.`;
+DO: Be friendly, Keep replies short, Ask one question at a time, Move forward when user shows interest.
+DO NOT: Reply in Hindi/Marathi, Ask multiple questions together, Repeat information already given, Loop on the same question, Ask phone/email before consultation is accepted, Sound robotic.`;
 
 async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promise<string | null> {
   try {
@@ -154,6 +172,39 @@ async function sendAutoReply(
   return result?.messages?.[0]?.id || null;
 }
 
+/** Send interactive button message via WhatsApp */
+async function sendInteractiveButtons(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  bodyText: string, buttons: { id: string; title: string }[]
+): Promise<string | null> {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: recipientPhone,
+    type: "interactive",
+    interactive: {
+      type: "button",
+      body: { text: bodyText },
+      action: {
+        buttons: buttons.map(b => ({
+          type: "reply",
+          reply: { id: b.id, title: b.title },
+        })),
+      },
+    },
+  };
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+  let result: any = null;
+  try { result = await response.json(); } catch { /* ignore */ }
+  return result?.messages?.[0]?.id || null;
+}
+
 /** Detect strong positive intent for artist consultation */
 function detectStrongIntent(text: string): boolean {
   const lower = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
@@ -165,7 +216,12 @@ function detectStrongIntent(text: string): boolean {
     'yes i want', 'yes please', 'lets do it', 'i am interested',
     'i want tattoo', 'main karwaunga', 'main karwaungi', 'pakka',
     'confirm karo', 'book karo', 'appointment chahiye', 'slot chahiye',
+    'schedule appointment', 'done', 'haan', 'sure',
   ];
+  // Also match simple affirmatives
+  const exactMatches = ['yes', 'yep', 'yeah', 'ok', 'okay', 'sure', 'done', 'haan', 'ha', 'ho'];
+  const trimmed = lower.trim();
+  if (exactMatches.includes(trimmed)) return true;
   return intentPhrases.some(phrase => lower.includes(phrase));
 }
 
@@ -180,13 +236,24 @@ function hasSharedEnoughDetails(notes: string): boolean {
   return detailCount >= 3;
 }
 
+/** Check if "Talk to Artist" button was already sent in conversation */
+async function wasArtistButtonAlreadySent(supabase: any, phone: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("whatsapp_messages")
+    .select("id")
+    .eq("lead_phone", phone)
+    .eq("template_name", "artist_consultation_button")
+    .limit(1);
+  return data && data.length > 0;
+}
+
 /** Create artist consultation notification and update lead */
 async function triggerArtistConsultation(
   supabase: any, leadId: string, leadName: string, leadPhone: string,
   notes: string, lead: any
 ) {
   // Check if already in Artist Consultation to avoid duplicates
-  if (lead?.status === 'Artist Consultation') return;
+  if (lead?.status === 'Artist Consultation' || lead?.status === 'Booked' || lead?.status === 'Completed') return;
 
   // Update lead status
   await supabase
@@ -197,18 +264,27 @@ async function triggerArtistConsultation(
   // Extract details from notes for notification
   const tattooIdea = notes?.slice(0, 100) || null;
 
-  // Create CRM notification
-  await supabase.from('crm_notifications').insert({
-    lead_id: leadId,
-    lead_name: leadName,
-    lead_phone: leadPhone,
-    notification_type: 'artist_consultation',
-    tattoo_idea: tattooIdea,
-    placement: lead?.placement || null,
-    size: lead?.size || null,
-    budget: lead?.budget || null,
-    lead_source: lead?.source || 'WhatsApp',
-  });
+  // Check for existing notification to prevent duplicates
+  const { data: existingNotif } = await supabase
+    .from('crm_notifications')
+    .select('id')
+    .eq('lead_id', leadId)
+    .eq('notification_type', 'artist_consultation')
+    .limit(1);
+
+  if (!existingNotif || existingNotif.length === 0) {
+    await supabase.from('crm_notifications').insert({
+      lead_id: leadId,
+      lead_name: leadName,
+      lead_phone: leadPhone,
+      notification_type: 'artist_consultation',
+      tattoo_idea: tattooIdea,
+      placement: lead?.placement || null,
+      size: lead?.size || null,
+      budget: lead?.budget || null,
+      lead_source: lead?.source || 'WhatsApp',
+    });
+  }
 
   // Log interaction
   await supabase.from('lead_interactions').insert({
@@ -270,10 +346,10 @@ async function getAIReply(
 }
 
 /** Fetch recent conversation history for a phone number */
-async function getConversationHistory(supabase: any, phone: string, limit = 20): Promise<{ role: string; content: string }[]> {
+async function getConversationHistory(supabase: any, phone: string, limit = 30): Promise<{ role: string; content: string }[]> {
   const { data } = await supabase
     .from("whatsapp_messages")
-    .select("template_type, message_body, message_type")
+    .select("template_type, message_body, message_type, template_name")
     .eq("lead_phone", phone)
     .not("message_body", "is", null)
     .order("created_at", { ascending: true })
@@ -282,7 +358,7 @@ async function getConversationHistory(supabase: any, phone: string, limit = 20):
   if (!data) return [];
 
   return data
-    .filter((m: any) => m.message_body && m.message_type === "text")
+    .filter((m: any) => m.message_body && !m.template_name?.includes('button'))
     .map((m: any) => ({
       role: m.template_type === "incoming" ? "user" : "assistant",
       content: m.message_body,
@@ -475,16 +551,18 @@ Deno.serve(async (req) => {
             // Upsert lead
             const { data: existingLeads } = await supabase
               .from("leads")
-              .select("id, notes, bot_enabled")
+              .select("id, notes, bot_enabled, status")
               .eq("phone", `+${senderPhone}`)
               .limit(1);
 
             let leadId: string | null = null;
             let botEnabled = true;
+            let leadStatus = "New Lead";
 
             if (existingLeads && existingLeads.length > 0) {
               leadId = existingLeads[0].id;
               botEnabled = existingLeads[0].bot_enabled !== false;
+              leadStatus = existingLeads[0].status;
               const lead = existingLeads[0];
               const updatedNotes = `${lead.notes ? lead.notes + "\n" : ""}[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`.slice(0, 2000);
               await supabase
@@ -512,7 +590,7 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Log incoming message FIRST (so AI has context)
+            // Log incoming message
             await supabase.from("whatsapp_messages").insert({
               lead_phone: `+${senderPhone}`,
               lead_name: senderName,
@@ -554,10 +632,42 @@ Deno.serve(async (req) => {
                   message_type: "text",
                 });
               }
-              continue; // Skip AI reply
+              continue;
+            }
+
+            // Handle "Talk to Artist" button click
+            if (buttonPayloadId === "talk_to_artist") {
+              console.log(`[webhook] "Talk to Artist" clicked by ${senderPhone}`);
+              if (leadId) {
+                const { data: freshLead } = await supabase
+                  .from("leads")
+                  .select("status, notes, placement, size, budget, source")
+                  .eq("id", leadId)
+                  .single();
+
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, freshLead?.notes, freshLead);
+              }
+
+              if (phoneNumberId && accessToken) {
+                const confirmReply = "Awesome! 🎨 Our artist will reach out to you very soon to discuss your tattoo idea and plan your session. We're excited to create something amazing for you! ✨";
+                const confirmMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, confirmReply);
+                await supabase.from("whatsapp_messages").insert({
+                  lead_phone: `+${senderPhone}`,
+                  lead_name: senderName,
+                  lead_id: leadId,
+                  template_name: "artist_consultation_confirm",
+                  template_type: "confirmation",
+                  status: "sent",
+                  meta_message_id: confirmMsgId,
+                  message_body: confirmReply,
+                  message_type: "text",
+                });
+              }
+              continue;
             }
 
             // ---- Artist Consultation Trigger ----
+            let intentDetected = false;
             if (leadId && messageText) {
               const { data: freshLead } = await supabase
                 .from("leads")
@@ -565,9 +675,11 @@ Deno.serve(async (req) => {
                 .eq("id", leadId)
                 .single();
 
-              const shouldTrigger = detectStrongIntent(messageText) || hasSharedEnoughDetails(freshLead?.notes || "");
+              const strongIntent = detectStrongIntent(messageText);
+              const enoughDetails = hasSharedEnoughDetails(freshLead?.notes || "");
+              intentDetected = strongIntent || enoughDetails;
 
-              if (shouldTrigger && freshLead && freshLead.status !== "Artist Consultation" && freshLead.status !== "Booked" && freshLead.status !== "Completed") {
+              if (intentDetected && freshLead && freshLead.status !== "Artist Consultation" && freshLead.status !== "Booked" && freshLead.status !== "Completed") {
                 await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, freshLead.notes, freshLead);
               }
             }
@@ -583,13 +695,17 @@ Deno.serve(async (req) => {
                 userContent = `[Client sent a ${messageType}: ${messageText}]`;
               }
 
-              // Fetch conversation history for context
+              // Fetch conversation history for context (includes the just-inserted message)
               const history = await getConversationHistory(supabase, `+${senderPhone}`);
 
+              // Remove the last entry since it's the current message we're about to pass separately
+              const historyWithoutCurrent = history.slice(0, -1);
+
               // Get AI reply
-              const aiReply = await getAIReply(history.slice(0, -1), userContent);
+              const aiReply = await getAIReply(historyWithoutCurrent, userContent);
               console.log(`[webhook] AI reply to ${senderPhone}: ${aiReply.slice(0, 100)}`);
 
+              // Send AI text reply
               const replyMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, aiReply);
               await supabase.from("whatsapp_messages").insert({
                 lead_phone: `+${senderPhone}`,
@@ -602,9 +718,35 @@ Deno.serve(async (req) => {
                 message_body: aiReply,
                 message_type: "text",
               });
+
+              // Send "Talk to Artist" button when intent is detected and not already sent
+              if (intentDetected && leadStatus !== "Artist Consultation" && leadStatus !== "Booked" && leadStatus !== "Completed") {
+                const alreadySent = await wasArtistButtonAlreadySent(supabase, `+${senderPhone}`);
+                if (!alreadySent) {
+                  const buttonMsgId = await sendInteractiveButtons(
+                    phoneNumberId, accessToken, senderPhone,
+                    "Would you like one of our artists to contact you? Tap below! 👇",
+                    [
+                      { id: "talk_to_artist", title: "Talk to Artist 🎨" },
+                      { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
+                    ]
+                  );
+                  await supabase.from("whatsapp_messages").insert({
+                    lead_phone: `+${senderPhone}`,
+                    lead_name: senderName,
+                    lead_id: leadId,
+                    template_name: "artist_consultation_button",
+                    template_type: "confirmation",
+                    status: "sent",
+                    meta_message_id: buttonMsgId,
+                    message_body: "Would you like one of our artists to contact you? Tap below! 👇\n[Talk to Artist 🎨] [Talk to Human 👨‍💻]",
+                    message_type: "text",
+                  });
+                  console.log(`[webhook] 🎨 Sent "Talk to Artist" button to ${senderPhone}`);
+                }
+              }
             } else if (chatbotEnabled && !botEnabled) {
               console.log(`[webhook] Bot disabled for ${senderPhone}, skipping auto-reply`);
-              // Mark as escalated
               await supabase
                 .from("whatsapp_messages")
                 .update({ is_escalated: true })
