@@ -137,6 +137,13 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <HotLeadNotifications
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkRead={markAsRead}
+              onMarkAllRead={markAllRead}
+              onLeadClick={handleNotifLeadClick}
+            />
             {isAdmin && (
               <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/admin')}>
                 <Shield className="h-4 w-4 text-amber-500" />
