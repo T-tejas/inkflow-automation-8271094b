@@ -43,7 +43,7 @@ interface Props {
   onClearChat?: (phone: string) => Promise<void>;
 }
 
-export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment, onToggleBot }: Props) {
+export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment, onToggleBot, onClearChat }: Props) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [statusOpen, setStatusOpen] = useState(false);
