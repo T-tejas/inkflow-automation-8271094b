@@ -51,6 +51,14 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bot-templates')} className="text-neutral-400 hover:text-white gap-1.5">
+              <Settings className="h-4 w-4" />
+              AI Responses
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bulk-messaging')} className="text-neutral-400 hover:text-white gap-1.5">
+              <Settings className="h-4 w-4" />
+              Bulk Messaging
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/settings/whatsapp')} className="text-neutral-400 hover:text-white gap-1.5">
               <Settings className="h-4 w-4" />
               WhatsApp Settings

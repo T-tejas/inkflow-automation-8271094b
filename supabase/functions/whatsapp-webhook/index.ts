@@ -163,23 +163,35 @@ async function logOutgoingMessage(supabase: any, phone: string, name: string, le
   });
 }
 
+// ─── Bot Response Templates ──────────────────────────────────────────
+
+async function getBotTemplate(supabase: any, key: string): Promise<string | null> {
+  const { data } = await supabase.from("bot_response_templates").select("response_text").eq("template_key", key).eq("is_active", true).single();
+  return data?.response_text || null;
+}
+
+async function getTemplateWithReplacements(supabase: any, key: string, replacements: Record<string, string>): Promise<string> {
+  let text = await getBotTemplate(supabase, key);
+  if (!text) return "";
+  for (const [k, v] of Object.entries(replacements)) {
+    text = text.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
+  }
+  return text;
+}
+
 // ─── Lead Scoring ─────────────────────────────────────────────────────
 
 function calculateLeadScore(lead: any): "HOT" | "WARM" | "COLD" {
   const timeline = (lead?.timeline || "").toLowerCase();
   const budget = (lead?.budget || "").toLowerCase();
-
   const isHighBudget = budget.includes("10k") || budget.includes("₹10") || budget.includes("5k") || budget.includes("₹5");
   const isThisWeek = timeline.includes("this week") || timeline.includes("week");
   const isThisMonth = timeline.includes("this month") || timeline.includes("month");
   const isExploring = timeline.includes("exploring") || timeline.includes("just");
-
   if ((isThisWeek || lead?.status === "Booked") && isHighBudget) return "HOT";
   if (isThisWeek) return "HOT";
   if (isThisMonth) return "WARM";
   if (isExploring) return "COLD";
-
-  // Default based on how many details collected
   const fields = [lead?.tattoo_style, lead?.size, lead?.placement, lead?.timeline, lead?.budget];
   const filled = fields.filter(f => f && f !== "" && f !== "Other" && f !== "Medium (4-6 in)").length;
   if (filled >= 4) return "WARM";
@@ -222,7 +234,7 @@ function getNextQualificationField(state: QualificationState): keyof Qualificati
   if (!state.placement) return "placement";
   if (!state.timeline) return "timeline";
   if (!state.budget) return "budget";
-  return null; // fully qualified
+  return null;
 }
 
 function isFullyQualified(state: QualificationState): boolean {
@@ -259,73 +271,34 @@ async function wasTemplateSent(supabase: any, phone: string, templateName: strin
 
 async function triggerArtistConsultation(supabase: any, leadId: string, leadName: string, leadPhone: string, lead: any) {
   if (lead?.status === 'Artist Consultation' || lead?.status === 'Booked' || lead?.status === 'Completed') return;
-
   const leadScore = calculateLeadScore(lead);
   const chatSummary = generateChatSummary(lead);
-
-  await supabase.from('leads').update({
-    status: 'Artist Consultation',
-    lead_score: leadScore,
-    updated_at: new Date().toISOString(),
-  }).eq('id', leadId);
-
+  await supabase.from('leads').update({ status: 'Artist Consultation', lead_score: leadScore, updated_at: new Date().toISOString() }).eq('id', leadId);
   const { data: existingNotif } = await supabase.from('crm_notifications').select('id').eq('lead_id', leadId).eq('notification_type', 'artist_consultation').limit(1);
-
   if (!existingNotif || existingNotif.length === 0) {
     await supabase.from('crm_notifications').insert({
-      lead_id: leadId,
-      lead_name: leadName,
-      lead_phone: leadPhone,
-      notification_type: 'artist_consultation',
-      tattoo_idea: lead?.tattoo_style || null,
-      placement: lead?.placement || null,
-      size: lead?.size || null,
-      budget: lead?.budget || null,
-      lead_source: lead?.source || 'WhatsApp',
-      lead_score: leadScore,
-      timeline: lead?.timeline || null,
-      chat_summary: chatSummary,
+      lead_id: leadId, lead_name: leadName, lead_phone: leadPhone, notification_type: 'artist_consultation',
+      tattoo_idea: lead?.tattoo_style || null, placement: lead?.placement || null, size: lead?.size || null,
+      budget: lead?.budget || null, lead_source: lead?.source || 'WhatsApp', lead_score: leadScore,
+      timeline: lead?.timeline || null, chat_summary: chatSummary,
     });
   }
-
-  await supabase.from('lead_interactions').insert({
-    lead_id: leadId,
-    action_type: 'artist_consultation_triggered',
-    new_value: 'Artist Consultation',
-    note: `Lead Score: ${leadScore} | ${chatSummary}`,
-  });
-
-  console.log(`[webhook] 🔥 Artist Consultation triggered for ${leadName} — Score: ${leadScore}`);
+  await supabase.from('lead_interactions').insert({ lead_id: leadId, action_type: 'artist_consultation_triggered', new_value: 'Artist Consultation', note: `Lead Score: ${leadScore} | ${chatSummary}` });
 }
 
 async function sendQualifiedLeadNotification(supabase: any, leadId: string, leadName: string, leadPhone: string, lead: any) {
   const leadScore = calculateLeadScore(lead);
   const chatSummary = generateChatSummary(lead);
-
   await supabase.from('leads').update({ lead_score: leadScore, updated_at: new Date().toISOString() }).eq('id', leadId);
-
-  // Only notify for WARM/HOT
   if (leadScore === "COLD") return;
-
   const { data: existingNotif } = await supabase.from('crm_notifications').select('id').eq('lead_id', leadId).eq('notification_type', 'lead_qualified').limit(1);
   if (existingNotif && existingNotif.length > 0) return;
-
   await supabase.from('crm_notifications').insert({
-    lead_id: leadId,
-    lead_name: leadName,
-    lead_phone: leadPhone,
-    notification_type: 'lead_qualified',
-    tattoo_idea: lead?.tattoo_style || null,
-    placement: lead?.placement || null,
-    size: lead?.size || null,
-    budget: lead?.budget || null,
-    lead_source: lead?.source || 'WhatsApp',
-    lead_score: leadScore,
-    timeline: lead?.timeline || null,
-    chat_summary: chatSummary,
+    lead_id: leadId, lead_name: leadName, lead_phone: leadPhone, notification_type: 'lead_qualified',
+    tattoo_idea: lead?.tattoo_style || null, placement: lead?.placement || null, size: lead?.size || null,
+    budget: lead?.budget || null, lead_source: lead?.source || 'WhatsApp', lead_score: leadScore,
+    timeline: lead?.timeline || null, chat_summary: chatSummary,
   });
-
-  console.log(`[webhook] 📊 Qualified lead notification: ${leadName} — ${leadScore}`);
 }
 
 // ─── AI Reply ─────────────────────────────────────────────────────────
@@ -342,11 +315,8 @@ async function getConversationHistory(supabase: any, phone: string, limit = 30):
 }
 
 function cleanAIResponse(text: string): string {
-  // Remove any [SYSTEM NOTE] blocks that the AI accidentally includes in its reply
   let cleaned = text.replace(/\[SYSTEM\s*NOTE\][\s\S]*?(?=\n\n|$)/gi, '').trim();
-  // Remove lines that look like internal instructions
   cleaned = cleaned.replace(/^.*(?:next field to collect|remember to keep|you should now ask).*$/gmi, '').trim();
-  // Remove double newlines left behind
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   return cleaned || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
 }
@@ -366,17 +336,109 @@ async function getAIReply(conversationHistory: { role: string; content: string }
       body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, max_tokens: 200 }),
     });
 
-    if (!response.ok) { console.error("[webhook] AI error:", response.status); return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨"; }
+    if (!response.ok) return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
     const data = await response.json();
     const rawReply = data?.choices?.[0]?.message?.content?.trim() || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
     return cleanAIResponse(rawReply);
   } catch (err) { console.error("[webhook] AI call error:", err); return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨"; }
 }
 
+// ─── Admin Command Panel ──────────────────────────────────────────────
+
+async function isAdminPhone(supabase: any, senderPhone: string): Promise<boolean> {
+  const { data } = await supabase.from("whatsapp_settings").select("setting_value").eq("setting_key", "admin_phone").single();
+  if (!data?.setting_value) return false;
+  const adminPhone = data.setting_value.replace(/[\s\-\(\)\+]/g, "");
+  const cleanSender = senderPhone.replace(/[\s\-\(\)\+]/g, "");
+  return cleanSender === adminPhone || cleanSender.endsWith(adminPhone) || adminPhone.endsWith(cleanSender);
+}
+
+async function sendAdminControlPanel(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any) {
+  // Send panel as a list menu
+  const bodyText = "🛡️ F19 Assistant Control Panel\n\nWelcome back, Admin! What would you like to manage?";
+  const msgId = await sendInteractiveList(phoneNumberId, accessToken, recipientPhone, bodyText, "Open Panel", [
+    {
+      title: "Dashboard & Leads",
+      rows: [
+        { id: "admin_crm", title: "View CRM Dashboard", description: "Open CRM overview" },
+        { id: "admin_leads", title: "Manage Leads", description: "View & update leads" },
+        { id: "admin_bookings", title: "Booking Requests", description: "Pending approvals" },
+      ],
+    },
+    {
+      title: "Settings & Campaigns",
+      rows: [
+        { id: "admin_edit_responses", title: "Edit AI Responses", description: "Update bot messages" },
+        { id: "admin_bulk_message", title: "Send Bulk Message", description: "Create a campaign" },
+        { id: "admin_import", title: "Import Contacts", description: "Import from CSV/Excel" },
+      ],
+    },
+  ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, "Admin", null, "admin_panel", bodyText, msgId);
+}
+
+async function sendEditResponsesMenu(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any) {
+  const { data: templates } = await supabase.from("bot_response_templates").select("template_key, template_label").eq("is_active", true).order("created_at");
+  if (!templates || templates.length === 0) {
+    await sendTextMessage(phoneNumberId, accessToken, recipientPhone, "No editable templates found.");
+    return;
+  }
+  const rows = templates.slice(0, 10).map((t: any) => ({ id: `edit_tmpl_${t.template_key}`, title: t.template_label, description: "Tap to edit" }));
+  const msgId = await sendInteractiveList(phoneNumberId, accessToken, recipientPhone,
+    "✏️ Select which response to edit:\n\nReply with the new text after selecting.", "Select Template", [{ title: "Bot Responses", rows }]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, "Admin", null, "admin_edit_menu", "Edit AI Responses menu", msgId);
+}
+
+async function handleAdminEditTemplate(supabase: any, templateKey: string, newText: string): Promise<boolean> {
+  const { error } = await supabase.from("bot_response_templates").update({ response_text: newText, updated_at: new Date().toISOString() }).eq("template_key", templateKey);
+  return !error;
+}
+
+async function sendAdminStats(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any) {
+  const { count: totalLeads } = await supabase.from("leads").select("id", { count: "exact", head: true });
+  const { count: hotLeads } = await supabase.from("leads").select("id", { count: "exact", head: true }).eq("lead_score", "HOT");
+  const { count: pendingBookings } = await supabase.from("appointments").select("id", { count: "exact", head: true }).eq("status", "pending");
+  const { count: todayAppts } = await supabase.from("appointments").select("id", { count: "exact", head: true }).eq("appointment_date", new Date().toISOString().split("T")[0]);
+  
+  const statsText = `📊 CRM Dashboard Summary\n\n👥 Total Leads: ${totalLeads || 0}\n🔥 Hot Leads: ${hotLeads || 0}\n⏳ Pending Bookings: ${pendingBookings || 0}\n📅 Today's Appointments: ${todayAppts || 0}\n\n💡 Open the CRM for full details.`;
+  const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, statsText);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, "Admin", null, "admin_stats", statsText, msgId);
+}
+
+async function sendPendingBookings(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any) {
+  const { data: pending } = await supabase.from("appointments").select("lead_name, lead_phone, appointment_date, time_slot, tattoo_style").eq("status", "pending").order("created_at", { ascending: false }).limit(5);
+  if (!pending || pending.length === 0) {
+    await sendTextMessage(phoneNumberId, accessToken, recipientPhone, "✅ No pending booking requests!");
+    return;
+  }
+  let text = `⏳ Pending Booking Requests (${pending.length}):\n`;
+  pending.forEach((a: any, i: number) => {
+    text += `\n${i + 1}. ${a.lead_name} — ${a.appointment_date} ${a.time_slot}${a.tattoo_style ? ` (${a.tattoo_style})` : ""}`;
+  });
+  text += "\n\n👆 Open CRM to approve/reject these.";
+  const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, text);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, "Admin", null, "admin_bookings", text, msgId);
+}
+
+async function sendLeadsSummary(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any) {
+  const { data: recentLeads } = await supabase.from("leads").select("full_name, phone, status, lead_score, tattoo_style").order("updated_at", { ascending: false }).limit(5);
+  if (!recentLeads || recentLeads.length === 0) {
+    await sendTextMessage(phoneNumberId, accessToken, recipientPhone, "No leads found.");
+    return;
+  }
+  let text = "👥 Recent Leads:\n";
+  recentLeads.forEach((l: any, i: number) => {
+    text += `\n${i + 1}. ${l.full_name} (${l.status})${l.lead_score ? ` — ${l.lead_score}` : ""}${l.tattoo_style ? ` — ${l.tattoo_style}` : ""}`;
+  });
+  const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, text);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, "Admin", null, "admin_leads", text, msgId);
+}
+
 // ─── Interactive Flow Handlers ────────────────────────────────────────
 
 async function sendWelcomeMenu(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
-  const bodyText = `Welcome to F19 Tattoo Studio 🔥\nHey ${leadName}! We'd love to help you plan your tattoo.`;
+  const welcomeTemplate = await getTemplateWithReplacements(supabase, "welcome", { name: leadName });
+  const bodyText = welcomeTemplate || `Welcome to F19 Tattoo Studio 🔥\nHey ${leadName}! We'd love to help you plan your tattoo.`;
   const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, [
     { id: "menu_price", title: "Get Tattoo Price 💰" },
     { id: "menu_designs", title: "See Tattoo Designs" },
@@ -404,7 +466,6 @@ async function sendStyleList(phoneNumberId: string, accessToken: string, recipie
   await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_style_list", "Check out our popular tattoo styles! 🎨", msgId);
 }
 
-// Qualification step senders
 async function sendSizeButtons(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
   const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone,
     "What size tattoo are you thinking? 📐", [
@@ -457,31 +518,22 @@ async function sendQualificationComplete(phoneNumberId: string, accessToken: str
   }
 }
 
-/** Process the next qualification step after updating a field */
 async function advanceQualification(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null, lead: any) {
   const state = getQualificationState(lead);
   const nextField = getNextQualificationField(state);
-
   if (!nextField) {
-    // Fully qualified — send notification + CTA
     if (leadId) await sendQualifiedLeadNotification(supabase, leadId, leadName, `+${recipientPhone}`, lead);
     await sendQualificationComplete(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId, lead);
     return;
   }
-
-  // For button-based fields, send buttons; for text-based fields, AI will ask
-  if (nextField === "size") {
-    await sendSizeButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
-  } else if (nextField === "timeline") {
-    await sendTimelineButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
-  } else if (nextField === "budget") {
-    await sendBudgetButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
-  }
-  // tattoo_style and placement are collected via AI free-text (no buttons needed)
+  if (nextField === "size") await sendSizeButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  else if (nextField === "timeline") await sendTimelineButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  else if (nextField === "budget") await sendBudgetButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
 }
 
 async function sendArtistContactFlow(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
-  const bodyText = "Our artist will help you finalize the design and give you the exact price. 🎨✨\n\nWhat would you like to do next?";
+  const artistTemplate = await getBotTemplate(supabase, "artist_contact");
+  const bodyText = artistTemplate || "Our artist will help you finalize the design and give you the exact price. 🎨✨\n\nWhat would you like to do next?";
   const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, [
     { id: "send_tattoo_idea", title: "Send Tattoo Idea 📷" },
     { id: "menu_book", title: "Book Appointment 📅" },
@@ -492,34 +544,25 @@ async function sendArtistContactFlow(phoneNumberId: string, accessToken: string,
 async function sendBookingSlots(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
   const today = new Date();
   const slots: { label: string; id: string }[] = [];
-
   for (let dayOffset = 0; dayOffset < 7 && slots.length < 3; dayOffset++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + dayOffset);
-    const dow = date.getDay();
-    if (dow === 0) continue;
-
+    const date = new Date(today); date.setDate(today.getDate() + dayOffset);
+    const dow = date.getDay(); if (dow === 0) continue;
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
     const { data: avail } = await supabase.from("studio_availability").select("is_available").or(`day_of_week.eq.${dow},specific_date.eq.${dateStr}`).limit(1);
     if (avail && avail.length > 0 && !avail[0].is_available) continue;
-
     const { data: existing } = await supabase.from("appointments").select("time_slot").eq("appointment_date", dateStr).neq("status", "cancelled");
     const bookedSlots = new Set((existing || []).map((a: any) => a.time_slot));
     const freeSlot = ["11:00 AM", "2:00 PM", "5:00 PM"].find(t => !bookedSlots.has(t));
-
     if (freeSlot) {
       const dayName = dayOffset === 0 ? "Today" : dayOffset === 1 ? "Tomorrow" : date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
       slots.push({ label: `${dayName} ${freeSlot}`, id: `book_${dateStr}_${freeSlot.replace(/[:\s]/g, '')}` });
     }
   }
-
   if (slots.length === 0) {
     const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, "All our slots are currently booked! 😅 Our team will reach out to find the best time for you.");
     await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_no_slots", "All slots booked", msgId);
     return;
   }
-
   const bodyText = "Great! Here are our available slots 📅\nPick one that works for you:";
   const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, slots.slice(0, 3).map(s => ({ id: s.id, title: s.label })));
   await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_booking_slots", bodyText, msgId);
@@ -534,7 +577,6 @@ async function handleBookingConfirm(phoneNumberId: string, accessToken: string, 
   const ampm = rawTime.slice(4);
   const timeSlot = `${parseInt(hour)}:${min} ${ampm}`;
 
-  // Create appointment with PENDING status — studio must approve
   const { data: lead } = leadId ? await supabase.from("leads").select("*").eq("id", leadId).single() : { data: null };
 
   const { error } = await supabase.from("appointments").insert({
@@ -553,25 +595,15 @@ async function handleBookingConfirm(phoneNumberId: string, accessToken: string, 
     await supabase.from("lead_interactions").insert({ lead_id: leadId, action_type: "appointment_requested", new_value: `${date} ${timeSlot}`, note: "Appointment request via WhatsApp (pending approval)" });
   }
 
-  // Send "request received" message — NOT a confirmation
-  const requestText = `📩 Appointment Request Received\n\nYour request has been sent to our studio team.\nWe will confirm your slot shortly.`;
+  const requestText = await getTemplateWithReplacements(supabase, "booking_request", {}) || `📩 Appointment Request Received\n\nYour request has been sent to our studio team.\nWe will confirm your slot shortly.`;
   const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, requestText);
   await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "booking_request_received", requestText, msgId);
 
-  // Trigger CRM notification for studio to approve/reject
   await supabase.from("crm_notifications").insert({
-    lead_id: leadId,
-    lead_name: leadName,
-    lead_phone: `+${recipientPhone}`,
-    notification_type: "appointment_request",
-    tattoo_idea: lead?.tattoo_style || null,
-    placement: lead?.placement || null,
-    size: lead?.size || null,
-    budget: lead?.budget || null,
-    lead_source: lead?.source || "WhatsApp",
-    lead_score: lead?.lead_score || null,
-    timeline: `${date} at ${timeSlot}`,
-    chat_summary: `Appointment request: ${date} ${timeSlot}`,
+    lead_id: leadId, lead_name: leadName, lead_phone: `+${recipientPhone}`, notification_type: "appointment_request",
+    tattoo_idea: lead?.tattoo_style || null, placement: lead?.placement || null, size: lead?.size || null,
+    budget: lead?.budget || null, lead_source: lead?.source || "WhatsApp", lead_score: lead?.lead_score || null,
+    timeline: `${date} at ${timeSlot}`, chat_summary: `Appointment request: ${date} ${timeSlot}`,
   });
 }
 
@@ -581,13 +613,10 @@ async function handleStyleSelection(phoneNumberId: string, accessToken: string, 
     style_portrait: "Portrait", style_geometric: "Geometric", style_traditional: "Traditional", style_custom: "Custom",
   };
   const styleName = styleNames[styleId] || "Custom";
-
   if (leadId) {
     await supabase.from("leads").update({ tattoo_style: styleName, updated_at: new Date().toISOString() }).eq("id", leadId);
-    // Refresh lead and advance qualification
     const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
     if (freshLead) {
-      // Send a brief AI comment then advance
       const history = await getConversationHistory(supabase, `+${recipientPhone}`);
       const aiReply = await getAIReply(history, styleName, `The user selected "${styleName}" tattoo style. Acknowledge briefly and say you have a couple more quick questions.`);
       const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, aiReply);
@@ -596,8 +625,6 @@ async function handleStyleSelection(phoneNumberId: string, accessToken: string, 
       return;
     }
   }
-
-  // Fallback: show options
   const bodyText = `Great choice! ${styleName} tattoos are 🔥\n\nWant to see pricing or talk to our artist?`;
   const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, [
     { id: "menu_price", title: "Get Price 💰" },
@@ -610,15 +637,9 @@ async function handleStyleSelection(phoneNumberId: string, accessToken: string, 
 // ─── Extract field values from free-text ──────────────────────────────
 
 function extractPlacement(text: string): string | null {
-  const placements = [
-    "forearm", "wrist", "neck", "back", "chest", "leg", "shoulder",
-    "ankle", "arm", "hand", "finger", "thigh", "calf", "ribcage",
-    "spine", "hip", "collarbone", "bicep", "tricep", "elbow",
-  ];
+  const placements = ["forearm", "wrist", "neck", "back", "chest", "leg", "shoulder", "ankle", "arm", "hand", "finger", "thigh", "calf", "ribcage", "spine", "hip", "collarbone", "bicep", "tricep", "elbow"];
   const lower = text.toLowerCase();
-  for (const p of placements) {
-    if (lower.includes(p)) return p.charAt(0).toUpperCase() + p.slice(1);
-  }
+  for (const p of placements) { if (lower.includes(p)) return p.charAt(0).toUpperCase() + p.slice(1); }
   return null;
 }
 
@@ -641,7 +662,6 @@ function extractTattooStyle(text: string): string | null {
   for (const [styleName, keywords] of Object.entries(styles)) {
     if (keywords.some(k => lower.includes(k))) return styleName;
   }
-  // If they mention a specific design concept, treat as custom
   const designKeywords = ["lion", "rose", "skull", "dragon", "butterfly", "eagle", "wolf", "tiger", "flower", "cross", "heart", "star", "moon", "sun", "tree", "bird", "snake", "fish", "crown", "anchor", "compass", "clock", "phoenix", "owl", "feather"];
   if (designKeywords.some(k => lower.includes(k))) return "Custom";
   return null;
@@ -660,13 +680,11 @@ Deno.serve(async (req) => {
     const mode = url.searchParams.get("hub.mode");
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
-
     let verifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") || "lovable_webhook_verify";
     try {
       const { data } = await supabase.from("whatsapp_settings").select("setting_value").eq("setting_key", "webhook_verify_token").single();
       if (data?.setting_value) verifyToken = data.setting_value;
     } catch { /* use fallback */ }
-
     if (mode === "subscribe" && token === verifyToken) return new Response(challenge, { status: 200, headers: corsHeaders });
     return new Response("Forbidden", { status: 403, headers: corsHeaders });
   }
@@ -692,6 +710,9 @@ Deno.serve(async (req) => {
       if (wabaId && accessToken) phoneNumberId = await resolvePhoneNumberId(wabaId, accessToken);
       if (!phoneNumberId && envPhoneId) phoneNumberId = envPhoneId;
 
+      // Track admin edit state per sender in this request scope
+      const adminEditState: Record<string, string> = {};
+
       for (const entry of entries) {
         const changes = entry?.changes || [];
 
@@ -709,6 +730,19 @@ Deno.serve(async (req) => {
             else if (status === "read") updateData.read_at = new Date(parseInt(timestamp) * 1000).toISOString();
             else if (status === "failed") { updateData.error_message = statusUpdate?.errors?.[0]?.title || "Delivery failed"; updateData.status = "failed"; }
             await supabase.from("whatsapp_messages").update(updateData).eq("meta_message_id", metaMessageId);
+
+            // Update campaign recipient delivery status
+            if (status === "delivered" || status === "read") {
+              const recipUpdate: Record<string, unknown> = { status };
+              if (status === "delivered") recipUpdate.delivered_at = updateData.delivered_at;
+              if (status === "read") recipUpdate.read_at = updateData.read_at;
+              const { data: recipData } = await supabase.from("campaign_recipients").update(recipUpdate).eq("meta_message_id", metaMessageId).select("campaign_id").limit(1);
+              if (recipData && recipData.length > 0) {
+                const campaignId = recipData[0].campaign_id;
+                if (status === "delivered") await supabase.rpc("increment_campaign_stat", { p_campaign_id: campaignId, p_field: "messages_delivered" }).catch(() => {});
+                if (status === "read") await supabase.rpc("increment_campaign_stat", { p_campaign_id: campaignId, p_field: "messages_read" }).catch(() => {});
+              }
+            }
           }
 
           // Handle incoming messages
@@ -738,7 +772,6 @@ Deno.serve(async (req) => {
             else if (msgType === "reaction") { messageText = `${message?.reaction?.emoji || "👍"} Reaction`; messageType = "reaction"; }
             else { messageText = `[${msgType}]`; }
 
-            // Fetch and store media
             if (mediaId && accessToken) {
               const mediaInfo = await fetchMediaUrl(mediaId, accessToken);
               if (mediaInfo?.url) {
@@ -752,6 +785,92 @@ Deno.serve(async (req) => {
             const senderName = contactInfo?.profile?.name || `WhatsApp ${senderPhone}`;
 
             console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [type: ${messageType}] [button: ${buttonPayloadId}]`);
+
+            // ─── ADMIN COMMAND CHECK ────────────────────────
+            const isAdmin = await isAdminPhone(supabase, senderPhone);
+            
+            if (isAdmin && phoneNumberId && accessToken) {
+              const lowerMsg = messageText.toLowerCase().trim();
+              
+              // Admin panel trigger
+              if (lowerMsg === "admin" || lowerMsg === "panel" || lowerMsg === "f19 panel" || lowerMsg === "control panel") {
+                // Log the incoming admin message
+                await supabase.from("whatsapp_messages").insert({
+                  lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null,
+                  template_name: "incoming", template_type: "incoming", status: "received",
+                  meta_message_id: message.id, message_body: messageText, message_type: "text",
+                });
+                await sendAdminControlPanel(phoneNumberId, accessToken, senderPhone, supabase);
+                continue;
+              }
+
+              // Admin menu actions
+              if (buttonPayloadId === "admin_crm") {
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                await sendAdminStats(phoneNumberId, accessToken, senderPhone, supabase);
+                continue;
+              }
+              if (buttonPayloadId === "admin_leads") {
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                await sendLeadsSummary(phoneNumberId, accessToken, senderPhone, supabase);
+                continue;
+              }
+              if (buttonPayloadId === "admin_bookings") {
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                await sendPendingBookings(phoneNumberId, accessToken, senderPhone, supabase);
+                continue;
+              }
+              if (buttonPayloadId === "admin_edit_responses") {
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                await sendEditResponsesMenu(phoneNumberId, accessToken, senderPhone, supabase);
+                continue;
+              }
+              if (buttonPayloadId === "admin_bulk_message") {
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                const text = "📢 Bulk Messaging\n\nTo create a campaign, open the CRM dashboard → Bulk Messaging tab.\n\nYou can import contacts via CSV/Excel and send campaigns with tracking.";
+                const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, text);
+                await logOutgoingMessage(supabase, `+${senderPhone}`, "Admin", null, "admin_bulk", text, msgId);
+                continue;
+              }
+              if (buttonPayloadId === "admin_import") {
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                const text = "📥 Import Contacts\n\nOpen the CRM dashboard → Bulk Messaging → Import tab.\n\nSupported formats: CSV, Excel (.xlsx), or paste phone numbers directly.";
+                const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, text);
+                await logOutgoingMessage(supabase, `+${senderPhone}`, "Admin", null, "admin_import", text, msgId);
+                continue;
+              }
+
+              // Edit template selection
+              if (buttonPayloadId.startsWith("edit_tmpl_")) {
+                const templateKey = buttonPayloadId.replace("edit_tmpl_", "");
+                const { data: tmpl } = await supabase.from("bot_response_templates").select("template_label, response_text").eq("template_key", templateKey).single();
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                if (tmpl) {
+                  // Store the pending edit state in whatsapp_settings temporarily
+                  await supabase.from("whatsapp_settings").upsert({ setting_key: `admin_edit_pending_${senderPhone}`, setting_value: templateKey, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
+                  const text = `✏️ Editing: ${tmpl.template_label}\n\nCurrent text:\n${tmpl.response_text}\n\n📝 Reply with the new text to update it.`;
+                  const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, text);
+                  await logOutgoingMessage(supabase, `+${senderPhone}`, "Admin", null, "admin_edit_preview", text, msgId);
+                }
+                continue;
+              }
+
+              // Check for pending template edit
+              const { data: pendingEdit } = await supabase.from("whatsapp_settings").select("setting_value").eq("setting_key", `admin_edit_pending_${senderPhone}`).single();
+              if (pendingEdit?.setting_value && messageText && !buttonPayloadId) {
+                const templateKey = pendingEdit.setting_value;
+                await supabase.from("whatsapp_messages").insert({ lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null, template_name: "incoming", template_type: "incoming", status: "received", meta_message_id: message.id, message_body: messageText, message_type: "text" });
+                const success = await handleAdminEditTemplate(supabase, templateKey, messageText);
+                // Clear the pending state
+                await supabase.from("whatsapp_settings").delete().eq("setting_key", `admin_edit_pending_${senderPhone}`);
+                const reply = success ? `✅ Template updated successfully!\n\nThe "${templateKey}" response has been updated instantly.` : "❌ Failed to update template. Please try again.";
+                const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, reply);
+                await logOutgoingMessage(supabase, `+${senderPhone}`, "Admin", null, "admin_edit_result", reply, msgId);
+                continue;
+              }
+            }
+
+            // ─── REGULAR CLIENT FLOW ────────────────────────
 
             // Upsert lead
             const { data: existingLeads } = await supabase.from("leads")
@@ -778,7 +897,7 @@ Deno.serve(async (req) => {
                 whatsapp_opt_in: true, status: "New Lead", tags: ["whatsapp_inquiry"],
                 notes: `[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`, bot_enabled: true,
               }).select().single();
-              if (!error && newLead) { leadId = newLead.id; lead = newLead; console.log(`[webhook] Auto-created lead: ${newLead.id}`); }
+              if (!error && newLead) { leadId = newLead.id; lead = newLead; }
             }
 
             // Log incoming message
@@ -788,6 +907,16 @@ Deno.serve(async (req) => {
               meta_message_id: message.id, message_body: messageText || null,
               is_escalated: false, message_type: messageType, media_url: mediaUrl, file_name: fileName,
             });
+
+            // Check if this is a reply to a campaign
+            if (leadId) {
+              const { data: campaignRecip } = await supabase.from("campaign_recipients").select("campaign_id").eq("phone", `+${senderPhone}`).eq("replied", false).order("created_at", { ascending: false }).limit(1);
+              if (campaignRecip && campaignRecip.length > 0) {
+                await supabase.from("campaign_recipients").update({ replied: true }).eq("phone", `+${senderPhone}`).eq("campaign_id", campaignRecip[0].campaign_id);
+                // Increment replies_received on campaign (best effort)
+                await supabase.rpc("increment_campaign_stat", { p_campaign_id: campaignRecip[0].campaign_id, p_field: "replies_received" }).catch(() => {});
+              }
+            }
 
             // Skip if bot disabled or no credentials
             if (!chatbotEnabled || !botEnabled || !phoneNumberId || !accessToken) {
@@ -801,7 +930,6 @@ Deno.serve(async (req) => {
 
             // ─── BUTTON-BASED FLOW ROUTING ────────────────────
 
-            // Talk to Human
             if (buttonPayloadId === "talk_to_human" || messageText.toLowerCase().includes("talk to human")) {
               if (leadId) await supabase.from("leads").update({ bot_enabled: false, status: "Contacted" }).eq("id", leadId);
               const reply = "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly.";
@@ -810,32 +938,27 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Talk to Artist
             if (buttonPayloadId === "talk_to_artist" || buttonPayloadId === "menu_artist") {
               if (leadId && lead) await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead);
               await sendArtistContactFlow(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // See Designs
             if (buttonPayloadId === "menu_designs") {
               await sendStyleList(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Style selection from list
             if (buttonPayloadId.startsWith("style_")) {
               await handleStyleSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, buttonPayloadId);
               continue;
             }
 
-            // Get Price → starts qualification from size
             if (buttonPayloadId === "menu_price") {
               await sendSizeButtons(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Qualification: Size selected
             if (buttonPayloadId.startsWith("qual_size_")) {
               const sizeMap: Record<string, string> = { qual_size_small: "Small (2-4 in)", qual_size_medium: "Medium (4-6 in)", qual_size_large: "Large (6-10 in)" };
               const sizeVal = sizeMap[buttonPayloadId] || "Medium (4-6 in)";
@@ -847,7 +970,6 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Qualification: Timeline selected
             if (buttonPayloadId.startsWith("qual_time_")) {
               const timeMap: Record<string, string> = { qual_time_week: "This Week", qual_time_month: "This Month", qual_time_exploring: "Just Exploring" };
               const timeVal = timeMap[buttonPayloadId] || "This Month";
@@ -859,7 +981,6 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Qualification: Budget selected
             if (buttonPayloadId.startsWith("qual_budget_")) {
               const budgetMap: Record<string, string> = { qual_budget_low: "₹2k – ₹5k", qual_budget_mid: "₹5k – ₹10k", qual_budget_high: "₹10k+" };
               const budgetVal = budgetMap[buttonPayloadId] || "₹5k – ₹10k";
@@ -871,19 +992,16 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Book Appointment
             if (buttonPayloadId === "menu_book") {
               await sendBookingSlots(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Booking slot confirm
             if (buttonPayloadId.startsWith("book_")) {
               await handleBookingConfirm(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, buttonPayloadId);
               continue;
             }
 
-            // Send Tattoo Idea
             if (buttonPayloadId === "send_tattoo_idea") {
               const promptText = "Go ahead! 📷 Send me a photo or describe your tattoo idea, and our artist will review it.";
               const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, promptText);
@@ -892,7 +1010,6 @@ Deno.serve(async (req) => {
             }
 
             // ─── WELCOME FOR NEW / GREETING ────────────────────
-
             const lowerText = messageText.toLowerCase().trim();
             const isGreeting = /^(hi|hello|hey|hola|namaste|namaskar|yo|sup|start|menu)$/i.test(lowerText);
 
@@ -902,8 +1019,6 @@ Deno.serve(async (req) => {
             }
 
             // ─── FREE-TEXT PROCESSING ──────────────────────────
-
-            // Try to extract qualification data from free-text
             const qualState = getQualificationState(lead);
             const nextField = getNextQualificationField(qualState);
             let fieldUpdated = false;
@@ -914,9 +1029,7 @@ Deno.serve(async (req) => {
                 await supabase.from("leads").update({ tattoo_style: extractedStyle, updated_at: new Date().toISOString() }).eq("id", leadId);
                 const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
                 if (freshLead) {
-                  lead = freshLead;
-                  fieldUpdated = true;
-                  // AI acknowledges + system sends next step buttons
+                  lead = freshLead; fieldUpdated = true;
                   const history = await getConversationHistory(supabase, `+${senderPhone}`);
                   const aiReply = await getAIReply(history, messageText, `The user described their tattoo style as "${extractedStyle}". Acknowledge briefly, positively.`);
                   const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
@@ -932,8 +1045,7 @@ Deno.serve(async (req) => {
                 await supabase.from("leads").update({ placement: extractedPlacement, updated_at: new Date().toISOString() }).eq("id", leadId);
                 const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
                 if (freshLead) {
-                  lead = freshLead;
-                  fieldUpdated = true;
+                  lead = freshLead; fieldUpdated = true;
                   const history = await getConversationHistory(supabase, `+${senderPhone}`);
                   const aiReply = await getAIReply(history, messageText, `The user said placement is "${extractedPlacement}". Acknowledge briefly.`);
                   const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
@@ -945,7 +1057,6 @@ Deno.serve(async (req) => {
 
             if (fieldUpdated) continue;
 
-            // Check for strong intent → trigger artist consultation
             if (leadId && messageText && detectStrongIntent(messageText)) {
               if (lead && lead.status !== "Artist Consultation" && lead.status !== "Booked" && lead.status !== "Completed") {
                 await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead);
@@ -954,7 +1065,6 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Media (tattoo reference photos)
             if (messageType === "image" || messageType === "document") {
               const ackText = "Thanks for sharing! 📷 Our artist will review your design idea and get back to you with details and pricing. 🎨";
               const ackMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, ackText);
@@ -966,8 +1076,6 @@ Deno.serve(async (req) => {
             }
 
             // ─── AI FALLBACK REPLY ─────────────────────────────
-
-            // Build system note for AI context
             let systemNote = "";
             if (nextField) {
               systemNote = `The user hasn't provided their ${nextField.replace("_", " ")} yet. Ask for it naturally. Current collected data: ${generateChatSummary(lead)}`;
@@ -981,9 +1089,6 @@ Deno.serve(async (req) => {
 
             const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
             await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "chatbot_auto_reply", aiReply, replyMsgId);
-
-            // If AI asked for placement or style, the next message should be parsed for that field
-            // (handled in next webhook call via qualification state)
           }
         }
       }

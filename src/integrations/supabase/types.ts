@@ -76,6 +76,140 @@ export type Database = {
           },
         ]
       }
+      bot_response_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          response_text: string
+          template_key: string
+          template_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          response_text: string
+          template_key: string
+          template_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          response_text?: string
+          template_key?: string
+          template_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          meta_message_id: string | null
+          name: string
+          phone: string
+          read_at: string | null
+          replied: boolean
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          meta_message_id?: string | null
+          name?: string
+          phone: string
+          read_at?: string | null
+          replied?: boolean
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          meta_message_id?: string | null
+          name?: string
+          phone?: string
+          read_at?: string | null
+          replied?: boolean
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          bookings_generated: number
+          campaign_name: string
+          created_at: string
+          cta_label: string | null
+          cta_type: string | null
+          id: string
+          media_url: string | null
+          message_content: string
+          messages_delivered: number
+          messages_read: number
+          messages_sent: number
+          replies_received: number
+          sent_at: string | null
+          status: string
+          total_recipients: number
+          updated_at: string
+        }
+        Insert: {
+          bookings_generated?: number
+          campaign_name: string
+          created_at?: string
+          cta_label?: string | null
+          cta_type?: string | null
+          id?: string
+          media_url?: string | null
+          message_content: string
+          messages_delivered?: number
+          messages_read?: number
+          messages_sent?: number
+          replies_received?: number
+          sent_at?: string | null
+          status?: string
+          total_recipients?: number
+          updated_at?: string
+        }
+        Update: {
+          bookings_generated?: number
+          campaign_name?: string
+          created_at?: string
+          cta_label?: string | null
+          cta_type?: string | null
+          id?: string
+          media_url?: string | null
+          message_content?: string
+          messages_delivered?: number
+          messages_read?: number
+          messages_sent?: number
+          replies_received?: number
+          sent_at?: string | null
+          status?: string
+          total_recipients?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chatbot_rules: {
         Row: {
           created_at: string

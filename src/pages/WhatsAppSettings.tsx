@@ -235,6 +235,33 @@ export default function WhatsAppSettings() {
             </CardContent>
           </Card>
 
+          {/* Admin Phone Number */}
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Admin Phone Number</CardTitle>
+                    <CardDescription className="text-zinc-500">Studio owner's WhatsApp number for admin commands</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured('admin_phone')} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <SecretField label="Admin Phone (with country code)" settingKey="admin_phone" placeholder="+917517050600" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                <Info className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-purple-300/80">
+                  Send <strong>"admin"</strong> from this number to access the F19 Control Panel via WhatsApp.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Google Calendar Integration */}
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader>
