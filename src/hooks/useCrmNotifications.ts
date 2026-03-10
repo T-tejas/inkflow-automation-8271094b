@@ -12,6 +12,9 @@ export interface CrmNotification {
   size: string | null;
   budget: string | null;
   lead_source: string | null;
+  lead_score: string | null;
+  timeline: string | null;
+  chat_summary: string | null;
   is_read: boolean;
   created_at: string;
 }
