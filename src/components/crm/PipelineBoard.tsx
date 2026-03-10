@@ -19,6 +19,7 @@ const STATUS_DOT_COLORS: Record<string, string> = {
   'New Lead': 'bg-pipeline-new',
   'Contacted': 'bg-pipeline-contacted',
   'Interested': 'bg-pipeline-interested',
+  'Artist Consultation': 'bg-orange-500',
   'Negotiating': 'bg-pipeline-negotiating',
   'Booked': 'bg-pipeline-booked',
   'Completed': 'bg-pipeline-completed',

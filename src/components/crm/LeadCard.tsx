@@ -47,7 +47,7 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         exit={{ opacity: 0, y: -8 }}
         whileHover={{ scale: 1.01 }}
         onClick={() => onClick(lead)}
-        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group`}
+        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
