@@ -511,9 +511,13 @@ async function handleBookingConfirm(phoneNumberId: string, accessToken: string, 
   const ampm = rawTime.slice(4);
   const timeSlot = `${parseInt(hour)}:${min} ${ampm}`;
 
+  // Create appointment with PENDING status — studio must approve
+  const { data: lead } = leadId ? await supabase.from("leads").select("*").eq("id", leadId).single() : { data: null };
+
   const { error } = await supabase.from("appointments").insert({
     lead_name: leadName, lead_phone: `+${recipientPhone}`, lead_id: leadId,
-    appointment_date: date, time_slot: timeSlot, status: "confirmed",
+    appointment_date: date, time_slot: timeSlot, status: "pending",
+    tattoo_style: lead?.tattoo_style || null,
   });
 
   if (error) {
@@ -522,14 +526,30 @@ async function handleBookingConfirm(phoneNumberId: string, accessToken: string, 
   }
 
   if (leadId) {
-    await supabase.from("leads").update({ status: "Booked", preferred_date: date, updated_at: new Date().toISOString() }).eq("id", leadId);
-    await supabase.from("lead_interactions").insert({ lead_id: leadId, action_type: "status_change", old_value: "Artist Consultation", new_value: "Booked", note: `Booked via WhatsApp: ${date} ${timeSlot}` });
+    await supabase.from("leads").update({ preferred_date: date, updated_at: new Date().toISOString() }).eq("id", leadId);
+    await supabase.from("lead_interactions").insert({ lead_id: leadId, action_type: "appointment_requested", new_value: `${date} ${timeSlot}`, note: "Appointment request via WhatsApp (pending approval)" });
   }
 
-  const dayLabel = new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
-  const confirmText = `✅ Your appointment is confirmed!\n\n📅 ${dayLabel}\n⏰ ${timeSlot}\n📍 F19 Tattoo Studio, Kothrud, Pune\n\nPlease arrive 15 minutes early. See you soon! 🎨🔥`;
-  const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, confirmText);
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "booking_confirmed", confirmText, msgId);
+  // Send "request received" message — NOT a confirmation
+  const requestText = `📩 Appointment Request Received\n\nYour request has been sent to our studio team.\nWe will confirm your slot shortly.`;
+  const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, requestText);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "booking_request_received", requestText, msgId);
+
+  // Trigger CRM notification for studio to approve/reject
+  await supabase.from("crm_notifications").insert({
+    lead_id: leadId,
+    lead_name: leadName,
+    lead_phone: `+${recipientPhone}`,
+    notification_type: "appointment_request",
+    tattoo_idea: lead?.tattoo_style || null,
+    placement: lead?.placement || null,
+    size: lead?.size || null,
+    budget: lead?.budget || null,
+    lead_source: lead?.source || "WhatsApp",
+    lead_score: lead?.lead_score || null,
+    timeline: `${date} at ${timeSlot}`,
+    chat_summary: `Appointment request: ${date} ${timeSlot}`,
+  });
 }
 
 async function handleStyleSelection(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null, styleId: string) {
