@@ -14,6 +14,8 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import WhatsAppSettings from "./pages/WhatsAppSettings";
 import DesignTracker from "./pages/DesignTracker";
+import BulkMessaging from "./pages/BulkMessaging";
+import BotTemplates from "./pages/BotTemplates";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
