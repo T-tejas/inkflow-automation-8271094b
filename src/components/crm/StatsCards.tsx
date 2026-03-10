@@ -1,4 +1,4 @@
-import { Users, CalendarCheck, CheckCircle, TrendingUp, IndianRupee } from 'lucide-react';
+import { Users, CalendarCheck, CheckCircle, TrendingUp, IndianRupee, Flame } from 'lucide-react';
 import { formatINR } from '@/lib/currency';
 import { motion } from 'framer-motion';
 
@@ -10,12 +10,14 @@ interface StatsCardsProps {
     completed: number;
     conversionRate: number;
     pipelineValue: number;
+    hotLeads?: number;
   };
 }
 
 const cards = [
   { key: 'total', label: 'Total Leads', icon: Users, color: 'text-primary', format: 'number' },
   { key: 'newLeads', label: 'New Leads', icon: TrendingUp, color: 'text-pipeline-new', format: 'number' },
+  { key: 'hotLeads', label: 'Hot Leads 🔥', icon: Flame, color: 'text-orange-500', format: 'number' },
   { key: 'booked', label: 'Booked', icon: CalendarCheck, color: 'text-pipeline-booked', format: 'number' },
   { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-pipeline-completed', format: 'number' },
   { key: 'pipelineValue', label: 'Pipeline Value', icon: IndianRupee, color: 'text-warning', format: 'currency' },
@@ -30,7 +32,7 @@ function formatValue(val: number, format: string) {
 
 export function StatsCards({ stats }: StatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map(({ key, label, icon: Icon, color, format }, i) => (
         <motion.div
           key={key}

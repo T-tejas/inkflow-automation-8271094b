@@ -106,6 +106,59 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_notifications: {
+        Row: {
+          budget: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          lead_id: string | null
+          lead_name: string
+          lead_phone: string
+          lead_source: string | null
+          notification_type: string
+          placement: string | null
+          size: string | null
+          tattoo_idea: string | null
+        }
+        Insert: {
+          budget?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          lead_id?: string | null
+          lead_name: string
+          lead_phone: string
+          lead_source?: string | null
+          notification_type?: string
+          placement?: string | null
+          size?: string | null
+          tattoo_idea?: string | null
+        }
+        Update: {
+          budget?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          lead_id?: string | null
+          lead_name?: string
+          lead_phone?: string
+          lead_source?: string | null
+          notification_type?: string
+          placement?: string | null
+          size?: string | null
+          tattoo_idea?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_notifications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       design_tasks: {
         Row: {
           artist_name: string

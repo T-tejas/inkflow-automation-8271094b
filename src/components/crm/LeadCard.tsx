@@ -19,10 +19,15 @@ interface LeadCardProps {
 
 function getBorderColor(lead: Lead): string {
   const budget = parseBudget(lead.budget);
+  if (lead.status === 'Artist Consultation') return 'border-l-orange-500';
   if (lead.status === 'Booked') return 'border-l-pipeline-booked';
   if (lead.status === 'Completed') return 'border-l-pipeline-completed';
   if (budget >= 5000) return 'border-l-warning';
   return 'border-l-transparent';
+}
+
+function isHotLead(lead: Lead): boolean {
+  return lead.status === 'Artist Consultation';
 }
 
 export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign }: LeadCardProps) {
@@ -42,7 +47,7 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         exit={{ opacity: 0, y: -8 }}
         whileHover={{ scale: 1.01 }}
         onClick={() => onClick(lead)}
-        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group`}
+        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
@@ -105,7 +110,13 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </div>
         )}
 
-        {/* Design Assigned Indicator */}
+        {/* Hot Lead Indicator */}
+        {isHotLead(lead) && (
+          <div className="flex items-center gap-1 text-[10px] text-orange-500 font-semibold animate-pulse">
+            🔥 Artist Consultation Requested
+          </div>
+        )}
+
         {hasDesign && (
           <div className="flex items-center gap-1 text-[10px] text-purple-500 font-medium">
             <Palette className="h-3 w-3" />

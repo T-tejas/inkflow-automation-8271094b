@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { useDesignTasks } from '@/hooks/useDesignTasks';
+import { useCrmNotifications } from '@/hooks/useCrmNotifications';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
 import { PipelineBoard } from '@/components/crm/PipelineBoard';
@@ -9,6 +10,7 @@ import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
 import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { DesignAssignDialog } from '@/components/crm/DesignAssignDialog';
+import { HotLeadNotifications } from '@/components/crm/HotLeadNotifications';
 import { Button } from '@/components/ui/button';
 import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette } from 'lucide-react';
 import { Lead } from '@/types/lead';
@@ -25,6 +27,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const navigate = useNavigate();
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
   const { tasks: designTasks, artists: designArtists, fetchTasks: refetchDesignTasks } = useDesignTasks();
+  const { notifications, unreadCount, markAsRead, markAllRead } = useCrmNotifications();
   const [formOpen, setFormOpen] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
@@ -90,6 +93,11 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
     navigate(`/designs?leadId=${leadId}`);
   };
 
+  const handleNotifLeadClick = (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) handleLeadClick(lead);
+  };
+
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
   return (
@@ -129,6 +137,13 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <HotLeadNotifications
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkRead={markAsRead}
+              onMarkAllRead={markAllRead}
+              onLeadClick={handleNotifLeadClick}
+            />
             {isAdmin && (
               <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/admin')}>
                 <Shield className="h-4 w-4 text-amber-500" />

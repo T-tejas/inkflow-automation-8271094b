@@ -4,6 +4,7 @@ export type LeadStatus =
   | 'New Lead'
   | 'Contacted'
   | 'Interested'
+  | 'Artist Consultation'
   | 'Negotiating'
   | 'Booked'
   | 'Completed'
@@ -56,6 +57,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   'New Lead',
   'Contacted',
   'Interested',
+  'Artist Consultation',
   'Negotiating',
   'Booked',
   'Completed',
@@ -68,6 +70,7 @@ export const KANBAN_STATUSES: LeadStatus[] = [
   'New Lead',
   'Contacted',
   'Interested',
+  'Artist Consultation',
   'Negotiating',
   'Booked',
   'Completed',
@@ -93,6 +96,7 @@ export const STATUS_COLORS: Record<LeadStatus, string> = {
   'New Lead': 'bg-pipeline-new',
   'Contacted': 'bg-pipeline-contacted',
   'Interested': 'bg-pipeline-interested',
+  'Artist Consultation': 'bg-orange-500',
   'Negotiating': 'bg-pipeline-negotiating',
   'Booked': 'bg-pipeline-booked',
   'Completed': 'bg-pipeline-completed',
@@ -104,6 +108,7 @@ export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
   'New Lead': 'text-pipeline-new',
   'Contacted': 'text-pipeline-contacted',
   'Interested': 'text-pipeline-interested',
+  'Artist Consultation': 'text-orange-500',
   'Negotiating': 'text-pipeline-negotiating',
   'Booked': 'text-pipeline-booked',
   'Completed': 'text-pipeline-completed',
