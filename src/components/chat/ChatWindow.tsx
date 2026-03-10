@@ -40,6 +40,7 @@ interface Props {
   onRetryMessage: (message: ChatMessage) => void;
   onBookAppointment?: () => void;
   onToggleBot?: (leadId: string, currentStatus: boolean) => void;
+  onClearChat?: (phone: string) => Promise<void>;
 }
 
 export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment, onToggleBot }: Props) {
