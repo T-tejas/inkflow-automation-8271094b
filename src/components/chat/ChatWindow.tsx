@@ -5,10 +5,13 @@ import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus, Bot, BotOff } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus, Bot, BotOff, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const STATUS_OPTIONS = [
   { label: 'New Lead', color: '#6b7280' },
