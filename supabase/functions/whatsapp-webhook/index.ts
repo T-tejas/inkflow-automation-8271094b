@@ -526,9 +526,25 @@ async function advanceQualification(phoneNumberId: string, accessToken: string, 
     await sendQualificationComplete(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId, lead);
     return;
   }
-  if (nextField === "size") await sendSizeButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
-  else if (nextField === "timeline") await sendTimelineButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
-  else if (nextField === "budget") await sendBudgetButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  if (nextField === "tattoo_style") {
+    // Ask via AI text
+    const history = await getConversationHistory(supabase, `+${recipientPhone}`);
+    const aiReply = await getAIReply(history, "", "Ask the user what tattoo design/style they are thinking about. Examples: Name tattoo, Minimal, Portrait, Sleeve, Custom design.");
+    const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, aiReply);
+    await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "chatbot_auto_reply", aiReply, msgId);
+  } else if (nextField === "size") {
+    await sendSizeButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  } else if (nextField === "placement") {
+    // Ask via AI text
+    const history = await getConversationHistory(supabase, `+${recipientPhone}`);
+    const aiReply = await getAIReply(history, "", "Ask the user where they would like the tattoo placed. Examples: Forearm, Wrist, Neck, Back, Chest, Leg, Shoulder.");
+    const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, aiReply);
+    await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "chatbot_auto_reply", aiReply, msgId);
+  } else if (nextField === "timeline") {
+    await sendTimelineButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  } else if (nextField === "budget") {
+    await sendBudgetButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  }
 }
 
 async function sendArtistContactFlow(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
