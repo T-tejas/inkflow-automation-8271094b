@@ -5,10 +5,13 @@ import { ChatInput } from './ChatInput';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus, Bot, BotOff } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Phone, MoreVertical, Search, MessageSquare, ArrowLeft, AlertTriangle, X, CalendarPlus, Bot, BotOff, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const STATUS_OPTIONS = [
   { label: 'New Lead', color: '#6b7280' },
@@ -43,6 +46,10 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [clearingChat, setClearingChat] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -75,9 +82,14 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
     );
   }
 
+  // Filter messages by search
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter(m => m.messageBody?.toLowerCase().includes(searchQuery.toLowerCase()) || m.templateName?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : messages;
+
   // Group messages by date
   const groupedMessages: { date: string; msgs: ChatMessage[] }[] = [];
-  for (const msg of messages) {
+  for (const msg of filteredMessages) {
     const dateStr = format(parseISO(msg.createdAt), 'yyyy-MM-dd');
     const lastGroup = groupedMessages[groupedMessages.length - 1];
     if (lastGroup && lastGroup.date === dateStr) {
@@ -194,19 +206,74 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
               <CalendarPlus className="h-5 w-5" style={{ color: '#22c55e' }} />
             </IconBtn>
           )}
-          <IconBtn href={`tel:${contact.leadPhone}`} title="Call">
+          <IconBtn title="Call" onClick={() => window.open(`tel:${contact.leadPhone}`, '_self')}>
             <Phone className="h-5 w-5" />
           </IconBtn>
-          <IconBtn title="Search">
+          <IconBtn title="Search" onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(''); }}>
             <Search className="h-5 w-5" />
           </IconBtn>
-          <IconBtn title="More options">
-            <MoreVertical className="h-5 w-5" />
-          </IconBtn>
+          {/* Three-dot menu */}
+          <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+            <PopoverTrigger asChild>
+              <button className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: '#54656f' }} title="More options">
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-52 p-1 rounded-lg shadow-xl border"
+              style={{ backgroundColor: '#ffffff', borderColor: '#e9edef' }}
+              side="bottom"
+              align="end"
+            >
+              <button
+                className="w-full text-left px-3 py-2.5 text-sm rounded flex items-center gap-2 transition-colors hover:bg-gray-50"
+                style={{ color: '#ef4444' }}
+                disabled={clearingChat}
+                onClick={async () => {
+                  if (!contact) return;
+                  const confirmed = window.confirm(`Clear all chat messages with ${contact.leadName}? This cannot be undone.`);
+                  if (!confirmed) return;
+                  setClearingChat(true);
+                  const { error } = await supabase
+                    .from('whatsapp_messages')
+                    .delete()
+                    .eq('lead_phone', contact.leadPhone);
+                  setClearingChat(false);
+                  setMenuOpen(false);
+                  if (error) {
+                    toast({ title: 'Failed to clear chat', variant: 'destructive' });
+                  } else {
+                    toast({ title: 'Chat cleared' });
+                    // Trigger re-fetch by selecting same contact
+                    window.location.reload();
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                {clearingChat ? 'Clearing...' : 'Clear Chat'}
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
-      {/* Messages area */}
+      {/* Search bar */}
+      {searchOpen && (
+        <div className="flex items-center gap-2 px-4 py-2" style={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #e9edef' }}>
+          <Search className="h-4 w-4 flex-shrink-0" style={{ color: '#8696a0' }} />
+          <Input
+            autoFocus
+            placeholder="Search messages..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="h-8 text-sm border-none shadow-none focus-visible:ring-0"
+            style={{ backgroundColor: '#ffffff' }}
+          />
+          <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }} className="p-1 rounded hover:bg-black/5">
+            <X className="h-4 w-4" style={{ color: '#54656f' }} />
+          </button>
+        </div>
+      )}
       <ScrollArea
         className="flex-1 px-16 py-4"
         style={{
