@@ -57,6 +57,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   'New Lead',
   'Contacted',
   'Interested',
+  'Artist Consultation',
   'Negotiating',
   'Booked',
   'Completed',
