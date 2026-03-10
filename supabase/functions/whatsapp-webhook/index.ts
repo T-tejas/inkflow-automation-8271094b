@@ -315,8 +315,15 @@ async function getConversationHistory(supabase: any, phone: string, limit = 30):
 }
 
 function cleanAIResponse(text: string): string {
-  let cleaned = text.replace(/\[SYSTEM\s*NOTE\][\s\S]*?(?=\n\n|$)/gi, '').trim();
-  cleaned = cleaned.replace(/^.*(?:next field to collect|remember to keep|you should now ask).*$/gmi, '').trim();
+  // Aggressively strip ANY text containing [SYSTEM, system note, internal only, etc.
+  let cleaned = text;
+  // Remove entire blocks starting with [SYSTEM... up to the next double newline or end
+  cleaned = cleaned.replace(/\[SYSTEM[^\]]*\][\s\S]*?(?=\n\n|\n[A-Z]|$)/gi, '').trim();
+  // Remove any line that contains SYSTEM NOTE, INTERNAL ONLY, or instruction-like patterns
+  cleaned = cleaned.replace(/^.*(?:\[SYSTEM|SYSTEM\s*NOTE|INTERNAL\s*ONLY|NEVER\s*include\s*this|next field to collect|remember to keep|you should now ask|Update the|The user still needs to provide|previous conversation state|re-ask for).*$/gmi, '').trim();
+  // Remove orphaned brackets
+  cleaned = cleaned.replace(/\[(?:SYSTEM|INTERNAL)[^\]]*\]/gi, '').trim();
+  // Clean up excessive whitespace
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   return cleaned || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
 }
@@ -327,7 +334,8 @@ async function getAIReply(conversationHistory: { role: string; content: string }
 
   try {
     const messages: any[] = [{ role: "system", content: F19_SYSTEM_PROMPT }];
-    if (systemNote) messages.push({ role: "system", content: `[SYSTEM NOTE — INTERNAL ONLY, NEVER include this in your reply to the user] ${systemNote}` });
+    // Pass system note as a separate system message WITHOUT any bracketed markers the AI might echo
+    if (systemNote) messages.push({ role: "system", content: `INTERNAL CONTEXT (do NOT repeat or reference this text in your reply — just use it to guide your response):\n${systemNote}` });
     messages.push(...conversationHistory, { role: "user", content: currentMessage });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
