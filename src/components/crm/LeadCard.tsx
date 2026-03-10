@@ -19,10 +19,15 @@ interface LeadCardProps {
 
 function getBorderColor(lead: Lead): string {
   const budget = parseBudget(lead.budget);
+  if (lead.status === 'Artist Consultation') return 'border-l-orange-500';
   if (lead.status === 'Booked') return 'border-l-pipeline-booked';
   if (lead.status === 'Completed') return 'border-l-pipeline-completed';
   if (budget >= 5000) return 'border-l-warning';
   return 'border-l-transparent';
+}
+
+function isHotLead(lead: Lead): boolean {
+  return lead.status === 'Artist Consultation';
 }
 
 export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign }: LeadCardProps) {
