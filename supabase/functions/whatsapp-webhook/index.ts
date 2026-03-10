@@ -12,95 +12,59 @@ You are **F19 Assistant** — the friendly AI concierge for **F19 Tattoo Studio,
 Your job is to:
 • Talk to potential tattoo clients in a friendly way
 • Understand their tattoo idea
-• Guide them through simple questions
+• Guide them through simple questions ONE AT A TIME
 • Connect interested clients with our tattoo artists
 
-Your goal is to **make clients comfortable and convert them into consultations.**
-
-# LANGUAGE RULE (VERY IMPORTANT)
-You must **UNDERSTAND**: Hindi, Marathi, Hinglish, English.
-Clients may write in Devanagari, Roman Hindi, or Marathi.
-BUT you must **ALWAYS reply in English only.** Never reply in Hindi or Marathi.
+# LANGUAGE RULE
+You UNDERSTAND: Hindi, Marathi, Hinglish, English.
+You ALWAYS reply in English only.
 
 # PERSONALITY
-You are: Friendly, Helpful, Professional, Short and clear, Easy to talk with.
-Avoid robotic responses.
-Messages should feel like **a real studio assistant chatting on WhatsApp.**
-Use emojis occasionally (🎨🔥✨) but not too many.
-Keep replies **under 3 sentences whenever possible.**
+Friendly, Helpful, Professional. Keep replies under 3 sentences. Use emojis sparingly (🎨🔥✨).
+Messages should feel like a real studio assistant chatting on WhatsApp.
 
-# CONVERSATION FLOW
-Follow this natural order, asking one question at a time. Never ask multiple questions together.
+# CRITICAL: QUALIFICATION FLOW
+You are guiding the user through a structured qualification. The system tracks which fields are collected.
+The system will tell you (via a [SYSTEM NOTE]) which field to ask for next.
+Ask ONLY the question the system tells you. Do NOT skip ahead or ask multiple questions.
 
-## STEP 1 — GREETING
-Start with a warm welcome.
-Example: "Hey! 👋 Thanks for contacting F19 Tattoo Studio. What tattoo idea are you thinking about?"
+When told to ask for:
+- tattoo_style: "What tattoo design are you thinking about? 🎨 For example: Name tattoo, Minimal, Portrait, Sleeve, Custom design..."
+- tattoo_size: (system sends buttons — just add a friendly intro like "Nice choice!")
+- tattoo_placement: "Where would you like the tattoo? For example: Forearm, Wrist, Neck, Back, Chest, Leg..."
+- timeline: (system sends buttons — just add a friendly lead-in)
+- budget: (system sends buttons — just add a friendly lead-in)
 
-## STEP 2 — UNDERSTAND THE IDEA (one by one)
-1️⃣ Design idea: "What design are you thinking about?"
-2️⃣ Style: "Do you have a style in mind — realistic, minimal, geometric, or something else?"
-3️⃣ Size: "Are you thinking small, medium, or a larger piece?"
-4️⃣ Placement: "Where would you like the tattoo?"
-5️⃣ Timeline: "When are you planning to get it done?"
-Skip questions if user already answered them.
+When all fields are collected, congratulate them and say our artist will reach out.
 
-# CRITICAL: ANTI-REPETITION RULES
-1. **NEVER repeat pricing info** if it already appears in the conversation history. If you already said pricing, just say "As I mentioned, our artist can give you an exact quote. Want me to connect you?"
-2. **NEVER re-ask a question** the user already answered. Check the conversation history carefully.
-3. **NEVER repeat the consultation offer** if you already offered it. If user said yes, move to collecting details.
-4. **Track what you've already said.** Read the full conversation before replying.
+# ANTI-REPETITION RULES
+1. NEVER repeat pricing info already in conversation history.
+2. NEVER re-ask a question the user already answered.
+3. NEVER repeat the consultation offer if already offered.
+4. Read the full conversation before replying.
 
-# IMPORTANT: INTERACTIVE BUTTONS CONTEXT
-The system automatically sends interactive buttons (Welcome menu, Style options, Size options, etc.) to the user.
-When a user clicks a button, you'll see the button text as their message.
-Respond naturally to button selections — do NOT re-send the same options the system already showed.
-If the system just sent buttons, keep your text reply SHORT and complementary, not redundant.
+# INTERACTIVE BUTTONS CONTEXT
+The system automatically sends interactive buttons after your text reply.
+Keep your text SHORT and complementary to the buttons, not redundant.
 
-# POSITIVE INTENT DETECTION (VERY IMPORTANT)
-If user says ANY of these (or similar):
-"Yes", "Yep", "Sure", "Ok", "Done", "Book appointment", "I want to get the tattoo", "Mujhe karwana hai", "Haan done", "Ho chalel", "Kab aa sakta hoon", "Book karna hai", "Karwana hai", "Haan bro", "Yes please", "Let's do it", "I am interested", "Pakka", "Confirm karo", "Schedule appointment"
+# POSITIVE INTENT DETECTION
+If user says: "Yes", "Sure", "Book appointment", "Mujhe karwana hai", "Done", etc.
+Move forward — don't ask more qualification questions. System will handle the transition.
 
-Then they are showing **STRONG BOOKING INTENT**. When this happens:
-- **STOP asking more tattoo questions** (design, size, placement etc.)
-- **Move forward immediately** to connecting them with an artist
-- Say something like: "Great! Let me connect you with one of our artists. 🎨"
-- The system will automatically show a "Talk to Artist" button — you don't need to handle that.
-
-# IF CLIENT HAS ALREADY AGREED TO ARTIST CONTACT
-If the conversation history shows the client already agreed to talk to an artist:
-- Do NOT offer consultation again
-- Do NOT ask design/size/placement questions again
-- Simply confirm: "Our artist will be reaching out to you soon! 🎨 Is there anything else I can help with?"
-
-# DETAIL COLLECTION (after consultation accepted)
-If the system needs details and the user has agreed, ask ONE at a time:
-1️⃣ "Could I get your full name?"
-2️⃣ "Thanks! What phone number should our artist contact you on?"
-3️⃣ "Great! Lastly, your email address for confirmation."
-
-# IF CLIENT IS NOT READY
-Reply politely: "No worries at all! 😊 You can check our tattoo portfolio here: https://f19tattoo.in/portfolio/ Whenever you're ready, feel free to message us."
+# IF CLIENT NOT READY
+Reply: "No worries! 😊 Check our portfolio: https://f19tattoo.in/portfolio/ Message us anytime!"
 
 # PRICING (ONLY IF ASKED AND NOT ALREADY GIVEN)
-If pricing has NOT been mentioned in conversation yet:
-• ₹800 per square inch
-• ₹4,000 per hour
-• ₹25,000 full day session
-Reply: "Pricing depends on size and detail. We usually charge ₹800 per sq inch or ₹4,000 per hour. Our artist can give you an exact quote after seeing your idea. Would you like them to contact you?"
-
-If pricing was ALREADY mentioned, say: "Our artist can give you an exact quote based on your design. Want me to connect you? 🎨"
+• ₹800/sq inch • ₹4,000/hour • ₹25,000 full day
+Then: "Our artist can give you an exact quote. Want me to connect you?"
 
 # STUDIO DETAILS
-Studio Name: F19 Tattoo Studio
-Address: Sangam Chowk, Shop No 5, Vijay Complex, Shastri Nagar, Kothrud, Pune, Maharashtra 411038
-Website: https://f19tattoo.in/
-Portfolio: https://f19tattoo.in/portfolio/
-Phone: +91 7517050600
-Email: f19tattoo@gmail.com
+F19 Tattoo Studio | Sangam Chowk, Kothrud, Pune 411038
+Website: https://f19tattoo.in/ | Phone: +91 7517050600
 
 # RULES
-DO: Be friendly, Keep replies short, Ask one question at a time, Move forward when user shows interest.
-DO NOT: Reply in Hindi/Marathi, Ask multiple questions together, Repeat information already given, Loop on the same question, Ask phone/email before consultation is accepted, Sound robotic.`;
+DO: Be friendly, Keep replies short, Ask ONE question at a time, Move forward on interest.
+DO NOT: Reply in Hindi/Marathi, Ask multiple questions, Repeat info, Loop on same question, Sound robotic.`;
 
 // ─── WhatsApp API Helpers ─────────────────────────────────────────────
 
@@ -113,164 +77,156 @@ async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promis
     if (!response.ok) return null;
     const result = await response.json();
     return result?.data?.[0]?.id || null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function fetchMediaUrl(mediaId: string, accessToken: string): Promise<{ url: string; mimeType: string; fileName: string } | null> {
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${mediaId}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    const response = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!response.ok) return null;
     const data = await response.json();
     return { url: data.url || "", mimeType: data.mime_type || "", fileName: `media_${mediaId.slice(-8)}` };
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-async function downloadAndStoreMedia(
-  mediaUrl: string, mimeType: string, accessToken: string, supabase: any
-): Promise<{ publicUrl: string; fileName: string } | null> {
+async function downloadAndStoreMedia(mediaUrl: string, mimeType: string, accessToken: string, supabase: any): Promise<{ publicUrl: string; fileName: string } | null> {
   try {
-    const mediaResponse = await fetch(mediaUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const mediaResponse = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!mediaResponse.ok) return null;
     const blob = await mediaResponse.blob();
     const ext = mimeType.split("/")[1]?.split(";")[0] || "bin";
     const fileName = `wa_media_${Date.now()}.${ext}`;
     const path = `chat/${fileName}`;
-    const { error } = await supabase.storage.from("f19").upload(path, blob, {
-      contentType: mimeType, upsert: false,
-    });
+    const { error } = await supabase.storage.from("f19").upload(path, blob, { contentType: mimeType, upsert: false });
     if (error) { console.error("[webhook] Storage upload error:", error); return null; }
     const { data: urlData } = supabase.storage.from("f19").getPublicUrl(path);
     return { publicUrl: urlData.publicUrl, fileName };
-  } catch (err) {
-    console.error("[webhook] Media download/store error:", err);
-    return null;
-  }
+  } catch (err) { console.error("[webhook] Media download/store error:", err); return null; }
 }
 
 // ─── Message Senders ──────────────────────────────────────────────────
 
-async function sendTextMessage(
-  phoneNumberId: string, accessToken: string, recipientPhone: string, text: string
-): Promise<string | null> {
-  const payload = {
-    messaging_product: "whatsapp", to: recipientPhone,
-    type: "text", text: { body: text },
-  };
-  const response = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }
-  );
+async function sendTextMessage(phoneNumberId: string, accessToken: string, recipientPhone: string, text: string): Promise<string | null> {
+  const payload = { messaging_product: "whatsapp", to: recipientPhone, type: "text", text: { body: text } };
+  const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   let result: any = null;
   try { result = await response.json(); } catch { /* ignore */ }
   return result?.messages?.[0]?.id || null;
 }
 
-async function sendInteractiveButtons(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  bodyText: string, buttons: { id: string; title: string }[]
-): Promise<string | null> {
-  // WhatsApp allows max 3 buttons, each title max 20 chars
-  const safeButtons = buttons.slice(0, 3).map(b => ({
-    type: "reply",
-    reply: { id: b.id, title: b.title.slice(0, 20) },
-  }));
-  const payload = {
-    messaging_product: "whatsapp",
-    to: recipientPhone,
-    type: "interactive",
-    interactive: {
-      type: "button",
-      body: { text: bodyText },
-      action: { buttons: safeButtons },
-    },
-  };
-  const response = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }
-  );
+async function sendInteractiveButtons(phoneNumberId: string, accessToken: string, recipientPhone: string, bodyText: string, buttons: { id: string; title: string }[]): Promise<string | null> {
+  const safeButtons = buttons.slice(0, 3).map(b => ({ type: "reply", reply: { id: b.id, title: b.title.slice(0, 20) } }));
+  const payload = { messaging_product: "whatsapp", to: recipientPhone, type: "interactive", interactive: { type: "button", body: { text: bodyText }, action: { buttons: safeButtons } } };
+  const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   let result: any = null;
   try { result = await response.json(); } catch { /* ignore */ }
   return result?.messages?.[0]?.id || null;
 }
 
-async function sendInteractiveList(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]
-): Promise<string | null> {
-  const payload = {
-    messaging_product: "whatsapp",
-    to: recipientPhone,
-    type: "interactive",
-    interactive: {
-      type: "list",
-      body: { text: bodyText },
-      action: {
-        button: buttonLabel.slice(0, 20),
-        sections,
-      },
-    },
-  };
-  const response = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }
-  );
+async function sendInteractiveList(phoneNumberId: string, accessToken: string, recipientPhone: string, bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]): Promise<string | null> {
+  const payload = { messaging_product: "whatsapp", to: recipientPhone, type: "interactive", interactive: { type: "list", body: { text: bodyText }, action: { button: buttonLabel.slice(0, 20), sections } } };
+  const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   let result: any = null;
   try { result = await response.json(); } catch { /* ignore */ }
   return result?.messages?.[0]?.id || null;
 }
 
-/** Log an outgoing message to the database */
-async function logOutgoingMessage(
-  supabase: any, phone: string, name: string, leadId: string | null,
-  templateName: string, body: string, metaMsgId: string | null
-) {
+async function logOutgoingMessage(supabase: any, phone: string, name: string, leadId: string | null, templateName: string, body: string, metaMsgId: string | null) {
   await supabase.from("whatsapp_messages").insert({
-    lead_phone: phone,
-    lead_name: name,
-    lead_id: leadId,
-    template_name: templateName,
-    template_type: "confirmation",
-    status: "sent",
-    meta_message_id: metaMsgId,
-    message_body: body,
-    message_type: "text",
+    lead_phone: phone, lead_name: name, lead_id: leadId,
+    template_name: templateName, template_type: "confirmation",
+    status: "sent", meta_message_id: metaMsgId, message_body: body, message_type: "text",
   });
 }
 
-// ─── Intent & Flow Detection ─────────────────────────────────────────
+// ─── Lead Scoring ─────────────────────────────────────────────────────
+
+function calculateLeadScore(lead: any): "HOT" | "WARM" | "COLD" {
+  const timeline = (lead?.timeline || "").toLowerCase();
+  const budget = (lead?.budget || "").toLowerCase();
+
+  const isHighBudget = budget.includes("10k") || budget.includes("₹10") || budget.includes("5k") || budget.includes("₹5");
+  const isThisWeek = timeline.includes("this week") || timeline.includes("week");
+  const isThisMonth = timeline.includes("this month") || timeline.includes("month");
+  const isExploring = timeline.includes("exploring") || timeline.includes("just");
+
+  if ((isThisWeek || lead?.status === "Booked") && isHighBudget) return "HOT";
+  if (isThisWeek) return "HOT";
+  if (isThisMonth) return "WARM";
+  if (isExploring) return "COLD";
+
+  // Default based on how many details collected
+  const fields = [lead?.tattoo_style, lead?.size, lead?.placement, lead?.timeline, lead?.budget];
+  const filled = fields.filter(f => f && f !== "" && f !== "Other" && f !== "Medium (4-6 in)").length;
+  if (filled >= 4) return "WARM";
+  return "COLD";
+}
+
+function generateChatSummary(lead: any): string {
+  const parts: string[] = [];
+  if (lead?.tattoo_style) parts.push(`Style: ${lead.tattoo_style}`);
+  if (lead?.size) parts.push(`Size: ${lead.size}`);
+  if (lead?.placement) parts.push(`Placement: ${lead.placement}`);
+  if (lead?.timeline) parts.push(`Timeline: ${lead.timeline}`);
+  if (lead?.budget) parts.push(`Budget: ${lead.budget}`);
+  return parts.join(" | ") || "New inquiry";
+}
+
+// ─── Qualification State Machine ──────────────────────────────────────
+
+interface QualificationState {
+  tattoo_style: string | null;
+  size: string | null;
+  placement: string | null;
+  timeline: string | null;
+  budget: string | null;
+}
+
+function getQualificationState(lead: any): QualificationState {
+  return {
+    tattoo_style: lead?.tattoo_style && lead.tattoo_style !== "Other" ? lead.tattoo_style : null,
+    size: lead?.size && lead.size !== "Medium (4-6 in)" ? lead.size : null,
+    placement: lead?.placement && lead.placement !== "" ? lead.placement : null,
+    timeline: lead?.timeline && lead.timeline !== "" ? lead.timeline : null,
+    budget: lead?.budget && lead.budget !== "" ? lead.budget : null,
+  };
+}
+
+function getNextQualificationField(state: QualificationState): keyof QualificationState | null {
+  if (!state.tattoo_style) return "tattoo_style";
+  if (!state.size) return "size";
+  if (!state.placement) return "placement";
+  if (!state.timeline) return "timeline";
+  if (!state.budget) return "budget";
+  return null; // fully qualified
+}
+
+function isFullyQualified(state: QualificationState): boolean {
+  return getNextQualificationField(state) === null;
+}
+
+// ─── Intent Detection ────────────────────────────────────────────────
 
 function detectStrongIntent(text: string): boolean {
   const lower = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
   const intentPhrases = [
-    'i want to book', 'i want to get this tattoo', 'when can i come',
-    'book appointment', 'mujhe karwana hai', 'haan done', 'ho chalel',
-    'artist se baat karni hai', 'price kitna hai', 'kab aa sakta hoon',
-    'book karna hai', 'karwana hai', 'tattoo karwana', 'haan bro',
-    'yes i want', 'yes please', 'lets do it', 'i am interested',
-    'i want tattoo', 'main karwaunga', 'main karwaungi', 'pakka',
-    'confirm karo', 'book karo', 'appointment chahiye', 'slot chahiye',
-    'schedule appointment', 'done', 'haan', 'sure',
+    'i want to book', 'book appointment', 'mujhe karwana hai', 'haan done', 'ho chalel',
+    'artist se baat karni hai', 'kab aa sakta hoon', 'book karna hai', 'karwana hai',
+    'tattoo karwana', 'haan bro', 'yes i want', 'yes please', 'lets do it', 'i am interested',
+    'main karwaunga', 'main karwaungi', 'pakka', 'confirm karo', 'book karo',
+    'appointment chahiye', 'slot chahiye', 'schedule appointment',
   ];
   const exactMatches = ['yes', 'yep', 'yeah', 'ok', 'okay', 'sure', 'done', 'haan', 'ha', 'ho'];
   const trimmed = lower.trim();
@@ -278,51 +234,30 @@ function detectStrongIntent(text: string): boolean {
   return intentPhrases.some(phrase => lower.includes(phrase));
 }
 
-function hasSharedEnoughDetails(notes: string): boolean {
-  const lower = (notes || '').toLowerCase();
-  let detailCount = 0;
-  if (/design|tattoo idea|drawing|image|photo|reference/i.test(lower)) detailCount++;
-  if (/small|medium|large|sleeve|inch/i.test(lower)) detailCount++;
-  if (/arm|leg|back|chest|wrist|shoulder|neck|ankle|forearm|hand/i.test(lower)) detailCount++;
-  if (/week|month|tomorrow|today|asap|jaldi|soon/i.test(lower)) detailCount++;
-  return detailCount >= 3;
-}
-
-/** Check if a specific template was already sent */
-async function wasTemplateSent(supabase: any, phone: string, templateName: string): Promise<boolean> {
-  const { data } = await supabase
-    .from("whatsapp_messages")
-    .select("id")
-    .eq("lead_phone", phone)
-    .eq("template_name", templateName)
-    .limit(1);
-  return data && data.length > 0;
-}
-
-/** Detect which interactive flow button was clicked */
 function getButtonPayloadId(message: any): string {
   return message?.button?.payload || message?.interactive?.button_reply?.id || message?.interactive?.list_reply?.id || "";
 }
 
+async function wasTemplateSent(supabase: any, phone: string, templateName: string): Promise<boolean> {
+  const { data } = await supabase.from("whatsapp_messages").select("id").eq("lead_phone", phone).eq("template_name", templateName).limit(1);
+  return data && data.length > 0;
+}
+
 // ─── CRM Actions ─────────────────────────────────────────────────────
 
-async function triggerArtistConsultation(
-  supabase: any, leadId: string, leadName: string, leadPhone: string,
-  notes: string, lead: any
-) {
+async function triggerArtistConsultation(supabase: any, leadId: string, leadName: string, leadPhone: string, lead: any) {
   if (lead?.status === 'Artist Consultation' || lead?.status === 'Booked' || lead?.status === 'Completed') return;
 
-  await supabase
-    .from('leads')
-    .update({ status: 'Artist Consultation', updated_at: new Date().toISOString() })
-    .eq('id', leadId);
+  const leadScore = calculateLeadScore(lead);
+  const chatSummary = generateChatSummary(lead);
 
-  const { data: existingNotif } = await supabase
-    .from('crm_notifications')
-    .select('id')
-    .eq('lead_id', leadId)
-    .eq('notification_type', 'artist_consultation')
-    .limit(1);
+  await supabase.from('leads').update({
+    status: 'Artist Consultation',
+    lead_score: leadScore,
+    updated_at: new Date().toISOString(),
+  }).eq('id', leadId);
+
+  const { data: existingNotif } = await supabase.from('crm_notifications').select('id').eq('lead_id', leadId).eq('notification_type', 'artist_consultation').limit(1);
 
   if (!existingNotif || existingNotif.length === 0) {
     await supabase.from('crm_notifications').insert({
@@ -330,11 +265,14 @@ async function triggerArtistConsultation(
       lead_name: leadName,
       lead_phone: leadPhone,
       notification_type: 'artist_consultation',
-      tattoo_idea: notes?.slice(0, 100) || null,
+      tattoo_idea: lead?.tattoo_style || null,
       placement: lead?.placement || null,
       size: lead?.size || null,
       budget: lead?.budget || null,
       lead_source: lead?.source || 'WhatsApp',
+      lead_score: leadScore,
+      timeline: lead?.timeline || null,
+      chat_summary: chatSummary,
     });
   }
 
@@ -342,392 +280,336 @@ async function triggerArtistConsultation(
     lead_id: leadId,
     action_type: 'artist_consultation_triggered',
     new_value: 'Artist Consultation',
-    note: 'Auto-triggered by positive intent detection',
+    note: `Lead Score: ${leadScore} | ${chatSummary}`,
   });
 
-  console.log(`[webhook] 🔥 Artist Consultation triggered for ${leadName} (${leadPhone})`);
+  console.log(`[webhook] 🔥 Artist Consultation triggered for ${leadName} — Score: ${leadScore}`);
+}
+
+async function sendQualifiedLeadNotification(supabase: any, leadId: string, leadName: string, leadPhone: string, lead: any) {
+  const leadScore = calculateLeadScore(lead);
+  const chatSummary = generateChatSummary(lead);
+
+  await supabase.from('leads').update({ lead_score: leadScore, updated_at: new Date().toISOString() }).eq('id', leadId);
+
+  // Only notify for WARM/HOT
+  if (leadScore === "COLD") return;
+
+  const { data: existingNotif } = await supabase.from('crm_notifications').select('id').eq('lead_id', leadId).eq('notification_type', 'lead_qualified').limit(1);
+  if (existingNotif && existingNotif.length > 0) return;
+
+  await supabase.from('crm_notifications').insert({
+    lead_id: leadId,
+    lead_name: leadName,
+    lead_phone: leadPhone,
+    notification_type: 'lead_qualified',
+    tattoo_idea: lead?.tattoo_style || null,
+    placement: lead?.placement || null,
+    size: lead?.size || null,
+    budget: lead?.budget || null,
+    lead_source: lead?.source || 'WhatsApp',
+    lead_score: leadScore,
+    timeline: lead?.timeline || null,
+    chat_summary: chatSummary,
+  });
+
+  console.log(`[webhook] 📊 Qualified lead notification: ${leadName} — ${leadScore}`);
 }
 
 // ─── AI Reply ─────────────────────────────────────────────────────────
 
 async function getConversationHistory(supabase: any, phone: string, limit = 30): Promise<{ role: string; content: string }[]> {
-  const { data } = await supabase
-    .from("whatsapp_messages")
+  const { data } = await supabase.from("whatsapp_messages")
     .select("template_type, message_body, message_type, template_name")
-    .eq("lead_phone", phone)
-    .not("message_body", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(limit);
-
+    .eq("lead_phone", phone).not("message_body", "is", null)
+    .order("created_at", { ascending: true }).limit(limit);
   if (!data) return [];
-
   return data
-    .filter((m: any) => m.message_body && !m.template_name?.includes('button') && !m.template_name?.includes('welcome') && !m.template_name?.includes('flow_'))
-    .map((m: any) => ({
-      role: m.template_type === "incoming" ? "user" : "assistant",
-      content: m.message_body,
-    }));
+    .filter((m: any) => m.message_body && !m.template_name?.startsWith('flow_') && !m.template_name?.startsWith('welcome') && !m.template_name?.startsWith('qual_'))
+    .map((m: any) => ({ role: m.template_type === "incoming" ? "user" : "assistant", content: m.message_body }));
 }
 
-async function getAIReply(
-  conversationHistory: { role: string; content: string }[],
-  currentMessage: string
-): Promise<string> {
+async function getAIReply(conversationHistory: { role: string; content: string }[], currentMessage: string, systemNote?: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    console.error("[webhook] LOVABLE_API_KEY not configured");
-    return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
-  }
+  if (!LOVABLE_API_KEY) return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
 
   try {
-    const messages = [
-      { role: "system", content: F19_SYSTEM_PROMPT },
-      ...conversationHistory,
-      { role: "user", content: currentMessage },
-    ];
+    const messages: any[] = [{ role: "system", content: F19_SYSTEM_PROMPT }];
+    if (systemNote) messages.push({ role: "system", content: `[SYSTEM NOTE] ${systemNote}` });
+    messages.push(...conversationHistory, { role: "user", content: currentMessage });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        max_tokens: 300,
-      }),
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, max_tokens: 200 }),
     });
 
-    if (!response.ok) {
-      console.error("[webhook] AI gateway error:", response.status, await response.text());
-      return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
-    }
-
+    if (!response.ok) { console.error("[webhook] AI error:", response.status); return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨"; }
     const data = await response.json();
-    const reply = data?.choices?.[0]?.message?.content;
-    if (!reply) {
-      return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
-    }
-    return reply.trim();
-  } catch (err) {
-    console.error("[webhook] AI call error:", err);
-    return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
-  }
+    return data?.choices?.[0]?.message?.content?.trim() || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
+  } catch (err) { console.error("[webhook] AI call error:", err); return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨"; }
 }
 
 // ─── Interactive Flow Handlers ────────────────────────────────────────
 
-/** Send welcome menu with buttons - first contact or "hi/hello" */
-async function sendWelcomeMenu(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null
-) {
-  const bodyText = `Welcome to F19 Tattoo Studio 🔥\nHey ${leadName}! How can we help you today?`;
-  const msgId = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    [
-      { id: "menu_designs", title: "See Tattoo Designs" },
-      { id: "menu_price", title: "Get Tattoo Price" },
-      { id: "menu_artist", title: "Talk to Artist 🎨" },
-    ]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "welcome_menu", `${bodyText}\n[See Tattoo Designs] [Get Tattoo Price] [Talk to Artist 🎨]`, msgId);
+async function sendWelcomeMenu(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
+  const bodyText = `Welcome to F19 Tattoo Studio 🔥\nHey ${leadName}! We'd love to help you plan your tattoo.`;
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, [
+    { id: "menu_price", title: "Get Tattoo Price 💰" },
+    { id: "menu_designs", title: "See Tattoo Designs" },
+    { id: "menu_artist", title: "Talk to Artist 🎨" },
+  ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "welcome_menu", bodyText, msgId);
 
-  // Also send a second button row for Book Appointment (WhatsApp limits to 3 buttons per message)
-  const msgId2 = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone,
-    "Or would you like to book a session directly? 📅",
-    [{ id: "menu_book", title: "Book Appointment 📅" }]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "welcome_menu_2", "Or would you like to book a session directly? 📅\n[Book Appointment 📅]", msgId2);
-
-  console.log(`[webhook] Sent welcome menu to ${recipientPhone}`);
+  const msgId2 = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, "Or jump straight to booking! 📅", [{ id: "menu_book", title: "Book Appointment 📅" }]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "welcome_menu_2", "Or jump straight to booking! 📅", msgId2);
 }
 
-/** Send tattoo style list */
-async function sendStyleList(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null
-) {
-  const bodyText = "Check out our popular tattoo styles! 🎨 Tap below to explore:";
-  const msgId = await sendInteractiveList(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    "View Styles",
-    [{
-      title: "Tattoo Styles",
-      rows: [
-        { id: "style_minimal", title: "Minimal Tattoo", description: "Small, clean & elegant designs" },
-        { id: "style_name", title: "Name Tattoo", description: "Stylish lettering & calligraphy" },
-        { id: "style_sleeve", title: "Sleeve Tattoo", description: "Full arm tattoo concepts" },
-        { id: "style_portrait", title: "Portrait Tattoo", description: "Realistic face & figure art" },
-        { id: "style_geometric", title: "Geometric Tattoo", description: "Sharp lines & sacred geometry" },
-        { id: "style_traditional", title: "Traditional Tattoo", description: "Bold colors, classic motifs" },
-        { id: "style_custom", title: "Custom Design", description: "Unique art made just for you" },
-      ],
-    }]
+async function sendStyleList(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
+  const msgId = await sendInteractiveList(phoneNumberId, accessToken, recipientPhone,
+    "Check out our popular tattoo styles! 🎨 Tap below to explore:", "View Styles",
+    [{ title: "Tattoo Styles", rows: [
+      { id: "style_minimal", title: "Minimal Tattoo", description: "Small, clean & elegant designs" },
+      { id: "style_name", title: "Name Tattoo", description: "Stylish lettering & calligraphy" },
+      { id: "style_sleeve", title: "Sleeve Tattoo", description: "Full arm tattoo concepts" },
+      { id: "style_portrait", title: "Portrait Tattoo", description: "Realistic face & figure art" },
+      { id: "style_geometric", title: "Geometric Tattoo", description: "Sharp lines & sacred geometry" },
+      { id: "style_traditional", title: "Traditional Tattoo", description: "Bold colors, classic motifs" },
+      { id: "style_custom", title: "Custom Design", description: "Unique art made just for you" },
+    ]}]
   );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_style_list", bodyText + "\n[Minimal] [Name] [Sleeve] [Portrait] [Geometric] [Traditional] [Custom]", msgId);
-  console.log(`[webhook] Sent style list to ${recipientPhone}`);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_style_list", "Check out our popular tattoo styles! 🎨", msgId);
 }
 
-/** Send size selection buttons (price flow step 1) */
-async function sendSizeSelection(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null
-) {
-  const bodyText = "What size tattoo are you planning? 📐";
-  const msgId = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    [
-      { id: "size_small", title: "Small (1-3 in)" },
-      { id: "size_medium", title: "Medium (4-6 in)" },
-      { id: "size_large", title: "Large (7+ in)" },
-    ]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_size_select", bodyText + "\n[Small] [Medium] [Large]", msgId);
-  console.log(`[webhook] Sent size selection to ${recipientPhone}`);
+// Qualification step senders
+async function sendSizeButtons(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone,
+    "What size tattoo are you thinking? 📐", [
+      { id: "qual_size_small", title: "Small" },
+      { id: "qual_size_medium", title: "Medium" },
+      { id: "qual_size_large", title: "Large" },
+    ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "qual_size", "What size tattoo? [Small] [Medium] [Large]", msgId);
 }
 
-/** Send style selection buttons (price flow step 2) */
-async function sendPriceStyleSelection(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null
-) {
-  const bodyText = "What style do you prefer? ✨";
-  const msgId = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    [
-      { id: "pstyle_name", title: "Name / Lettering" },
-      { id: "pstyle_minimal", title: "Minimal" },
-      { id: "pstyle_custom", title: "Portrait / Custom" },
-    ]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_price_style", bodyText + "\n[Name] [Minimal] [Portrait/Custom]", msgId);
-  console.log(`[webhook] Sent price style selection to ${recipientPhone}`);
+async function sendTimelineButtons(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone,
+    "When are you planning to get it done? 📅", [
+      { id: "qual_time_week", title: "This Week" },
+      { id: "qual_time_month", title: "This Month" },
+      { id: "qual_time_exploring", title: "Just Exploring" },
+    ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "qual_timeline", "When are you planning? [This Week] [This Month] [Just Exploring]", msgId);
 }
 
-/** Send price estimate with CTA buttons */
-async function sendPriceEstimate(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null,
-  size: string, style: string
-) {
-  const priceMap: Record<string, Record<string, string>> = {
-    small: { name: "₹2,000 – ₹4,000", minimal: "₹2,500 – ₹5,000", custom: "₹4,000 – ₹8,000" },
-    medium: { name: "₹4,000 – ₹8,000", minimal: "₹5,000 – ₹10,000", custom: "₹8,000 – ₹15,000" },
-    large: { name: "₹8,000 – ₹15,000", minimal: "₹10,000 – ₹20,000", custom: "₹15,000 – ₹35,000+" },
-  };
-  const estimate = priceMap[size]?.[style] || "₹3,000 – ₹25,000+";
+async function sendBudgetButtons(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone,
+    "What's your budget range? 💰", [
+      { id: "qual_budget_low", title: "₹2k – ₹5k" },
+      { id: "qual_budget_mid", title: "₹5k – ₹10k" },
+      { id: "qual_budget_high", title: "₹10k+" },
+    ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "qual_budget", "Budget range? [₹2k–₹5k] [₹5k–₹10k] [₹10k+]", msgId);
+}
 
-  const bodyText = `💰 Estimated Price Range: ${estimate}\n\nThis depends on complexity and detail. Our artist can give you the exact quote after seeing your design idea.\n\nWould you like to talk to an artist for the final quote?`;
-  const msgId = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    [
+async function sendHotLeadButtons(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
+  const alreadySent = await wasTemplateSent(supabase, `+${recipientPhone}`, "qual_hot_cta");
+  if (alreadySent) return;
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone,
+    "🔥 You're all set! Our artist would love to connect with you. What would you prefer?", [
       { id: "talk_to_artist", title: "Talk to Artist 🎨" },
       { id: "menu_book", title: "Book Appointment 📅" },
-    ]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_price_estimate", bodyText + "\n[Talk to Artist 🎨] [Book Appointment 📅]", msgId);
+    ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "qual_hot_cta", "🔥 All set! [Talk to Artist 🎨] [Book Appointment 📅]", msgId);
+}
 
-  // Update lead with size info
-  if (leadId) {
-    const sizeLabel = size === "small" ? "Small (1-3 in)" : size === "medium" ? "Medium (4-6 in)" : "Large (7+ in)";
-    await supabase.from("leads").update({ size: sizeLabel, tattoo_style: style, updated_at: new Date().toISOString() }).eq("id", leadId);
+async function sendQualificationComplete(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null, lead: any) {
+  const score = calculateLeadScore(lead);
+  if (score === "HOT" || score === "WARM") {
+    await sendHotLeadButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  } else {
+    const text = "Thanks for sharing those details! 😊 Our team will review and get back to you. Meanwhile, check our portfolio: https://f19tattoo.in/portfolio/";
+    const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, text);
+    await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "qual_complete_cold", text, msgId);
+  }
+}
+
+/** Process the next qualification step after updating a field */
+async function advanceQualification(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null, lead: any) {
+  const state = getQualificationState(lead);
+  const nextField = getNextQualificationField(state);
+
+  if (!nextField) {
+    // Fully qualified — send notification + CTA
+    if (leadId) await sendQualifiedLeadNotification(supabase, leadId, leadName, `+${recipientPhone}`, lead);
+    await sendQualificationComplete(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId, lead);
+    return;
   }
 
-  console.log(`[webhook] Sent price estimate to ${recipientPhone}: ${estimate}`);
+  // For button-based fields, send buttons; for text-based fields, AI will ask
+  if (nextField === "size") {
+    await sendSizeButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  } else if (nextField === "timeline") {
+    await sendTimelineButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  } else if (nextField === "budget") {
+    await sendBudgetButtons(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId);
+  }
+  // tattoo_style and placement are collected via AI free-text (no buttons needed)
 }
 
-/** Send artist contact confirmation with next step buttons */
-async function sendArtistContactFlow(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null
-) {
+async function sendArtistContactFlow(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
   const bodyText = "Our artist will help you finalize the design and give you the exact price. 🎨✨\n\nWhat would you like to do next?";
-  const msgId = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    [
-      { id: "send_tattoo_idea", title: "Send Tattoo Idea 📷" },
-      { id: "menu_book", title: "Book Appointment 📅" },
-    ]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_artist_contact", bodyText + "\n[Send Tattoo Idea 📷] [Book Appointment 📅]", msgId);
-  console.log(`[webhook] Sent artist contact flow to ${recipientPhone}`);
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, [
+    { id: "send_tattoo_idea", title: "Send Tattoo Idea 📷" },
+    { id: "menu_book", title: "Book Appointment 📅" },
+  ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_artist_contact", bodyText, msgId);
 }
 
-/** Send booking slots */
-async function sendBookingSlots(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null
-) {
-  // Fetch next 3 available slots from appointments/availability
+async function sendBookingSlots(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null) {
   const today = new Date();
   const slots: { label: string; id: string }[] = [];
 
   for (let dayOffset = 0; dayOffset < 7 && slots.length < 3; dayOffset++) {
     const date = new Date(today);
     date.setDate(today.getDate() + dayOffset);
-    const dow = date.getDay(); // 0=Sun
-    if (dow === 0) continue; // Skip Sunday
+    const dow = date.getDay();
+    if (dow === 0) continue;
 
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-    // Check studio availability
-    const { data: avail } = await supabase
-      .from("studio_availability")
-      .select("is_available")
-      .or(`day_of_week.eq.${dow},specific_date.eq.${dateStr}`)
-      .limit(1);
-
+    const { data: avail } = await supabase.from("studio_availability").select("is_available").or(`day_of_week.eq.${dow},specific_date.eq.${dateStr}`).limit(1);
     if (avail && avail.length > 0 && !avail[0].is_available) continue;
 
-    // Check existing appointments
-    const { data: existing } = await supabase
-      .from("appointments")
-      .select("time_slot")
-      .eq("appointment_date", dateStr)
-      .neq("status", "cancelled");
-
+    const { data: existing } = await supabase.from("appointments").select("time_slot").eq("appointment_date", dateStr).neq("status", "cancelled");
     const bookedSlots = new Set((existing || []).map((a: any) => a.time_slot));
-    const availableTimes = ["11:00 AM", "2:00 PM", "5:00 PM"];
-    const freeSlot = availableTimes.find(t => !bookedSlots.has(t));
+    const freeSlot = ["11:00 AM", "2:00 PM", "5:00 PM"].find(t => !bookedSlots.has(t));
 
     if (freeSlot) {
       const dayName = dayOffset === 0 ? "Today" : dayOffset === 1 ? "Tomorrow" : date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-      slots.push({
-        label: `${dayName} ${freeSlot}`,
-        id: `book_${dateStr}_${freeSlot.replace(/[:\s]/g, '')}`,
-      });
+      slots.push({ label: `${dayName} ${freeSlot}`, id: `book_${dateStr}_${freeSlot.replace(/[:\s]/g, '')}` });
     }
   }
 
   if (slots.length === 0) {
-    const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone,
-      "All our slots are currently booked! 😅 Our team will reach out to find the best time for you. Hang tight! 🎨");
-    await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-      "flow_no_slots", "All our slots are currently booked! Our team will reach out.", msgId);
+    const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, "All our slots are currently booked! 😅 Our team will reach out to find the best time for you.");
+    await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_no_slots", "All slots booked", msgId);
     return;
   }
 
   const bodyText = "Great! Here are our available slots 📅\nPick one that works for you:";
-  const buttons = slots.slice(0, 3).map(s => ({ id: s.id, title: s.label }));
-  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, buttons);
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_booking_slots", bodyText + "\n" + slots.map(s => `[${s.label}]`).join(" "), msgId);
-  console.log(`[webhook] Sent booking slots to ${recipientPhone}`);
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, slots.slice(0, 3).map(s => ({ id: s.id, title: s.label })));
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_booking_slots", bodyText, msgId);
 }
 
-/** Handle booking slot selection */
-async function handleBookingConfirm(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null, slotId: string
-) {
-  // Parse slot ID: book_2026-03-10_0200PM
+async function handleBookingConfirm(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null, slotId: string) {
   const parts = slotId.replace("book_", "").split("_");
   const date = parts[0];
   const rawTime = parts[1];
-  // Convert back: 0200PM -> 2:00 PM
   const hour = rawTime.slice(0, 2);
   const min = rawTime.slice(2, 4);
   const ampm = rawTime.slice(4);
   const timeSlot = `${parseInt(hour)}:${min} ${ampm}`;
 
-  // Create appointment
   const { error } = await supabase.from("appointments").insert({
-    lead_name: leadName,
-    lead_phone: `+${recipientPhone}`,
-    lead_id: leadId,
-    appointment_date: date,
-    time_slot: timeSlot,
-    status: "confirmed",
+    lead_name: leadName, lead_phone: `+${recipientPhone}`, lead_id: leadId,
+    appointment_date: date, time_slot: timeSlot, status: "confirmed",
   });
 
   if (error) {
-    console.error("[webhook] Booking error:", error);
-    await sendTextMessage(phoneNumberId, accessToken, recipientPhone,
-      "Sorry, there was an issue booking that slot. Our team will contact you to confirm! 📞");
+    await sendTextMessage(phoneNumberId, accessToken, recipientPhone, "Sorry, there was an issue booking. Our team will contact you! 📞");
     return;
   }
 
-  // Update lead status
   if (leadId) {
-    await supabase.from("leads").update({
-      status: "Booked",
-      preferred_date: date,
-      updated_at: new Date().toISOString(),
-    }).eq("id", leadId);
-
-    await supabase.from("lead_interactions").insert({
-      lead_id: leadId,
-      action_type: "status_change",
-      old_value: "Artist Consultation",
-      new_value: "Booked",
-      note: `Booked via WhatsApp: ${date} ${timeSlot}`,
-    });
+    await supabase.from("leads").update({ status: "Booked", preferred_date: date, updated_at: new Date().toISOString() }).eq("id", leadId);
+    await supabase.from("lead_interactions").insert({ lead_id: leadId, action_type: "status_change", old_value: "Artist Consultation", new_value: "Booked", note: `Booked via WhatsApp: ${date} ${timeSlot}` });
   }
 
   const dayLabel = new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
   const confirmText = `✅ Your appointment is confirmed!\n\n📅 ${dayLabel}\n⏰ ${timeSlot}\n📍 F19 Tattoo Studio, Kothrud, Pune\n\nPlease arrive 15 minutes early. See you soon! 🎨🔥`;
   const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, confirmText);
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "booking_confirmed", confirmText, msgId);
-
-  console.log(`[webhook] ✅ Booking confirmed for ${recipientPhone}: ${date} ${timeSlot}`);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "booking_confirmed", confirmText, msgId);
 }
 
-/** Handle style selection from the list */
-async function handleStyleSelection(
-  phoneNumberId: string, accessToken: string, recipientPhone: string,
-  supabase: any, leadName: string, leadId: string | null, styleId: string
-) {
+async function handleStyleSelection(phoneNumberId: string, accessToken: string, recipientPhone: string, supabase: any, leadName: string, leadId: string | null, styleId: string) {
   const styleNames: Record<string, string> = {
-    style_minimal: "Minimal",
-    style_name: "Name/Lettering",
-    style_sleeve: "Sleeve",
-    style_portrait: "Portrait",
-    style_geometric: "Geometric",
-    style_traditional: "Traditional",
-    style_custom: "Custom",
+    style_minimal: "Minimal", style_name: "Name/Lettering", style_sleeve: "Sleeve",
+    style_portrait: "Portrait", style_geometric: "Geometric", style_traditional: "Traditional", style_custom: "Custom",
   };
   const styleName = styleNames[styleId] || "Custom";
 
-  // Update lead
   if (leadId) {
     await supabase.from("leads").update({ tattoo_style: styleName, updated_at: new Date().toISOString() }).eq("id", leadId);
+    // Refresh lead and advance qualification
+    const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
+    if (freshLead) {
+      // Send a brief AI comment then advance
+      const history = await getConversationHistory(supabase, `+${recipientPhone}`);
+      const aiReply = await getAIReply(history, styleName, `The user selected "${styleName}" tattoo style. Acknowledge briefly and say you have a couple more quick questions.`);
+      const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, aiReply);
+      await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "chatbot_auto_reply", aiReply, replyMsgId);
+      await advanceQualification(phoneNumberId, accessToken, recipientPhone, supabase, leadName, leadId, freshLead);
+      return;
+    }
   }
 
-  const bodyText = `Great choice! ${styleName} tattoos are 🔥\n\nWant to see pricing or talk to our artist directly?`;
-  const msgId = await sendInteractiveButtons(
-    phoneNumberId, accessToken, recipientPhone, bodyText,
-    [
-      { id: "menu_price", title: "Get Price 💰" },
-      { id: "talk_to_artist", title: "Talk to Artist 🎨" },
-      { id: "menu_book", title: "Book Appointment 📅" },
-    ]
-  );
-  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
-    "flow_style_selected", bodyText + `\n[Get Price] [Talk to Artist] [Book Appointment]`, msgId);
+  // Fallback: show options
+  const bodyText = `Great choice! ${styleName} tattoos are 🔥\n\nWant to see pricing or talk to our artist?`;
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, [
+    { id: "menu_price", title: "Get Price 💰" },
+    { id: "talk_to_artist", title: "Talk to Artist 🎨" },
+    { id: "menu_book", title: "Book Appointment 📅" },
+  ]);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId, "flow_style_selected", bodyText, msgId);
+}
+
+// ─── Extract field values from free-text ──────────────────────────────
+
+function extractPlacement(text: string): string | null {
+  const placements = [
+    "forearm", "wrist", "neck", "back", "chest", "leg", "shoulder",
+    "ankle", "arm", "hand", "finger", "thigh", "calf", "ribcage",
+    "spine", "hip", "collarbone", "bicep", "tricep", "elbow",
+  ];
+  const lower = text.toLowerCase();
+  for (const p of placements) {
+    if (lower.includes(p)) return p.charAt(0).toUpperCase() + p.slice(1);
+  }
+  return null;
+}
+
+function extractTattooStyle(text: string): string | null {
+  const styles: Record<string, string[]> = {
+    "Minimal": ["minimal", "minimalist", "simple", "small design"],
+    "Name/Lettering": ["name", "lettering", "letters", "naam", "calligraphy", "text tattoo", "word"],
+    "Portrait": ["portrait", "face", "realistic", "realism", "photo"],
+    "Sleeve": ["sleeve", "full arm", "half sleeve", "full sleeve"],
+    "Geometric": ["geometric", "geometry", "sacred geometry", "mandala"],
+    "Traditional": ["traditional", "old school", "classic", "bold"],
+    "Custom": ["custom", "unique", "original"],
+    "Blackwork": ["blackwork", "black work", "solid black"],
+    "Watercolor": ["watercolor", "water color"],
+    "Tribal": ["tribal"],
+    "Japanese": ["japanese", "irezumi"],
+    "Dotwork": ["dotwork", "dot work"],
+  };
+  const lower = text.toLowerCase();
+  for (const [styleName, keywords] of Object.entries(styles)) {
+    if (keywords.some(k => lower.includes(k))) return styleName;
+  }
+  // If they mention a specific design concept, treat as custom
+  const designKeywords = ["lion", "rose", "skull", "dragon", "butterfly", "eagle", "wolf", "tiger", "flower", "cross", "heart", "star", "moon", "sun", "tree", "bird", "snake", "fish", "crown", "anchor", "compass", "clock", "phoenix", "owl", "feather"];
+  if (designKeywords.some(k => lower.includes(k))) return "Custom";
+  return null;
 }
 
 // ─── Main Webhook Handler ─────────────────────────────────────────────
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   // Meta webhook verification (GET)
   if (req.method === "GET") {
@@ -738,18 +620,11 @@ Deno.serve(async (req) => {
 
     let verifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") || "lovable_webhook_verify";
     try {
-      const { data } = await supabase
-        .from("whatsapp_settings")
-        .select("setting_value")
-        .eq("setting_key", "webhook_verify_token")
-        .single();
+      const { data } = await supabase.from("whatsapp_settings").select("setting_value").eq("setting_key", "webhook_verify_token").single();
       if (data?.setting_value) verifyToken = data.setting_value;
     } catch { /* use fallback */ }
 
-    if (mode === "subscribe" && token === verifyToken) {
-      console.log("Webhook verified successfully");
-      return new Response(challenge, { status: 200, headers: corsHeaders });
-    }
+    if (mode === "subscribe" && token === verifyToken) return new Response(challenge, { status: 200, headers: corsHeaders });
     return new Response("Forbidden", { status: 403, headers: corsHeaders });
   }
 
@@ -761,15 +636,9 @@ Deno.serve(async (req) => {
 
       const entries = body?.entry || [];
 
-      const { data: settingsData } = await supabase
-        .from("whatsapp_settings")
-        .select("setting_key, setting_value");
+      const { data: settingsData } = await supabase.from("whatsapp_settings").select("setting_key, setting_value");
       const settingsMap: Record<string, string> = {};
-      if (settingsData) {
-        for (const row of settingsData) {
-          if (row.setting_value) settingsMap[row.setting_key] = row.setting_value;
-        }
-      }
+      if (settingsData) for (const row of settingsData) { if (row.setting_value) settingsMap[row.setting_key] = row.setting_value; }
 
       const accessToken = settingsMap["access_token"] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
       const wabaId = settingsMap["whatsapp_business_account_id"];
@@ -777,12 +646,8 @@ Deno.serve(async (req) => {
       const chatbotEnabled = settingsMap["chatbot_enabled"] !== "false";
 
       let phoneNumberId: string | null = null;
-      if (wabaId && accessToken) {
-        phoneNumberId = await resolvePhoneNumberId(wabaId, accessToken);
-      }
-      if (!phoneNumberId && envPhoneId) {
-        phoneNumberId = envPhoneId;
-      }
+      if (wabaId && accessToken) phoneNumberId = await resolvePhoneNumberId(wabaId, accessToken);
+      if (!phoneNumberId && envPhoneId) phoneNumberId = envPhoneId;
 
       for (const entry of entries) {
         const changes = entry?.changes || [];
@@ -792,30 +657,15 @@ Deno.serve(async (req) => {
           if (!value) continue;
 
           // Handle delivery status updates
-          const statuses = value?.statuses || [];
-          for (const statusUpdate of statuses) {
+          for (const statusUpdate of (value?.statuses || [])) {
             const metaMessageId = statusUpdate.id;
             const status = statusUpdate.status;
             const timestamp = statusUpdate.timestamp;
-
             const updateData: Record<string, unknown> = { delivery_status: status };
-
-            if (status === "delivered") {
-              updateData.delivered_at = new Date(parseInt(timestamp) * 1000).toISOString();
-            } else if (status === "read") {
-              updateData.read_at = new Date(parseInt(timestamp) * 1000).toISOString();
-            } else if (status === "failed") {
-              const errorInfo = statusUpdate?.errors?.[0];
-              updateData.error_message = errorInfo?.title || errorInfo?.message || "Delivery failed";
-              updateData.status = "failed";
-            }
-
-            await supabase
-              .from("whatsapp_messages")
-              .update(updateData)
-              .eq("meta_message_id", metaMessageId);
-
-            console.log(`[webhook] Status: ${metaMessageId} → ${status}`);
+            if (status === "delivered") updateData.delivered_at = new Date(parseInt(timestamp) * 1000).toISOString();
+            else if (status === "read") updateData.read_at = new Date(parseInt(timestamp) * 1000).toISOString();
+            else if (status === "failed") { updateData.error_message = statusUpdate?.errors?.[0]?.title || "Delivery failed"; updateData.status = "failed"; }
+            await supabase.from("whatsapp_messages").update(updateData).eq("meta_message_id", metaMessageId);
           }
 
           // Handle incoming messages
@@ -826,73 +676,31 @@ Deno.serve(async (req) => {
             const senderPhone = message.from;
             const msgType = message.type || "text";
 
-            // Extract message text and media info
             let messageText = "";
             let mediaId: string | null = null;
             let messageType = msgType;
             let mediaUrl: string | null = null;
             let fileName: string | null = null;
 
-            if (msgType === "text") {
-              messageText = message?.text?.body || "";
-              messageType = "text";
-            } else if (msgType === "button") {
-              messageText = message?.button?.text || "";
-              messageType = "text";
-            } else if (msgType === "interactive") {
-              const btnReply = message?.interactive?.button_reply;
-              const listReply = message?.interactive?.list_reply;
-              messageText = btnReply?.title || listReply?.title || "";
-              messageType = "text";
-            } else if (msgType === "image") {
-              mediaId = message?.image?.id || null;
-              messageText = message?.image?.caption || "📷 Image";
-              messageType = "image";
-              fileName = `image_${Date.now()}.jpg`;
-            } else if (msgType === "video") {
-              mediaId = message?.video?.id || null;
-              messageText = message?.video?.caption || "🎥 Video";
-              messageType = "video";
-              fileName = `video_${Date.now()}.mp4`;
-            } else if (msgType === "audio" || msgType === "voice") {
-              mediaId = message?.audio?.id || message?.voice?.id || null;
-              messageText = "🎵 Voice message";
-              messageType = "audio";
-              fileName = `audio_${Date.now()}.ogg`;
-            } else if (msgType === "document") {
-              mediaId = message?.document?.id || null;
-              messageText = message?.document?.filename || "📄 Document";
-              messageType = "document";
-              fileName = message?.document?.filename || `document_${Date.now()}`;
-            } else if (msgType === "sticker") {
-              mediaId = message?.sticker?.id || null;
-              messageText = "🏷️ Sticker";
-              messageType = "sticker";
-              fileName = `sticker_${Date.now()}.webp`;
-            } else if (msgType === "location") {
-              const loc = message?.location;
-              messageText = loc ? `📍 Location: ${loc.latitude}, ${loc.longitude}${loc.name ? ` — ${loc.name}` : ""}` : "📍 Location";
-              messageType = "location";
-            } else if (msgType === "contacts") {
-              const contactName = message?.contacts?.[0]?.name?.formatted_name || "Contact";
-              messageText = `👤 Contact: ${contactName}`;
-              messageType = "contacts";
-            } else if (msgType === "reaction") {
-              messageText = `${message?.reaction?.emoji || "👍"} Reaction`;
-              messageType = "reaction";
-            } else {
-              messageText = `[${msgType}]`;
-            }
+            if (msgType === "text") { messageText = message?.text?.body || ""; messageType = "text"; }
+            else if (msgType === "button") { messageText = message?.button?.text || ""; messageType = "text"; }
+            else if (msgType === "interactive") { messageText = message?.interactive?.button_reply?.title || message?.interactive?.list_reply?.title || ""; messageType = "text"; }
+            else if (msgType === "image") { mediaId = message?.image?.id || null; messageText = message?.image?.caption || "📷 Image"; messageType = "image"; fileName = `image_${Date.now()}.jpg`; }
+            else if (msgType === "video") { mediaId = message?.video?.id || null; messageText = message?.video?.caption || "🎥 Video"; messageType = "video"; fileName = `video_${Date.now()}.mp4`; }
+            else if (msgType === "audio" || msgType === "voice") { mediaId = message?.audio?.id || message?.voice?.id || null; messageText = "🎵 Voice message"; messageType = "audio"; fileName = `audio_${Date.now()}.ogg`; }
+            else if (msgType === "document") { mediaId = message?.document?.id || null; messageText = message?.document?.filename || "📄 Document"; messageType = "document"; fileName = message?.document?.filename || `document_${Date.now()}`; }
+            else if (msgType === "sticker") { mediaId = message?.sticker?.id || null; messageText = "🏷️ Sticker"; messageType = "sticker"; fileName = `sticker_${Date.now()}.webp`; }
+            else if (msgType === "location") { const loc = message?.location; messageText = loc ? `📍 Location: ${loc.latitude}, ${loc.longitude}${loc.name ? ` — ${loc.name}` : ""}` : "📍 Location"; messageType = "location"; }
+            else if (msgType === "contacts") { messageText = `👤 Contact: ${message?.contacts?.[0]?.name?.formatted_name || "Contact"}`; messageType = "contacts"; }
+            else if (msgType === "reaction") { messageText = `${message?.reaction?.emoji || "👍"} Reaction`; messageType = "reaction"; }
+            else { messageText = `[${msgType}]`; }
 
-            // Fetch and store media if present
+            // Fetch and store media
             if (mediaId && accessToken) {
               const mediaInfo = await fetchMediaUrl(mediaId, accessToken);
-              if (mediaInfo && mediaInfo.url) {
+              if (mediaInfo?.url) {
                 const stored = await downloadAndStoreMedia(mediaInfo.url, mediaInfo.mimeType, accessToken, supabase);
-                if (stored) {
-                  mediaUrl = stored.publicUrl;
-                  fileName = stored.fileName;
-                }
+                if (stored) { mediaUrl = stored.publicUrl; fileName = stored.fileName; }
               }
             }
 
@@ -903,11 +711,9 @@ Deno.serve(async (req) => {
             console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [type: ${messageType}] [button: ${buttonPayloadId}]`);
 
             // Upsert lead
-            const { data: existingLeads } = await supabase
-              .from("leads")
-              .select("id, notes, bot_enabled, status, placement, size, budget, source, tattoo_style")
-              .eq("phone", `+${senderPhone}`)
-              .limit(1);
+            const { data: existingLeads } = await supabase.from("leads")
+              .select("id, notes, bot_enabled, status, placement, size, budget, source, tattoo_style, timeline, lead_score, full_name")
+              .eq("phone", `+${senderPhone}`).limit(1);
 
             let leadId: string | null = null;
             let botEnabled = true;
@@ -921,143 +727,120 @@ Deno.serve(async (req) => {
               botEnabled = lead.bot_enabled !== false;
               leadStatus = lead.status;
               const updatedNotes = `${lead.notes ? lead.notes + "\n" : ""}[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`.slice(0, 2000);
-              await supabase
-                .from("leads")
-                .update({ notes: updatedNotes, updated_at: new Date().toISOString() })
-                .eq("id", lead.id);
+              await supabase.from("leads").update({ notes: updatedNotes, updated_at: new Date().toISOString() }).eq("id", lead.id);
             } else {
               isNewLead = true;
-              const { data: newLead, error } = await supabase
-                .from("leads")
-                .insert({
-                  full_name: senderName,
-                  phone: `+${senderPhone}`,
-                  source: "WhatsApp",
-                  whatsapp_opt_in: true,
-                  status: "New Lead",
-                  tags: ["whatsapp_inquiry"],
-                  notes: `[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`,
-                  bot_enabled: true,
-                })
-                .select()
-                .single();
-              if (!error && newLead) {
-                leadId = newLead.id;
-                lead = newLead;
-                console.log(`[webhook] Auto-created lead: ${newLead.id}`);
-              }
+              const { data: newLead, error } = await supabase.from("leads").insert({
+                full_name: senderName, phone: `+${senderPhone}`, source: "WhatsApp",
+                whatsapp_opt_in: true, status: "New Lead", tags: ["whatsapp_inquiry"],
+                notes: `[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`, bot_enabled: true,
+              }).select().single();
+              if (!error && newLead) { leadId = newLead.id; lead = newLead; console.log(`[webhook] Auto-created lead: ${newLead.id}`); }
             }
 
             // Log incoming message
             await supabase.from("whatsapp_messages").insert({
-              lead_phone: `+${senderPhone}`,
-              lead_name: senderName,
-              lead_id: leadId,
-              template_name: "incoming",
-              template_type: "incoming",
-              status: "received",
-              meta_message_id: message.id,
-              message_body: messageText || null,
-              is_escalated: false,
-              message_type: messageType,
-              media_url: mediaUrl,
-              file_name: fileName,
+              lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: leadId,
+              template_name: "incoming", template_type: "incoming", status: "received",
+              meta_message_id: message.id, message_body: messageText || null,
+              is_escalated: false, message_type: messageType, media_url: mediaUrl, file_name: fileName,
             });
 
-            // Skip further processing if bot is disabled or no phone/token
+            // Skip if bot disabled or no credentials
             if (!chatbotEnabled || !botEnabled || !phoneNumberId || !accessToken) {
               if (chatbotEnabled && !botEnabled) {
-                console.log(`[webhook] Bot disabled for ${senderPhone}, skipping auto-reply`);
                 await supabase.from("whatsapp_messages").update({ is_escalated: true }).eq("meta_message_id", message.id);
               }
               continue;
             }
 
-            // Skip reactions
             if (messageType === "reaction") continue;
 
-            // ─── INTERACTIVE FLOW ROUTING ─────────────────────
+            // ─── BUTTON-BASED FLOW ROUTING ────────────────────
 
-            // Handle "Talk to Human" button
+            // Talk to Human
             if (buttonPayloadId === "talk_to_human" || messageText.toLowerCase().includes("talk to human")) {
-              if (leadId) {
-                await supabase.from("leads").update({ bot_enabled: false, status: "Contacted" }).eq("id", leadId);
-              }
-              const confirmReply = "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨";
-              const confirmMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, confirmReply);
-              await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "human_handoff", confirmReply, confirmMsgId);
+              if (leadId) await supabase.from("leads").update({ bot_enabled: false, status: "Contacted" }).eq("id", leadId);
+              const reply = "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly.";
+              const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, reply);
+              await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "human_handoff", reply, msgId);
               continue;
             }
 
-            // Handle "Talk to Artist" button or intent
+            // Talk to Artist
             if (buttonPayloadId === "talk_to_artist" || buttonPayloadId === "menu_artist") {
-              if (leadId && lead) {
-                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead.notes, lead);
-              }
+              if (leadId && lead) await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead);
               await sendArtistContactFlow(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Handle "See Tattoo Designs"
+            // See Designs
             if (buttonPayloadId === "menu_designs") {
               await sendStyleList(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Handle style selection from list
+            // Style selection from list
             if (buttonPayloadId.startsWith("style_")) {
               await handleStyleSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, buttonPayloadId);
               continue;
             }
 
-            // Handle "Get Tattoo Price"
+            // Get Price → starts qualification from size
             if (buttonPayloadId === "menu_price") {
-              await sendSizeSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              await sendSizeButtons(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Handle size selection (price flow step 1)
-            if (buttonPayloadId.startsWith("size_")) {
-              // Store selected size for price flow step 2
-              const sizeKey = buttonPayloadId.replace("size_", "");
-              // Tag the lead with the selected size temporarily via notes
+            // Qualification: Size selected
+            if (buttonPayloadId.startsWith("qual_size_")) {
+              const sizeMap: Record<string, string> = { qual_size_small: "Small (2-4 in)", qual_size_medium: "Medium (4-6 in)", qual_size_large: "Large (6-10 in)" };
+              const sizeVal = sizeMap[buttonPayloadId] || "Medium (4-6 in)";
               if (leadId) {
-                await supabase.from("leads").update({
-                  size: sizeKey === "small" ? "Small (1-3 in)" : sizeKey === "medium" ? "Medium (4-6 in)" : "Large (7+ in)",
-                  updated_at: new Date().toISOString(),
-                }).eq("id", leadId);
+                await supabase.from("leads").update({ size: sizeVal, updated_at: new Date().toISOString() }).eq("id", leadId);
+                const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
+                if (freshLead) { lead = freshLead; await advanceQualification(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, freshLead); }
               }
-              await sendPriceStyleSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Handle price style selection (price flow step 2)
-            if (buttonPayloadId.startsWith("pstyle_")) {
-              const styleKey = buttonPayloadId.replace("pstyle_", "");
-              // Get the lead's selected size
-              let sizeKey = "medium";
+            // Qualification: Timeline selected
+            if (buttonPayloadId.startsWith("qual_time_")) {
+              const timeMap: Record<string, string> = { qual_time_week: "This Week", qual_time_month: "This Month", qual_time_exploring: "Just Exploring" };
+              const timeVal = timeMap[buttonPayloadId] || "This Month";
               if (leadId) {
-                const { data: freshLead } = await supabase.from("leads").select("size").eq("id", leadId).single();
-                if (freshLead?.size?.toLowerCase().includes("small")) sizeKey = "small";
-                else if (freshLead?.size?.toLowerCase().includes("large")) sizeKey = "large";
+                await supabase.from("leads").update({ timeline: timeVal, updated_at: new Date().toISOString() }).eq("id", leadId);
+                const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
+                if (freshLead) { lead = freshLead; await advanceQualification(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, freshLead); }
               }
-              await sendPriceEstimate(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, sizeKey, styleKey);
               continue;
             }
 
-            // Handle "Book Appointment"
+            // Qualification: Budget selected
+            if (buttonPayloadId.startsWith("qual_budget_")) {
+              const budgetMap: Record<string, string> = { qual_budget_low: "₹2k – ₹5k", qual_budget_mid: "₹5k – ₹10k", qual_budget_high: "₹10k+" };
+              const budgetVal = budgetMap[buttonPayloadId] || "₹5k – ₹10k";
+              if (leadId) {
+                await supabase.from("leads").update({ budget: budgetVal, updated_at: new Date().toISOString() }).eq("id", leadId);
+                const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
+                if (freshLead) { lead = freshLead; await advanceQualification(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, freshLead); }
+              }
+              continue;
+            }
+
+            // Book Appointment
             if (buttonPayloadId === "menu_book") {
               await sendBookingSlots(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // Handle booking slot selection
+            // Booking slot confirm
             if (buttonPayloadId.startsWith("book_")) {
               await handleBookingConfirm(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, buttonPayloadId);
               continue;
             }
 
-            // Handle "Send Tattoo Idea" - prompt them to share
+            // Send Tattoo Idea
             if (buttonPayloadId === "send_tattoo_idea") {
               const promptText = "Go ahead! 📷 Send me a photo or describe your tattoo idea, and our artist will review it.";
               const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, promptText);
@@ -1065,93 +848,107 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // ─── WELCOME MENU FOR FIRST-TIME / GREETING ──────
+            // ─── WELCOME FOR NEW / GREETING ────────────────────
 
             const lowerText = messageText.toLowerCase().trim();
             const isGreeting = /^(hi|hello|hey|hola|namaste|namaskar|yo|sup|start|menu)$/i.test(lowerText);
 
             if ((isNewLead || isGreeting) && !buttonPayloadId) {
-              // Send welcome menu only if not sent recently (last 24h)
-              const alreadySentWelcome = await wasTemplateSent(supabase, `+${senderPhone}`, "welcome_menu");
-              if (!alreadySentWelcome || isGreeting) {
-                await sendWelcomeMenu(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
-                continue;
+              await sendWelcomeMenu(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              continue;
+            }
+
+            // ─── FREE-TEXT PROCESSING ──────────────────────────
+
+            // Try to extract qualification data from free-text
+            const qualState = getQualificationState(lead);
+            const nextField = getNextQualificationField(qualState);
+            let fieldUpdated = false;
+
+            if (nextField === "tattoo_style" && messageText) {
+              const extractedStyle = extractTattooStyle(messageText);
+              if (extractedStyle && leadId) {
+                await supabase.from("leads").update({ tattoo_style: extractedStyle, updated_at: new Date().toISOString() }).eq("id", leadId);
+                const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
+                if (freshLead) {
+                  lead = freshLead;
+                  fieldUpdated = true;
+                  // AI acknowledges + system sends next step buttons
+                  const history = await getConversationHistory(supabase, `+${senderPhone}`);
+                  const aiReply = await getAIReply(history, messageText, `The user described their tattoo style as "${extractedStyle}". Acknowledge briefly, positively.`);
+                  const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
+                  await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "chatbot_auto_reply", aiReply, replyMsgId);
+                  await advanceQualification(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, freshLead);
+                }
               }
             }
 
-            // ─── INTENT DETECTION & AI REPLY ─────────────────
-
-            let intentDetected = false;
-            if (leadId && messageText) {
-              const strongIntent = detectStrongIntent(messageText);
-              const enoughDetails = hasSharedEnoughDetails(lead?.notes || "");
-              intentDetected = strongIntent || enoughDetails;
-
-              if (intentDetected && lead && lead.status !== "Artist Consultation" && lead.status !== "Booked" && lead.status !== "Completed") {
-                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead.notes, lead);
+            if (!fieldUpdated && nextField === "placement" && messageText) {
+              const extractedPlacement = extractPlacement(messageText);
+              if (extractedPlacement && leadId) {
+                await supabase.from("leads").update({ placement: extractedPlacement, updated_at: new Date().toISOString() }).eq("id", leadId);
+                const { data: freshLead } = await supabase.from("leads").select("*").eq("id", leadId).single();
+                if (freshLead) {
+                  lead = freshLead;
+                  fieldUpdated = true;
+                  const history = await getConversationHistory(supabase, `+${senderPhone}`);
+                  const aiReply = await getAIReply(history, messageText, `The user said placement is "${extractedPlacement}". Acknowledge briefly.`);
+                  const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
+                  await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "chatbot_auto_reply", aiReply, replyMsgId);
+                  await advanceQualification(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, freshLead);
+                }
               }
             }
 
-            // For media messages (tattoo idea photos), acknowledge and trigger consultation
+            if (fieldUpdated) continue;
+
+            // Check for strong intent → trigger artist consultation
+            if (leadId && messageText && detectStrongIntent(messageText)) {
+              if (lead && lead.status !== "Artist Consultation" && lead.status !== "Booked" && lead.status !== "Completed") {
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead);
+              }
+              await sendArtistContactFlow(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              continue;
+            }
+
+            // Media (tattoo reference photos)
             if (messageType === "image" || messageType === "document") {
               const ackText = "Thanks for sharing! 📷 Our artist will review your design idea and get back to you with details and pricing. 🎨";
               const ackMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, ackText);
               await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "media_ack", ackText, ackMsgId);
-
               if (leadId && lead && lead.status !== "Artist Consultation" && lead.status !== "Booked" && lead.status !== "Completed") {
-                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead.notes, lead);
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead);
               }
               continue;
             }
 
-            // AI reply for free-text messages
-            let userContent = messageText;
-            if (messageType !== "text") {
-              userContent = `[Client sent a ${messageType}: ${messageText}]`;
+            // ─── AI FALLBACK REPLY ─────────────────────────────
+
+            // Build system note for AI context
+            let systemNote = "";
+            if (nextField) {
+              systemNote = `The user hasn't provided their ${nextField.replace("_", " ")} yet. Ask for it naturally. Current collected data: ${generateChatSummary(lead)}`;
+            } else if (isFullyQualified(qualState)) {
+              systemNote = `All qualification data is collected. Lead score: ${calculateLeadScore(lead)}. Summary: ${generateChatSummary(lead)}. If user has more questions, answer them. Otherwise guide to Talk to Artist or Book Appointment.`;
             }
 
             const history = await getConversationHistory(supabase, `+${senderPhone}`);
             const historyWithoutCurrent = history.slice(0, -1);
-            const aiReply = await getAIReply(historyWithoutCurrent, userContent);
-            console.log(`[webhook] AI reply to ${senderPhone}: ${aiReply.slice(0, 100)}`);
+            const aiReply = await getAIReply(historyWithoutCurrent, messageText, systemNote);
 
             const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
             await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "chatbot_auto_reply", aiReply, replyMsgId);
 
-            // Send "Talk to Artist" button when intent is detected and not already sent
-            if (intentDetected && leadStatus !== "Artist Consultation" && leadStatus !== "Booked" && leadStatus !== "Completed") {
-              const alreadySent = await wasTemplateSent(supabase, `+${senderPhone}`, "artist_consultation_button");
-              if (!alreadySent) {
-                const buttonMsgId = await sendInteractiveButtons(
-                  phoneNumberId, accessToken, senderPhone,
-                  "Would you like one of our artists to contact you? Tap below! 👇",
-                  [
-                    { id: "talk_to_artist", title: "Talk to Artist 🎨" },
-                    { id: "menu_book", title: "Book Appointment 📅" },
-                    { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
-                  ]
-                );
-                await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId,
-                  "artist_consultation_button",
-                  "Would you like one of our artists to contact you?\n[Talk to Artist 🎨] [Book Appointment 📅] [Talk to Human 👨‍💻]",
-                  buttonMsgId);
-                console.log(`[webhook] 🎨 Sent "Talk to Artist" button to ${senderPhone}`);
-              }
-            }
+            // If AI asked for placement or style, the next message should be parsed for that field
+            // (handled in next webhook call via qualification state)
           }
         }
       }
 
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (err) {
       console.error("[webhook] Error:", err instanceof Error ? err.message : err);
-      return new Response(JSON.stringify({ received: true }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
   }
 
