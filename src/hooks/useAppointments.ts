@@ -140,7 +140,10 @@ export function useAppointments() {
 
   const isDayAvailable = useCallback((date: Date): boolean => {
     const dayOfWeek = date.getDay();
-    const dateStr = date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
     const blocked = availability.find(a => a.specificDate === dateStr && !a.isAvailable);
     if (blocked) return false;
     const dayAvail = availability.find(a => a.dayOfWeek === dayOfWeek);
