@@ -337,13 +337,23 @@ async function getConversationHistory(supabase: any, phone: string, limit = 30):
     .map((m: any) => ({ role: m.template_type === "incoming" ? "user" : "assistant", content: m.message_body }));
 }
 
+function cleanAIResponse(text: string): string {
+  // Remove any [SYSTEM NOTE] blocks that the AI accidentally includes in its reply
+  let cleaned = text.replace(/\[SYSTEM\s*NOTE\][\s\S]*?(?=\n\n|$)/gi, '').trim();
+  // Remove lines that look like internal instructions
+  cleaned = cleaned.replace(/^.*(?:next field to collect|remember to keep|you should now ask).*$/gmi, '').trim();
+  // Remove double newlines left behind
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  return cleaned || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
+}
+
 async function getAIReply(conversationHistory: { role: string; content: string }[], currentMessage: string, systemNote?: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
 
   try {
     const messages: any[] = [{ role: "system", content: F19_SYSTEM_PROMPT }];
-    if (systemNote) messages.push({ role: "system", content: `[SYSTEM NOTE] ${systemNote}` });
+    if (systemNote) messages.push({ role: "system", content: `[SYSTEM NOTE — INTERNAL ONLY, NEVER include this in your reply to the user] ${systemNote}` });
     messages.push(...conversationHistory, { role: "user", content: currentMessage });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -354,7 +364,8 @@ async function getAIReply(conversationHistory: { role: string; content: string }
 
     if (!response.ok) { console.error("[webhook] AI error:", response.status); return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨"; }
     const data = await response.json();
-    return data?.choices?.[0]?.message?.content?.trim() || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
+    const rawReply = data?.choices?.[0]?.message?.content?.trim() || "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨";
+    return cleanAIResponse(rawReply);
   } catch (err) { console.error("[webhook] AI call error:", err); return "Hey! 👋 Thanks for reaching out. Our team will get back to you soon! 🎨"; }
 }
 
