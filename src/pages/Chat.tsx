@@ -104,6 +104,7 @@ const Chat = () => {
           onRetryMessage={handleRetryMessage}
           onBookAppointment={() => setBookingOpen(true)}
           onToggleBot={handleToggleBot}
+          onClearChat={clearChat}
         />
       </div>
 
