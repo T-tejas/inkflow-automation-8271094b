@@ -220,11 +220,11 @@ interface QualificationState {
 
 function getQualificationState(lead: any): QualificationState {
   return {
-    tattoo_style: lead?.tattoo_style && lead.tattoo_style !== "Other" ? lead.tattoo_style : null,
-    size: lead?.size && lead.size !== "Medium (4-6 in)" ? lead.size : null,
-    placement: lead?.placement && lead.placement !== "" ? lead.placement : null,
-    timeline: lead?.timeline && lead.timeline !== "" ? lead.timeline : null,
-    budget: lead?.budget && lead.budget !== "" ? lead.budget : null,
+    tattoo_style: lead?.tattoo_style || null,
+    size: lead?.size || null,
+    placement: lead?.placement || null,
+    timeline: lead?.timeline || null,
+    budget: lead?.budget || null,
   };
 }
 
