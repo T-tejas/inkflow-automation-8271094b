@@ -40,9 +40,10 @@ interface Props {
   onRetryMessage: (message: ChatMessage) => void;
   onBookAppointment?: () => void;
   onToggleBot?: (leadId: string, currentStatus: boolean) => void;
+  onClearChat?: (phone: string) => Promise<void>;
 }
 
-export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment, onToggleBot }: Props) {
+export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendNote, onSendMessage, onSendAttachment, onToggleStar, onStatusChange, onRetryMessage, onBookAppointment, onToggleBot, onClearChat }: Props) {
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [statusOpen, setStatusOpen] = useState(false);
@@ -234,18 +235,16 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
                   const confirmed = window.confirm(`Clear all chat messages with ${contact.leadName}? This cannot be undone.`);
                   if (!confirmed) return;
                   setClearingChat(true);
-                  const { error } = await supabase
-                    .from('whatsapp_messages')
-                    .delete()
-                    .eq('lead_phone', contact.leadPhone);
-                  setClearingChat(false);
-                  setMenuOpen(false);
-                  if (error) {
+                  try {
+                    if (onClearChat) {
+                      await onClearChat(contact.leadPhone);
+                      toast({ title: 'Chat cleared' });
+                    }
+                  } catch {
                     toast({ title: 'Failed to clear chat', variant: 'destructive' });
-                  } else {
-                    toast({ title: 'Chat cleared' });
-                    // Trigger re-fetch by selecting same contact
-                    window.location.reload();
+                  } finally {
+                    setClearingChat(false);
+                    setMenuOpen(false);
                   }
                 }}
               >

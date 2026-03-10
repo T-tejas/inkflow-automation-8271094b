@@ -10,7 +10,7 @@ const Chat = () => {
   const {
     contacts, messages, selectedPhone, loading, messagesLoading,
     selectContact, sendTemplate, sendMessage, sendAttachment,
-    addNote, toggleStar, updateLeadStatus, toggleBotEnabled, retryMessage,
+    addNote, toggleStar, updateLeadStatus, toggleBotEnabled, retryMessage, clearChat,
   } = useChat();
 
   const { getAvailableSlots, isDayAvailable, createAppointment } = useAppointments();
@@ -104,6 +104,7 @@ const Chat = () => {
           onRetryMessage={handleRetryMessage}
           onBookAppointment={() => setBookingOpen(true)}
           onToggleBot={handleToggleBot}
+          onClearChat={clearChat}
         />
       </div>
 

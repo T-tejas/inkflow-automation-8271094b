@@ -294,6 +294,16 @@ export function useChat() {
     if (error) throw error;
   }, []);
 
+  const clearChat = useCallback(async (phone: string) => {
+    const { error } = await supabase
+      .from('whatsapp_messages')
+      .delete()
+      .eq('lead_phone', phone);
+    if (error) throw error;
+    setMessages([]);
+    await fetchContacts();
+  }, [fetchContacts]);
+
   return {
     contacts,
     messages,
@@ -310,5 +320,6 @@ export function useChat() {
     updateLeadStatus,
     toggleBotEnabled,
     retryMessage,
+    clearChat,
   };
 }
