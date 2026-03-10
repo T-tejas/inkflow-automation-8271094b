@@ -50,6 +50,12 @@ Skip questions if user already answered them.
 3. **NEVER repeat the consultation offer** if you already offered it. If user said yes, move to collecting details.
 4. **Track what you've already said.** Read the full conversation before replying.
 
+# IMPORTANT: INTERACTIVE BUTTONS CONTEXT
+The system automatically sends interactive buttons (Welcome menu, Style options, Size options, etc.) to the user.
+When a user clicks a button, you'll see the button text as their message.
+Respond naturally to button selections — do NOT re-send the same options the system already showed.
+If the system just sent buttons, keep your text reply SHORT and complementary, not redundant.
+
 # POSITIVE INTENT DETECTION (VERY IMPORTANT)
 If user says ANY of these (or similar):
 "Yes", "Yep", "Sure", "Ok", "Done", "Book appointment", "I want to get the tattoo", "Mujhe karwana hai", "Haan done", "Ho chalel", "Kab aa sakta hoon", "Book karna hai", "Karwana hai", "Haan bro", "Yes please", "Let's do it", "I am interested", "Pakka", "Confirm karo", "Schedule appointment"
@@ -96,6 +102,8 @@ Email: f19tattoo@gmail.com
 DO: Be friendly, Keep replies short, Ask one question at a time, Move forward when user shows interest.
 DO NOT: Reply in Hindi/Marathi, Ask multiple questions together, Repeat information already given, Loop on the same question, Ask phone/email before consultation is accepted, Sound robotic.`;
 
+// ─── WhatsApp API Helpers ─────────────────────────────────────────────
+
 async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promise<string | null> {
   try {
     const response = await fetch(
@@ -118,11 +126,7 @@ async function fetchMediaUrl(mediaId: string, accessToken: string): Promise<{ ur
     );
     if (!response.ok) return null;
     const data = await response.json();
-    return {
-      url: data.url || "",
-      mimeType: data.mime_type || "",
-      fileName: `media_${mediaId.slice(-8)}`,
-    };
+    return { url: data.url || "", mimeType: data.mime_type || "", fileName: `media_${mediaId.slice(-8)}` };
   } catch {
     return null;
   }
@@ -152,12 +156,14 @@ async function downloadAndStoreMedia(
   }
 }
 
-async function sendAutoReply(
-  phoneNumberId: string, accessToken: string, recipientPhone: string, replyText: string
+// ─── Message Senders ──────────────────────────────────────────────────
+
+async function sendTextMessage(
+  phoneNumberId: string, accessToken: string, recipientPhone: string, text: string
 ): Promise<string | null> {
   const payload = {
     messaging_product: "whatsapp", to: recipientPhone,
-    type: "text", text: { body: replyText },
+    type: "text", text: { body: text },
   };
   const response = await fetch(
     `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
@@ -172,11 +178,15 @@ async function sendAutoReply(
   return result?.messages?.[0]?.id || null;
 }
 
-/** Send interactive button message via WhatsApp */
 async function sendInteractiveButtons(
   phoneNumberId: string, accessToken: string, recipientPhone: string,
   bodyText: string, buttons: { id: string; title: string }[]
 ): Promise<string | null> {
+  // WhatsApp allows max 3 buttons, each title max 20 chars
+  const safeButtons = buttons.slice(0, 3).map(b => ({
+    type: "reply",
+    reply: { id: b.id, title: b.title.slice(0, 20) },
+  }));
   const payload = {
     messaging_product: "whatsapp",
     to: recipientPhone,
@@ -184,11 +194,36 @@ async function sendInteractiveButtons(
     interactive: {
       type: "button",
       body: { text: bodyText },
+      action: { buttons: safeButtons },
+    },
+  };
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+  let result: any = null;
+  try { result = await response.json(); } catch { /* ignore */ }
+  return result?.messages?.[0]?.id || null;
+}
+
+async function sendInteractiveList(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  bodyText: string, buttonLabel: string, sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]
+): Promise<string | null> {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: recipientPhone,
+    type: "interactive",
+    interactive: {
+      type: "list",
+      body: { text: bodyText },
       action: {
-        buttons: buttons.map(b => ({
-          type: "reply",
-          reply: { id: b.id, title: b.title },
-        })),
+        button: buttonLabel.slice(0, 20),
+        sections,
       },
     },
   };
@@ -205,7 +240,26 @@ async function sendInteractiveButtons(
   return result?.messages?.[0]?.id || null;
 }
 
-/** Detect strong positive intent for artist consultation */
+/** Log an outgoing message to the database */
+async function logOutgoingMessage(
+  supabase: any, phone: string, name: string, leadId: string | null,
+  templateName: string, body: string, metaMsgId: string | null
+) {
+  await supabase.from("whatsapp_messages").insert({
+    lead_phone: phone,
+    lead_name: name,
+    lead_id: leadId,
+    template_name: templateName,
+    template_type: "confirmation",
+    status: "sent",
+    meta_message_id: metaMsgId,
+    message_body: body,
+    message_type: "text",
+  });
+}
+
+// ─── Intent & Flow Detection ─────────────────────────────────────────
+
 function detectStrongIntent(text: string): boolean {
   const lower = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
   const intentPhrases = [
@@ -218,14 +272,12 @@ function detectStrongIntent(text: string): boolean {
     'confirm karo', 'book karo', 'appointment chahiye', 'slot chahiye',
     'schedule appointment', 'done', 'haan', 'sure',
   ];
-  // Also match simple affirmatives
   const exactMatches = ['yes', 'yep', 'yeah', 'ok', 'okay', 'sure', 'done', 'haan', 'ha', 'ho'];
   const trimmed = lower.trim();
   if (exactMatches.includes(trimmed)) return true;
   return intentPhrases.some(phrase => lower.includes(phrase));
 }
 
-/** Check if lead has shared enough details for consultation */
 function hasSharedEnoughDetails(notes: string): boolean {
   const lower = (notes || '').toLowerCase();
   let detailCount = 0;
@@ -236,35 +288,35 @@ function hasSharedEnoughDetails(notes: string): boolean {
   return detailCount >= 3;
 }
 
-/** Check if "Talk to Artist" button was already sent in conversation */
-async function wasArtistButtonAlreadySent(supabase: any, phone: string): Promise<boolean> {
+/** Check if a specific template was already sent */
+async function wasTemplateSent(supabase: any, phone: string, templateName: string): Promise<boolean> {
   const { data } = await supabase
     .from("whatsapp_messages")
     .select("id")
     .eq("lead_phone", phone)
-    .eq("template_name", "artist_consultation_button")
+    .eq("template_name", templateName)
     .limit(1);
   return data && data.length > 0;
 }
 
-/** Create artist consultation notification and update lead */
+/** Detect which interactive flow button was clicked */
+function getButtonPayloadId(message: any): string {
+  return message?.button?.payload || message?.interactive?.button_reply?.id || message?.interactive?.list_reply?.id || "";
+}
+
+// ─── CRM Actions ─────────────────────────────────────────────────────
+
 async function triggerArtistConsultation(
   supabase: any, leadId: string, leadName: string, leadPhone: string,
   notes: string, lead: any
 ) {
-  // Check if already in Artist Consultation to avoid duplicates
   if (lead?.status === 'Artist Consultation' || lead?.status === 'Booked' || lead?.status === 'Completed') return;
 
-  // Update lead status
   await supabase
     .from('leads')
     .update({ status: 'Artist Consultation', updated_at: new Date().toISOString() })
     .eq('id', leadId);
 
-  // Extract details from notes for notification
-  const tattooIdea = notes?.slice(0, 100) || null;
-
-  // Check for existing notification to prevent duplicates
   const { data: existingNotif } = await supabase
     .from('crm_notifications')
     .select('id')
@@ -278,7 +330,7 @@ async function triggerArtistConsultation(
       lead_name: leadName,
       lead_phone: leadPhone,
       notification_type: 'artist_consultation',
-      tattoo_idea: tattooIdea,
+      tattoo_idea: notes?.slice(0, 100) || null,
       placement: lead?.placement || null,
       size: lead?.size || null,
       budget: lead?.budget || null,
@@ -286,7 +338,6 @@ async function triggerArtistConsultation(
     });
   }
 
-  // Log interaction
   await supabase.from('lead_interactions').insert({
     lead_id: leadId,
     action_type: 'artist_consultation_triggered',
@@ -297,7 +348,27 @@ async function triggerArtistConsultation(
   console.log(`[webhook] 🔥 Artist Consultation triggered for ${leadName} (${leadPhone})`);
 }
 
-/** Call Lovable AI with conversation history for contextual replies */
+// ─── AI Reply ─────────────────────────────────────────────────────────
+
+async function getConversationHistory(supabase: any, phone: string, limit = 30): Promise<{ role: string; content: string }[]> {
+  const { data } = await supabase
+    .from("whatsapp_messages")
+    .select("template_type, message_body, message_type, template_name")
+    .eq("lead_phone", phone)
+    .not("message_body", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (!data) return [];
+
+  return data
+    .filter((m: any) => m.message_body && !m.template_name?.includes('button') && !m.template_name?.includes('welcome') && !m.template_name?.includes('flow_'))
+    .map((m: any) => ({
+      role: m.template_type === "incoming" ? "user" : "assistant",
+      content: m.message_body,
+    }));
+}
+
 async function getAIReply(
   conversationHistory: { role: string; content: string }[],
   currentMessage: string
@@ -345,25 +416,308 @@ async function getAIReply(
   }
 }
 
-/** Fetch recent conversation history for a phone number */
-async function getConversationHistory(supabase: any, phone: string, limit = 30): Promise<{ role: string; content: string }[]> {
-  const { data } = await supabase
-    .from("whatsapp_messages")
-    .select("template_type, message_body, message_type, template_name")
-    .eq("lead_phone", phone)
-    .not("message_body", "is", null)
-    .order("created_at", { ascending: true })
-    .limit(limit);
+// ─── Interactive Flow Handlers ────────────────────────────────────────
 
-  if (!data) return [];
+/** Send welcome menu with buttons - first contact or "hi/hello" */
+async function sendWelcomeMenu(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null
+) {
+  const bodyText = `Welcome to F19 Tattoo Studio 🔥\nHey ${leadName}! How can we help you today?`;
+  const msgId = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    [
+      { id: "menu_designs", title: "See Tattoo Designs" },
+      { id: "menu_price", title: "Get Tattoo Price" },
+      { id: "menu_artist", title: "Talk to Artist 🎨" },
+    ]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "welcome_menu", `${bodyText}\n[See Tattoo Designs] [Get Tattoo Price] [Talk to Artist 🎨]`, msgId);
 
-  return data
-    .filter((m: any) => m.message_body && !m.template_name?.includes('button'))
-    .map((m: any) => ({
-      role: m.template_type === "incoming" ? "user" : "assistant",
-      content: m.message_body,
-    }));
+  // Also send a second button row for Book Appointment (WhatsApp limits to 3 buttons per message)
+  const msgId2 = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone,
+    "Or would you like to book a session directly? 📅",
+    [{ id: "menu_book", title: "Book Appointment 📅" }]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "welcome_menu_2", "Or would you like to book a session directly? 📅\n[Book Appointment 📅]", msgId2);
+
+  console.log(`[webhook] Sent welcome menu to ${recipientPhone}`);
 }
+
+/** Send tattoo style list */
+async function sendStyleList(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null
+) {
+  const bodyText = "Check out our popular tattoo styles! 🎨 Tap below to explore:";
+  const msgId = await sendInteractiveList(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    "View Styles",
+    [{
+      title: "Tattoo Styles",
+      rows: [
+        { id: "style_minimal", title: "Minimal Tattoo", description: "Small, clean & elegant designs" },
+        { id: "style_name", title: "Name Tattoo", description: "Stylish lettering & calligraphy" },
+        { id: "style_sleeve", title: "Sleeve Tattoo", description: "Full arm tattoo concepts" },
+        { id: "style_portrait", title: "Portrait Tattoo", description: "Realistic face & figure art" },
+        { id: "style_geometric", title: "Geometric Tattoo", description: "Sharp lines & sacred geometry" },
+        { id: "style_traditional", title: "Traditional Tattoo", description: "Bold colors, classic motifs" },
+        { id: "style_custom", title: "Custom Design", description: "Unique art made just for you" },
+      ],
+    }]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_style_list", bodyText + "\n[Minimal] [Name] [Sleeve] [Portrait] [Geometric] [Traditional] [Custom]", msgId);
+  console.log(`[webhook] Sent style list to ${recipientPhone}`);
+}
+
+/** Send size selection buttons (price flow step 1) */
+async function sendSizeSelection(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null
+) {
+  const bodyText = "What size tattoo are you planning? 📐";
+  const msgId = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    [
+      { id: "size_small", title: "Small (1-3 in)" },
+      { id: "size_medium", title: "Medium (4-6 in)" },
+      { id: "size_large", title: "Large (7+ in)" },
+    ]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_size_select", bodyText + "\n[Small] [Medium] [Large]", msgId);
+  console.log(`[webhook] Sent size selection to ${recipientPhone}`);
+}
+
+/** Send style selection buttons (price flow step 2) */
+async function sendPriceStyleSelection(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null
+) {
+  const bodyText = "What style do you prefer? ✨";
+  const msgId = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    [
+      { id: "pstyle_name", title: "Name / Lettering" },
+      { id: "pstyle_minimal", title: "Minimal" },
+      { id: "pstyle_custom", title: "Portrait / Custom" },
+    ]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_price_style", bodyText + "\n[Name] [Minimal] [Portrait/Custom]", msgId);
+  console.log(`[webhook] Sent price style selection to ${recipientPhone}`);
+}
+
+/** Send price estimate with CTA buttons */
+async function sendPriceEstimate(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null,
+  size: string, style: string
+) {
+  const priceMap: Record<string, Record<string, string>> = {
+    small: { name: "₹2,000 – ₹4,000", minimal: "₹2,500 – ₹5,000", custom: "₹4,000 – ₹8,000" },
+    medium: { name: "₹4,000 – ₹8,000", minimal: "₹5,000 – ₹10,000", custom: "₹8,000 – ₹15,000" },
+    large: { name: "₹8,000 – ₹15,000", minimal: "₹10,000 – ₹20,000", custom: "₹15,000 – ₹35,000+" },
+  };
+  const estimate = priceMap[size]?.[style] || "₹3,000 – ₹25,000+";
+
+  const bodyText = `💰 Estimated Price Range: ${estimate}\n\nThis depends on complexity and detail. Our artist can give you the exact quote after seeing your design idea.\n\nWould you like to talk to an artist for the final quote?`;
+  const msgId = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    [
+      { id: "talk_to_artist", title: "Talk to Artist 🎨" },
+      { id: "menu_book", title: "Book Appointment 📅" },
+    ]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_price_estimate", bodyText + "\n[Talk to Artist 🎨] [Book Appointment 📅]", msgId);
+
+  // Update lead with size info
+  if (leadId) {
+    const sizeLabel = size === "small" ? "Small (1-3 in)" : size === "medium" ? "Medium (4-6 in)" : "Large (7+ in)";
+    await supabase.from("leads").update({ size: sizeLabel, tattoo_style: style, updated_at: new Date().toISOString() }).eq("id", leadId);
+  }
+
+  console.log(`[webhook] Sent price estimate to ${recipientPhone}: ${estimate}`);
+}
+
+/** Send artist contact confirmation with next step buttons */
+async function sendArtistContactFlow(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null
+) {
+  const bodyText = "Our artist will help you finalize the design and give you the exact price. 🎨✨\n\nWhat would you like to do next?";
+  const msgId = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    [
+      { id: "send_tattoo_idea", title: "Send Tattoo Idea 📷" },
+      { id: "menu_book", title: "Book Appointment 📅" },
+    ]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_artist_contact", bodyText + "\n[Send Tattoo Idea 📷] [Book Appointment 📅]", msgId);
+  console.log(`[webhook] Sent artist contact flow to ${recipientPhone}`);
+}
+
+/** Send booking slots */
+async function sendBookingSlots(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null
+) {
+  // Fetch next 3 available slots from appointments/availability
+  const today = new Date();
+  const slots: { label: string; id: string }[] = [];
+
+  for (let dayOffset = 0; dayOffset < 7 && slots.length < 3; dayOffset++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + dayOffset);
+    const dow = date.getDay(); // 0=Sun
+    if (dow === 0) continue; // Skip Sunday
+
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+    // Check studio availability
+    const { data: avail } = await supabase
+      .from("studio_availability")
+      .select("is_available")
+      .or(`day_of_week.eq.${dow},specific_date.eq.${dateStr}`)
+      .limit(1);
+
+    if (avail && avail.length > 0 && !avail[0].is_available) continue;
+
+    // Check existing appointments
+    const { data: existing } = await supabase
+      .from("appointments")
+      .select("time_slot")
+      .eq("appointment_date", dateStr)
+      .neq("status", "cancelled");
+
+    const bookedSlots = new Set((existing || []).map((a: any) => a.time_slot));
+    const availableTimes = ["11:00 AM", "2:00 PM", "5:00 PM"];
+    const freeSlot = availableTimes.find(t => !bookedSlots.has(t));
+
+    if (freeSlot) {
+      const dayName = dayOffset === 0 ? "Today" : dayOffset === 1 ? "Tomorrow" : date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+      slots.push({
+        label: `${dayName} ${freeSlot}`,
+        id: `book_${dateStr}_${freeSlot.replace(/[:\s]/g, '')}`,
+      });
+    }
+  }
+
+  if (slots.length === 0) {
+    const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone,
+      "All our slots are currently booked! 😅 Our team will reach out to find the best time for you. Hang tight! 🎨");
+    await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+      "flow_no_slots", "All our slots are currently booked! Our team will reach out.", msgId);
+    return;
+  }
+
+  const bodyText = "Great! Here are our available slots 📅\nPick one that works for you:";
+  const buttons = slots.slice(0, 3).map(s => ({ id: s.id, title: s.label }));
+  const msgId = await sendInteractiveButtons(phoneNumberId, accessToken, recipientPhone, bodyText, buttons);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_booking_slots", bodyText + "\n" + slots.map(s => `[${s.label}]`).join(" "), msgId);
+  console.log(`[webhook] Sent booking slots to ${recipientPhone}`);
+}
+
+/** Handle booking slot selection */
+async function handleBookingConfirm(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null, slotId: string
+) {
+  // Parse slot ID: book_2026-03-10_0200PM
+  const parts = slotId.replace("book_", "").split("_");
+  const date = parts[0];
+  const rawTime = parts[1];
+  // Convert back: 0200PM -> 2:00 PM
+  const hour = rawTime.slice(0, 2);
+  const min = rawTime.slice(2, 4);
+  const ampm = rawTime.slice(4);
+  const timeSlot = `${parseInt(hour)}:${min} ${ampm}`;
+
+  // Create appointment
+  const { error } = await supabase.from("appointments").insert({
+    lead_name: leadName,
+    lead_phone: `+${recipientPhone}`,
+    lead_id: leadId,
+    appointment_date: date,
+    time_slot: timeSlot,
+    status: "confirmed",
+  });
+
+  if (error) {
+    console.error("[webhook] Booking error:", error);
+    await sendTextMessage(phoneNumberId, accessToken, recipientPhone,
+      "Sorry, there was an issue booking that slot. Our team will contact you to confirm! 📞");
+    return;
+  }
+
+  // Update lead status
+  if (leadId) {
+    await supabase.from("leads").update({
+      status: "Booked",
+      preferred_date: date,
+      updated_at: new Date().toISOString(),
+    }).eq("id", leadId);
+
+    await supabase.from("lead_interactions").insert({
+      lead_id: leadId,
+      action_type: "status_change",
+      old_value: "Artist Consultation",
+      new_value: "Booked",
+      note: `Booked via WhatsApp: ${date} ${timeSlot}`,
+    });
+  }
+
+  const dayLabel = new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+  const confirmText = `✅ Your appointment is confirmed!\n\n📅 ${dayLabel}\n⏰ ${timeSlot}\n📍 F19 Tattoo Studio, Kothrud, Pune\n\nPlease arrive 15 minutes early. See you soon! 🎨🔥`;
+  const msgId = await sendTextMessage(phoneNumberId, accessToken, recipientPhone, confirmText);
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "booking_confirmed", confirmText, msgId);
+
+  console.log(`[webhook] ✅ Booking confirmed for ${recipientPhone}: ${date} ${timeSlot}`);
+}
+
+/** Handle style selection from the list */
+async function handleStyleSelection(
+  phoneNumberId: string, accessToken: string, recipientPhone: string,
+  supabase: any, leadName: string, leadId: string | null, styleId: string
+) {
+  const styleNames: Record<string, string> = {
+    style_minimal: "Minimal",
+    style_name: "Name/Lettering",
+    style_sleeve: "Sleeve",
+    style_portrait: "Portrait",
+    style_geometric: "Geometric",
+    style_traditional: "Traditional",
+    style_custom: "Custom",
+  };
+  const styleName = styleNames[styleId] || "Custom";
+
+  // Update lead
+  if (leadId) {
+    await supabase.from("leads").update({ tattoo_style: styleName, updated_at: new Date().toISOString() }).eq("id", leadId);
+  }
+
+  const bodyText = `Great choice! ${styleName} tattoos are 🔥\n\nWant to see pricing or talk to our artist directly?`;
+  const msgId = await sendInteractiveButtons(
+    phoneNumberId, accessToken, recipientPhone, bodyText,
+    [
+      { id: "menu_price", title: "Get Price 💰" },
+      { id: "talk_to_artist", title: "Talk to Artist 🎨" },
+      { id: "menu_book", title: "Book Appointment 📅" },
+    ]
+  );
+  await logOutgoingMessage(supabase, `+${recipientPhone}`, leadName, leadId,
+    "flow_style_selected", bodyText + `\n[Get Price] [Talk to Artist] [Book Appointment]`, msgId);
+}
+
+// ─── Main Webhook Handler ─────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -466,7 +820,7 @@ Deno.serve(async (req) => {
 
           // Handle incoming messages
           const messages = value?.messages || [];
-          const contacts = value?.contacts || [];
+          const contactsList = value?.contacts || [];
 
           for (const message of messages) {
             const senderPhone = message.from;
@@ -542,34 +896,37 @@ Deno.serve(async (req) => {
               }
             }
 
-            const buttonPayloadId = message?.button?.payload || message?.interactive?.button_reply?.id || "";
-            const contactInfo = contacts.find((c: any) => c.wa_id === senderPhone);
+            const buttonPayloadId = getButtonPayloadId(message);
+            const contactInfo = contactsList.find((c: any) => c.wa_id === senderPhone);
             const senderName = contactInfo?.profile?.name || `WhatsApp ${senderPhone}`;
 
-            console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [type: ${messageType}]`);
+            console.log(`[webhook] Incoming from ${senderName} (${senderPhone}): ${messageText} [type: ${messageType}] [button: ${buttonPayloadId}]`);
 
             // Upsert lead
             const { data: existingLeads } = await supabase
               .from("leads")
-              .select("id, notes, bot_enabled, status")
+              .select("id, notes, bot_enabled, status, placement, size, budget, source, tattoo_style")
               .eq("phone", `+${senderPhone}`)
               .limit(1);
 
             let leadId: string | null = null;
             let botEnabled = true;
             let leadStatus = "New Lead";
+            let isNewLead = false;
+            let lead: any = null;
 
             if (existingLeads && existingLeads.length > 0) {
-              leadId = existingLeads[0].id;
-              botEnabled = existingLeads[0].bot_enabled !== false;
-              leadStatus = existingLeads[0].status;
-              const lead = existingLeads[0];
+              lead = existingLeads[0];
+              leadId = lead.id;
+              botEnabled = lead.bot_enabled !== false;
+              leadStatus = lead.status;
               const updatedNotes = `${lead.notes ? lead.notes + "\n" : ""}[WA ${new Date().toLocaleDateString("en-IN")}] ${messageText}`.slice(0, 2000);
               await supabase
                 .from("leads")
                 .update({ notes: updatedNotes, updated_at: new Date().toISOString() })
                 .eq("id", lead.id);
             } else {
+              isNewLead = true;
               const { data: newLead, error } = await supabase
                 .from("leads")
                 .insert({
@@ -586,6 +943,7 @@ Deno.serve(async (req) => {
                 .single();
               if (!error && newLead) {
                 leadId = newLead.id;
+                lead = newLead;
                 console.log(`[webhook] Auto-created lead: ${newLead.id}`);
               }
             }
@@ -606,151 +964,179 @@ Deno.serve(async (req) => {
               file_name: fileName,
             });
 
-            // Handle "Talk to Human" button click
+            // Skip further processing if bot is disabled or no phone/token
+            if (!chatbotEnabled || !botEnabled || !phoneNumberId || !accessToken) {
+              if (chatbotEnabled && !botEnabled) {
+                console.log(`[webhook] Bot disabled for ${senderPhone}, skipping auto-reply`);
+                await supabase.from("whatsapp_messages").update({ is_escalated: true }).eq("meta_message_id", message.id);
+              }
+              continue;
+            }
+
+            // Skip reactions
+            if (messageType === "reaction") continue;
+
+            // ─── INTERACTIVE FLOW ROUTING ─────────────────────
+
+            // Handle "Talk to Human" button
             if (buttonPayloadId === "talk_to_human" || messageText.toLowerCase().includes("talk to human")) {
-              console.log(`[webhook] "Talk to Human" triggered for ${senderPhone}`);
               if (leadId) {
-                await supabase
-                  .from("leads")
-                  .update({ bot_enabled: false, status: "Contacted" })
-                  .eq("id", leadId);
+                await supabase.from("leads").update({ bot_enabled: false, status: "Contacted" }).eq("id", leadId);
               }
-              botEnabled = false;
-
-              if (phoneNumberId && accessToken) {
-                const confirmReply = "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨";
-                const confirmMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, confirmReply);
-                await supabase.from("whatsapp_messages").insert({
-                  lead_phone: `+${senderPhone}`,
-                  lead_name: senderName,
-                  lead_id: leadId,
-                  template_name: "human_handoff",
-                  template_type: "confirmation",
-                  status: "sent",
-                  meta_message_id: confirmMsgId,
-                  message_body: confirmReply,
-                  message_type: "text",
-                });
-              }
+              const confirmReply = "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨";
+              const confirmMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, confirmReply);
+              await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "human_handoff", confirmReply, confirmMsgId);
               continue;
             }
 
-            // Handle "Talk to Artist" button click
-            if (buttonPayloadId === "talk_to_artist") {
-              console.log(`[webhook] "Talk to Artist" clicked by ${senderPhone}`);
-              if (leadId) {
-                const { data: freshLead } = await supabase
-                  .from("leads")
-                  .select("status, notes, placement, size, budget, source")
-                  .eq("id", leadId)
-                  .single();
-
-                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, freshLead?.notes, freshLead);
+            // Handle "Talk to Artist" button or intent
+            if (buttonPayloadId === "talk_to_artist" || buttonPayloadId === "menu_artist") {
+              if (leadId && lead) {
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead.notes, lead);
               }
-
-              if (phoneNumberId && accessToken) {
-                const confirmReply = "Awesome! 🎨 Our artist will reach out to you very soon to discuss your tattoo idea and plan your session. We're excited to create something amazing for you! ✨";
-                const confirmMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, confirmReply);
-                await supabase.from("whatsapp_messages").insert({
-                  lead_phone: `+${senderPhone}`,
-                  lead_name: senderName,
-                  lead_id: leadId,
-                  template_name: "artist_consultation_confirm",
-                  template_type: "confirmation",
-                  status: "sent",
-                  meta_message_id: confirmMsgId,
-                  message_body: confirmReply,
-                  message_type: "text",
-                });
-              }
+              await sendArtistContactFlow(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
               continue;
             }
 
-            // ---- Artist Consultation Trigger ----
+            // Handle "See Tattoo Designs"
+            if (buttonPayloadId === "menu_designs") {
+              await sendStyleList(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              continue;
+            }
+
+            // Handle style selection from list
+            if (buttonPayloadId.startsWith("style_")) {
+              await handleStyleSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, buttonPayloadId);
+              continue;
+            }
+
+            // Handle "Get Tattoo Price"
+            if (buttonPayloadId === "menu_price") {
+              await sendSizeSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              continue;
+            }
+
+            // Handle size selection (price flow step 1)
+            if (buttonPayloadId.startsWith("size_")) {
+              // Store selected size for price flow step 2
+              const sizeKey = buttonPayloadId.replace("size_", "");
+              // Tag the lead with the selected size temporarily via notes
+              if (leadId) {
+                await supabase.from("leads").update({
+                  size: sizeKey === "small" ? "Small (1-3 in)" : sizeKey === "medium" ? "Medium (4-6 in)" : "Large (7+ in)",
+                  updated_at: new Date().toISOString(),
+                }).eq("id", leadId);
+              }
+              await sendPriceStyleSelection(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              continue;
+            }
+
+            // Handle price style selection (price flow step 2)
+            if (buttonPayloadId.startsWith("pstyle_")) {
+              const styleKey = buttonPayloadId.replace("pstyle_", "");
+              // Get the lead's selected size
+              let sizeKey = "medium";
+              if (leadId) {
+                const { data: freshLead } = await supabase.from("leads").select("size").eq("id", leadId).single();
+                if (freshLead?.size?.toLowerCase().includes("small")) sizeKey = "small";
+                else if (freshLead?.size?.toLowerCase().includes("large")) sizeKey = "large";
+              }
+              await sendPriceEstimate(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, sizeKey, styleKey);
+              continue;
+            }
+
+            // Handle "Book Appointment"
+            if (buttonPayloadId === "menu_book") {
+              await sendBookingSlots(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+              continue;
+            }
+
+            // Handle booking slot selection
+            if (buttonPayloadId.startsWith("book_")) {
+              await handleBookingConfirm(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId, buttonPayloadId);
+              continue;
+            }
+
+            // Handle "Send Tattoo Idea" - prompt them to share
+            if (buttonPayloadId === "send_tattoo_idea") {
+              const promptText = "Go ahead! 📷 Send me a photo or describe your tattoo idea, and our artist will review it.";
+              const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, promptText);
+              await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "flow_send_idea_prompt", promptText, msgId);
+              continue;
+            }
+
+            // ─── WELCOME MENU FOR FIRST-TIME / GREETING ──────
+
+            const lowerText = messageText.toLowerCase().trim();
+            const isGreeting = /^(hi|hello|hey|hola|namaste|namaskar|yo|sup|start|menu)$/i.test(lowerText);
+
+            if ((isNewLead || isGreeting) && !buttonPayloadId) {
+              // Send welcome menu only if not sent recently (last 24h)
+              const alreadySentWelcome = await wasTemplateSent(supabase, `+${senderPhone}`, "welcome_menu");
+              if (!alreadySentWelcome || isGreeting) {
+                await sendWelcomeMenu(phoneNumberId, accessToken, senderPhone, supabase, senderName, leadId);
+                continue;
+              }
+            }
+
+            // ─── INTENT DETECTION & AI REPLY ─────────────────
+
             let intentDetected = false;
             if (leadId && messageText) {
-              const { data: freshLead } = await supabase
-                .from("leads")
-                .select("status, notes, placement, size, budget, source")
-                .eq("id", leadId)
-                .single();
-
               const strongIntent = detectStrongIntent(messageText);
-              const enoughDetails = hasSharedEnoughDetails(freshLead?.notes || "");
+              const enoughDetails = hasSharedEnoughDetails(lead?.notes || "");
               intentDetected = strongIntent || enoughDetails;
 
-              if (intentDetected && freshLead && freshLead.status !== "Artist Consultation" && freshLead.status !== "Booked" && freshLead.status !== "Completed") {
-                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, freshLead.notes, freshLead);
+              if (intentDetected && lead && lead.status !== "Artist Consultation" && lead.status !== "Booked" && lead.status !== "Completed") {
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead.notes, lead);
               }
             }
 
-            // AI-powered auto-reply
-            if (chatbotEnabled && botEnabled && messageText && phoneNumberId && accessToken) {
-              // Skip AI for reactions
-              if (messageType === "reaction") continue;
+            // For media messages (tattoo idea photos), acknowledge and trigger consultation
+            if (messageType === "image" || messageType === "document") {
+              const ackText = "Thanks for sharing! 📷 Our artist will review your design idea and get back to you with details and pricing. 🎨";
+              const ackMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, ackText);
+              await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "media_ack", ackText, ackMsgId);
 
-              // For media messages, acknowledge with context
-              let userContent = messageText;
-              if (messageType !== "text") {
-                userContent = `[Client sent a ${messageType}: ${messageText}]`;
+              if (leadId && lead && lead.status !== "Artist Consultation" && lead.status !== "Booked" && lead.status !== "Completed") {
+                await triggerArtistConsultation(supabase, leadId, senderName, `+${senderPhone}`, lead.notes, lead);
               }
+              continue;
+            }
 
-              // Fetch conversation history for context (includes the just-inserted message)
-              const history = await getConversationHistory(supabase, `+${senderPhone}`);
+            // AI reply for free-text messages
+            let userContent = messageText;
+            if (messageType !== "text") {
+              userContent = `[Client sent a ${messageType}: ${messageText}]`;
+            }
 
-              // Remove the last entry since it's the current message we're about to pass separately
-              const historyWithoutCurrent = history.slice(0, -1);
+            const history = await getConversationHistory(supabase, `+${senderPhone}`);
+            const historyWithoutCurrent = history.slice(0, -1);
+            const aiReply = await getAIReply(historyWithoutCurrent, userContent);
+            console.log(`[webhook] AI reply to ${senderPhone}: ${aiReply.slice(0, 100)}`);
 
-              // Get AI reply
-              const aiReply = await getAIReply(historyWithoutCurrent, userContent);
-              console.log(`[webhook] AI reply to ${senderPhone}: ${aiReply.slice(0, 100)}`);
+            const replyMsgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, aiReply);
+            await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId, "chatbot_auto_reply", aiReply, replyMsgId);
 
-              // Send AI text reply
-              const replyMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, aiReply);
-              await supabase.from("whatsapp_messages").insert({
-                lead_phone: `+${senderPhone}`,
-                lead_name: senderName,
-                lead_id: leadId,
-                template_name: "chatbot_auto_reply",
-                template_type: "confirmation",
-                status: "sent",
-                meta_message_id: replyMsgId,
-                message_body: aiReply,
-                message_type: "text",
-              });
-
-              // Send "Talk to Artist" button when intent is detected and not already sent
-              if (intentDetected && leadStatus !== "Artist Consultation" && leadStatus !== "Booked" && leadStatus !== "Completed") {
-                const alreadySent = await wasArtistButtonAlreadySent(supabase, `+${senderPhone}`);
-                if (!alreadySent) {
-                  const buttonMsgId = await sendInteractiveButtons(
-                    phoneNumberId, accessToken, senderPhone,
-                    "Would you like one of our artists to contact you? Tap below! 👇",
-                    [
-                      { id: "talk_to_artist", title: "Talk to Artist 🎨" },
-                      { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
-                    ]
-                  );
-                  await supabase.from("whatsapp_messages").insert({
-                    lead_phone: `+${senderPhone}`,
-                    lead_name: senderName,
-                    lead_id: leadId,
-                    template_name: "artist_consultation_button",
-                    template_type: "confirmation",
-                    status: "sent",
-                    meta_message_id: buttonMsgId,
-                    message_body: "Would you like one of our artists to contact you? Tap below! 👇\n[Talk to Artist 🎨] [Talk to Human 👨‍💻]",
-                    message_type: "text",
-                  });
-                  console.log(`[webhook] 🎨 Sent "Talk to Artist" button to ${senderPhone}`);
-                }
+            // Send "Talk to Artist" button when intent is detected and not already sent
+            if (intentDetected && leadStatus !== "Artist Consultation" && leadStatus !== "Booked" && leadStatus !== "Completed") {
+              const alreadySent = await wasTemplateSent(supabase, `+${senderPhone}`, "artist_consultation_button");
+              if (!alreadySent) {
+                const buttonMsgId = await sendInteractiveButtons(
+                  phoneNumberId, accessToken, senderPhone,
+                  "Would you like one of our artists to contact you? Tap below! 👇",
+                  [
+                    { id: "talk_to_artist", title: "Talk to Artist 🎨" },
+                    { id: "menu_book", title: "Book Appointment 📅" },
+                    { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
+                  ]
+                );
+                await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, leadId,
+                  "artist_consultation_button",
+                  "Would you like one of our artists to contact you?\n[Talk to Artist 🎨] [Book Appointment 📅] [Talk to Human 👨‍💻]",
+                  buttonMsgId);
+                console.log(`[webhook] 🎨 Sent "Talk to Artist" button to ${senderPhone}`);
               }
-            } else if (chatbotEnabled && !botEnabled) {
-              console.log(`[webhook] Bot disabled for ${senderPhone}, skipping auto-reply`);
-              await supabase
-                .from("whatsapp_messages")
-                .update({ is_escalated: true })
-                .eq("meta_message_id", message.id);
             }
           }
         }
