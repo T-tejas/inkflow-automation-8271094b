@@ -109,45 +109,54 @@ export type Database = {
       crm_notifications: {
         Row: {
           budget: string | null
+          chat_summary: string | null
           created_at: string
           id: string
           is_read: boolean
           lead_id: string | null
           lead_name: string
           lead_phone: string
+          lead_score: string | null
           lead_source: string | null
           notification_type: string
           placement: string | null
           size: string | null
           tattoo_idea: string | null
+          timeline: string | null
         }
         Insert: {
           budget?: string | null
+          chat_summary?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
           lead_id?: string | null
           lead_name: string
           lead_phone: string
+          lead_score?: string | null
           lead_source?: string | null
           notification_type?: string
           placement?: string | null
           size?: string | null
           tattoo_idea?: string | null
+          timeline?: string | null
         }
         Update: {
           budget?: string | null
+          chat_summary?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
           lead_id?: string | null
           lead_name?: string
           lead_phone?: string
+          lead_score?: string | null
           lead_source?: string | null
           notification_type?: string
           placement?: string | null
           size?: string | null
           tattoo_idea?: string | null
+          timeline?: string | null
         }
         Relationships: [
           {
@@ -320,6 +329,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          lead_score: string | null
           notes: string | null
           phone: string
           placement: string | null
@@ -329,6 +339,7 @@ export type Database = {
           status: string
           tags: string[]
           tattoo_style: string | null
+          timeline: string | null
           updated_at: string
           whatsapp_opt_in: boolean
         }
@@ -338,6 +349,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id?: string
+          lead_score?: string | null
           notes?: string | null
           phone: string
           placement?: string | null
@@ -347,6 +359,7 @@ export type Database = {
           status?: string
           tags?: string[]
           tattoo_style?: string | null
+          timeline?: string | null
           updated_at?: string
           whatsapp_opt_in?: boolean
         }
@@ -356,6 +369,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          lead_score?: string | null
           notes?: string | null
           phone?: string
           placement?: string | null
@@ -365,6 +379,7 @@ export type Database = {
           status?: string
           tags?: string[]
           tattoo_style?: string | null
+          timeline?: string | null
           updated_at?: string
           whatsapp_opt_in?: boolean
         }
