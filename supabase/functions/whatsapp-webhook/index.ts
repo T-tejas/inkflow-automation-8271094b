@@ -154,6 +154,73 @@ async function sendAutoReply(
   return result?.messages?.[0]?.id || null;
 }
 
+/** Detect strong positive intent for artist consultation */
+function detectStrongIntent(text: string): boolean {
+  const lower = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+  const intentPhrases = [
+    'i want to book', 'i want to get this tattoo', 'when can i come',
+    'book appointment', 'mujhe karwana hai', 'haan done', 'ho chalel',
+    'artist se baat karni hai', 'price kitna hai', 'kab aa sakta hoon',
+    'book karna hai', 'karwana hai', 'tattoo karwana', 'haan bro',
+    'yes i want', 'yes please', 'lets do it', 'i am interested',
+    'i want tattoo', 'main karwaunga', 'main karwaungi', 'pakka',
+    'confirm karo', 'book karo', 'appointment chahiye', 'slot chahiye',
+  ];
+  return intentPhrases.some(phrase => lower.includes(phrase));
+}
+
+/** Check if lead has shared enough details for consultation */
+function hasSharedEnoughDetails(notes: string): boolean {
+  const lower = (notes || '').toLowerCase();
+  let detailCount = 0;
+  if (/design|tattoo idea|drawing|image|photo|reference/i.test(lower)) detailCount++;
+  if (/small|medium|large|sleeve|inch/i.test(lower)) detailCount++;
+  if (/arm|leg|back|chest|wrist|shoulder|neck|ankle|forearm|hand/i.test(lower)) detailCount++;
+  if (/week|month|tomorrow|today|asap|jaldi|soon/i.test(lower)) detailCount++;
+  return detailCount >= 3;
+}
+
+/** Create artist consultation notification and update lead */
+async function triggerArtistConsultation(
+  supabase: any, leadId: string, leadName: string, leadPhone: string,
+  notes: string, lead: any
+) {
+  // Check if already in Artist Consultation to avoid duplicates
+  if (lead?.status === 'Artist Consultation') return;
+
+  // Update lead status
+  await supabase
+    .from('leads')
+    .update({ status: 'Artist Consultation', updated_at: new Date().toISOString() })
+    .eq('id', leadId);
+
+  // Extract details from notes for notification
+  const tattooIdea = notes?.slice(0, 100) || null;
+
+  // Create CRM notification
+  await supabase.from('crm_notifications').insert({
+    lead_id: leadId,
+    lead_name: leadName,
+    lead_phone: leadPhone,
+    notification_type: 'artist_consultation',
+    tattoo_idea: tattooIdea,
+    placement: lead?.placement || null,
+    size: lead?.size || null,
+    budget: lead?.budget || null,
+    lead_source: lead?.source || 'WhatsApp',
+  });
+
+  // Log interaction
+  await supabase.from('lead_interactions').insert({
+    lead_id: leadId,
+    action_type: 'artist_consultation_triggered',
+    new_value: 'Artist Consultation',
+    note: 'Auto-triggered by positive intent detection',
+  });
+
+  console.log(`[webhook] 🔥 Artist Consultation triggered for ${leadName} (${leadPhone})`);
+}
+
 /** Call Lovable AI with conversation history for contextual replies */
 async function getAIReply(
   conversationHistory: { role: string; content: string }[],
