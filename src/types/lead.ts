@@ -70,6 +70,7 @@ export const KANBAN_STATUSES: LeadStatus[] = [
   'New Lead',
   'Contacted',
   'Interested',
+  'Artist Consultation',
   'Negotiating',
   'Booked',
   'Completed',
