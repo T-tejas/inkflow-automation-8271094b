@@ -46,6 +46,10 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [clearingChat, setClearingChat] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
