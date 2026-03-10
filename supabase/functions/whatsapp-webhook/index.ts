@@ -6,113 +6,77 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface ChatbotRule {
-  id: string;
-  keywords: string[];
-  reply_text: string;
-  is_active: boolean;
-  priority: number;
-}
+const F19_SYSTEM_PROMPT = `# ROLE
+You are **F19 Assistant** — the friendly AI concierge for **F19 Tattoo Studio, Pune**.
 
-function findMatchingRule(messageText: string, rules: ChatbotRule[]): ChatbotRule | null {
-  const lower = messageText.toLowerCase().trim();
-  const sorted = [...rules].sort((a, b) => b.priority - a.priority);
-  for (const rule of sorted) {
-    if (!rule.is_active) continue;
-    for (const keyword of rule.keywords) {
-      if (lower.includes(keyword.toLowerCase())) {
-        return rule;
-      }
-    }
-  }
-  return null;
-}
+Your job is to:
+• Talk to potential tattoo clients in a friendly way
+• Understand their tattoo idea
+• Guide them through simple questions
+• Connect interested clients with our tattoo artists
 
-/** Detect positive intent for booking flow */
-function detectPositiveIntent(text: string): boolean {
-  const patterns = [
-    /\b(haan|haa|ha)\b/i,
-    /\b(ho chalel|chalel|chalo)\b/i,
-    /\b(i want|want tattoo|want a tattoo|need tattoo)\b/i,
-    /\b(kitna charge|kitna hoga|price kya|rate kya|cost)\b/i,
-    /\b(karwana hai|karna hai|karana hai|krna hai)\b/i,
-    /\b(interested|yes please|sure|ok let's|lets do|book)\b/i,
-    /\b(mujhe chahiye|chahiye|lagwana|lagana)\b/i,
-    /\b(tattoo banwana|tattoo krwana)\b/i,
-  ];
-  return patterns.some(p => p.test(text));
-}
+Your goal is to **make clients comfortable and convert them into consultations.**
 
-/** Send interactive button message via Meta API */
-async function sendInteractiveButtons(
-  phoneNumberId: string,
-  accessToken: string,
-  recipientPhone: string,
-  bodyText: string,
-  buttons: { id: string; title: string }[]
-): Promise<string | null> {
-  const payload = {
-    messaging_product: "whatsapp",
-    to: recipientPhone,
-    type: "interactive",
-    interactive: {
-      type: "button",
-      body: { text: bodyText },
-      action: {
-        buttons: buttons.map((b) => ({
-          type: "reply",
-          reply: { id: b.id, title: b.title },
-        })),
-      },
-    },
-  };
-  const response = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-  let result: any = null;
-  try { result = await response.json(); } catch { /* ignore */ }
-  if (!response.ok) {
-    console.error(`[webhook] Interactive send failed:`, JSON.stringify(result));
-  }
-  return result?.messages?.[0]?.id || null;
-}
+# LANGUAGE RULE (VERY IMPORTANT)
+You must **UNDERSTAND**: Hindi, Marathi, Hinglish, English.
+Clients may write in Devanagari, Roman Hindi, or Marathi.
+BUT you must **ALWAYS reply in English only.** Never reply in Hindi or Marathi.
 
-/** Send a text auto-reply via the Meta API */
-async function sendAutoReply(
-  phoneNumberId: string,
-  accessToken: string,
-  recipientPhone: string,
-  replyText: string
-): Promise<string | null> {
-  const payload = {
-    messaging_product: "whatsapp",
-    to: recipientPhone,
-    type: "text",
-    text: { body: replyText },
-  };
-  const response = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-  let result: any = null;
-  try { result = await response.json(); } catch { /* ignore */ }
-  return result?.messages?.[0]?.id || null;
-}
+# PERSONALITY
+You are: Friendly, Helpful, Professional, Short and clear, Easy to talk with.
+Avoid robotic responses.
+Messages should feel like **a real studio assistant chatting on WhatsApp.**
+Use emojis occasionally (🎨🔥✨) but not too many.
+Keep replies **under 3 sentences whenever possible.**
+
+# CONVERSATION FLOW
+Follow this natural order, asking one question at a time. Never ask multiple questions together.
+
+## STEP 1 — GREETING
+Start with a warm welcome.
+Example: "Hey! 👋 Thanks for contacting F19 Tattoo Studio. What tattoo idea are you thinking about?"
+
+## STEP 2 — UNDERSTAND THE IDEA (one by one)
+1️⃣ Design idea: "What design are you thinking about?"
+2️⃣ Style: "Do you have a style in mind — realistic, minimal, geometric, or something else?"
+3️⃣ Size: "Are you thinking small, medium, or a larger piece?"
+4️⃣ Placement: "Where would you like the tattoo?"
+5️⃣ Timeline: "When are you planning to get it done?"
+Skip questions if user already answered them.
+
+# POSITIVE INTENT DETECTION
+If user says things like "Mujhe karwana hai", "Book karna hai", "Kab aa sakta hoon", "Price kitna hai", "Yes", "Ho chalel", "Haan bro" — they are interested.
+
+# CONSULTATION OFFER
+When interest is clear, say:
+"That sounds like an awesome tattoo idea! 🔥 Would you like one of our artists to contact you to discuss the design and plan your session?"
+
+# IF CLIENT SAYS YES — collect details one by one:
+1️⃣ "Perfect! Could I get your full name?"
+2️⃣ "Thanks [Name]! What phone number should our artist contact you on?"
+3️⃣ "Great! Lastly, your email address for confirmation."
+Then confirm: "Awesome [Name]! ✅ Our artist will contact you soon on [phone] to discuss your tattoo idea. We're excited to create something amazing for you! 🎨"
+
+# IF CLIENT IS NOT READY
+Reply politely: "No worries at all! 😊 You can check our tattoo portfolio here: https://f19tattoo.in/portfolio/ Whenever you're ready, feel free to message us."
+
+# PRICING (ONLY IF ASKED)
+• ₹800 per square inch
+• ₹4,000 per hour
+• ₹25,000 full day session
+Reply: "Pricing depends on size and detail. We usually charge ₹800 per sq inch or ₹4,000 per hour. Our artist can give you an exact quote after seeing your idea. Would you like them to contact you?"
+
+# STUDIO DETAILS
+Studio Name: F19 Tattoo Studio
+Address: Sangam Chowk, Shop No 5, Vijay Complex, Shastri Nagar, Kothrud, Pune, Maharashtra 411038
+Website: https://f19tattoo.in/
+Portfolio: https://f19tattoo.in/portfolio/
+Phone: +91 7517050600
+Email: f19tattoo@gmail.com
+
+# RULES
+DO: Be friendly, Keep replies short, Ask one question at a time, Offer artist consultation when user shows interest.
+DO NOT: Reply in Hindi/Marathi, Ask multiple questions together, Ask phone/email before consultation offer, Sound robotic.`;
 
 async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promise<string | null> {
   try {
@@ -128,7 +92,6 @@ async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promis
   }
 }
 
-/** Fetch media URL from WhatsApp Graph API using media ID */
 async function fetchMediaUrl(mediaId: string, accessToken: string): Promise<{ url: string; mimeType: string; fileName: string } | null> {
   try {
     const response = await fetch(
@@ -140,46 +103,123 @@ async function fetchMediaUrl(mediaId: string, accessToken: string): Promise<{ ur
     return {
       url: data.url || "",
       mimeType: data.mime_type || "",
-      fileName: data.sha256 ? `media_${mediaId.slice(-8)}` : `media_${mediaId.slice(-8)}`,
+      fileName: `media_${mediaId.slice(-8)}`,
     };
   } catch {
     return null;
   }
 }
 
-/** Download media from WhatsApp and upload to Supabase storage */
 async function downloadAndStoreMedia(
-  mediaUrl: string,
-  mimeType: string,
-  accessToken: string,
-  supabase: any
+  mediaUrl: string, mimeType: string, accessToken: string, supabase: any
 ): Promise<{ publicUrl: string; fileName: string } | null> {
   try {
     const mediaResponse = await fetch(mediaUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!mediaResponse.ok) return null;
-
     const blob = await mediaResponse.blob();
     const ext = mimeType.split("/")[1]?.split(";")[0] || "bin";
     const fileName = `wa_media_${Date.now()}.${ext}`;
     const path = `chat/${fileName}`;
-
     const { error } = await supabase.storage.from("f19").upload(path, blob, {
-      contentType: mimeType,
-      upsert: false,
+      contentType: mimeType, upsert: false,
     });
-    if (error) {
-      console.error("[webhook] Storage upload error:", error);
-      return null;
-    }
-
+    if (error) { console.error("[webhook] Storage upload error:", error); return null; }
     const { data: urlData } = supabase.storage.from("f19").getPublicUrl(path);
     return { publicUrl: urlData.publicUrl, fileName };
   } catch (err) {
     console.error("[webhook] Media download/store error:", err);
     return null;
   }
+}
+
+async function sendAutoReply(
+  phoneNumberId: string, accessToken: string, recipientPhone: string, replyText: string
+): Promise<string | null> {
+  const payload = {
+    messaging_product: "whatsapp", to: recipientPhone,
+    type: "text", text: { body: replyText },
+  };
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+  let result: any = null;
+  try { result = await response.json(); } catch { /* ignore */ }
+  return result?.messages?.[0]?.id || null;
+}
+
+/** Call Lovable AI with conversation history for contextual replies */
+async function getAIReply(
+  conversationHistory: { role: string; content: string }[],
+  currentMessage: string
+): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    console.error("[webhook] LOVABLE_API_KEY not configured");
+    return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
+  }
+
+  try {
+    const messages = [
+      { role: "system", content: F19_SYSTEM_PROMPT },
+      ...conversationHistory,
+      { role: "user", content: currentMessage },
+    ];
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages,
+        max_tokens: 300,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[webhook] AI gateway error:", response.status, await response.text());
+      return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
+    }
+
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content;
+    if (!reply) {
+      return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
+    }
+    return reply.trim();
+  } catch (err) {
+    console.error("[webhook] AI call error:", err);
+    return "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! 🎨";
+  }
+}
+
+/** Fetch recent conversation history for a phone number */
+async function getConversationHistory(supabase: any, phone: string, limit = 20): Promise<{ role: string; content: string }[]> {
+  const { data } = await supabase
+    .from("whatsapp_messages")
+    .select("template_type, message_body, message_type")
+    .eq("lead_phone", phone)
+    .not("message_body", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (!data) return [];
+
+  return data
+    .filter((m: any) => m.message_body && m.message_type === "text")
+    .map((m: any) => ({
+      role: m.template_type === "incoming" ? "user" : "assistant",
+      content: m.message_body,
+    }));
 }
 
 Deno.serve(async (req) => {
@@ -223,12 +263,6 @@ Deno.serve(async (req) => {
       console.log("[webhook] Payload:", JSON.stringify(body).slice(0, 2000));
 
       const entries = body?.entry || [];
-
-      const { data: rulesData } = await supabase
-        .from("chatbot_rules")
-        .select("*")
-        .eq("is_active", true);
-      const chatbotRules: ChatbotRule[] = rulesData || [];
 
       const { data: settingsData } = await supabase
         .from("whatsapp_settings")
@@ -411,6 +445,22 @@ Deno.serve(async (req) => {
               }
             }
 
+            // Log incoming message FIRST (so AI has context)
+            await supabase.from("whatsapp_messages").insert({
+              lead_phone: `+${senderPhone}`,
+              lead_name: senderName,
+              lead_id: leadId,
+              template_name: "incoming",
+              template_type: "incoming",
+              status: "received",
+              meta_message_id: message.id,
+              message_body: messageText || null,
+              is_escalated: false,
+              message_type: messageType,
+              media_url: mediaUrl,
+              file_name: fileName,
+            });
+
             // Handle "Talk to Human" button click
             if (buttonPayloadId === "talk_to_human" || messageText.toLowerCase().includes("talk to human")) {
               console.log(`[webhook] "Talk to Human" triggered for ${senderPhone}`);
@@ -423,10 +473,8 @@ Deno.serve(async (req) => {
               botEnabled = false;
 
               if (phoneNumberId && accessToken) {
-                const confirmMsgId = await sendAutoReply(
-                  phoneNumberId, accessToken, senderPhone,
-                  "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨"
-                );
+                const confirmReply = "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨";
+                const confirmMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, confirmReply);
                 await supabase.from("whatsapp_messages").insert({
                   lead_phone: `+${senderPhone}`,
                   lead_name: senderName,
@@ -435,89 +483,32 @@ Deno.serve(async (req) => {
                   template_type: "confirmation",
                   status: "sent",
                   meta_message_id: confirmMsgId,
-                  message_body: "You're now connected to our team! 👨‍💻 One of our artists will get back to you shortly. Hang tight! 🎨",
+                  message_body: confirmReply,
                   message_type: "text",
                 });
               }
+              continue; // Skip AI reply
             }
 
-            // Chatbot auto-reply
-            let isEscalated = false;
+            // AI-powered auto-reply
+            if (chatbotEnabled && botEnabled && messageText && phoneNumberId && accessToken) {
+              // Skip AI for reactions
+              if (messageType === "reaction") continue;
 
-            if (chatbotEnabled && botEnabled && messageText && messageType === "text" && buttonPayloadId !== "talk_to_human") {
-              // Check for positive intent first
-              const hasPositiveIntent = detectPositiveIntent(messageText);
-              const matchedRule = findMatchingRule(messageText, chatbotRules);
-
-              if (hasPositiveIntent && phoneNumberId && accessToken) {
-                // Warm booking nudge
-                const replyText = "That sounds like a great tattoo idea! 🔥 Would you like one of our artists to reach out and help plan it with you?";
-                const replyMsgId = await sendInteractiveButtons(
-                  phoneNumberId, accessToken, senderPhone,
-                  replyText,
-                  [
-                    { id: "talk_to_human", title: "Yes, connect me! 🙌" },
-                    { id: "book_appointment", title: "Book Appointment 📅" },
-                    { id: "tattoo_price", title: "Check Prices 💰" },
-                  ]
-                );
-                await supabase.from("whatsapp_messages").insert({
-                  lead_phone: `+${senderPhone}`,
-                  lead_name: senderName,
-                  lead_id: leadId,
-                  template_name: "chatbot_auto_reply",
-                  template_type: "confirmation",
-                  status: "sent",
-                  meta_message_id: replyMsgId,
-                  message_body: replyText,
-                  message_type: "text",
-                });
-              } else if (matchedRule && phoneNumberId && accessToken) {
-                console.log(`[webhook] Chatbot matched rule: ${matchedRule.keywords.join(",")}`);
-                const replyMsgId = await sendInteractiveButtons(
-                  phoneNumberId, accessToken, senderPhone,
-                  matchedRule.reply_text,
-                  [
-                    { id: "talk_to_human", title: "Talk to Human 👨‍💻" },
-                    { id: "book_appointment", title: "Book Appointment 📅" },
-                    { id: "tattoo_price", title: "Tattoo Price 💰" },
-                  ]
-                );
-                await supabase.from("whatsapp_messages").insert({
-                  lead_phone: `+${senderPhone}`,
-                  lead_name: senderName,
-                  lead_id: leadId,
-                  template_name: "chatbot_auto_reply",
-                  template_type: "confirmation",
-                  status: "sent",
-                  meta_message_id: replyMsgId,
-                  message_body: matchedRule.reply_text,
-                  message_type: "text",
-                });
-              } else if (!matchedRule && !hasPositiveIntent) {
-                // No rule matched — send friendly default + escalate
-                isEscalated = true;
-                if (phoneNumberId && accessToken && chatbotRules.length > 0) {
-                  const defaultReply = "Hey! 👋 Thanks for reaching out to F19 Tattoo Studio. Our team will get back to you soon! In the meantime, feel free to ask about pricing, booking, or share your tattoo idea 🎨";
-                  const defMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, defaultReply);
-                  await supabase.from("whatsapp_messages").insert({
-                    lead_phone: `+${senderPhone}`,
-                    lead_name: senderName,
-                    lead_id: leadId,
-                    template_name: "chatbot_auto_reply",
-                    template_type: "confirmation",
-                    status: "sent",
-                    meta_message_id: defMsgId,
-                    message_body: defaultReply,
-                    message_type: "text",
-                  });
-                }
-                console.log(`[webhook] No chatbot rule matched, escalating to staff`);
+              // For media messages, acknowledge with context
+              let userContent = messageText;
+              if (messageType !== "text") {
+                userContent = `[Client sent a ${messageType}: ${messageText}]`;
               }
-            } else if (chatbotEnabled && botEnabled && messageType !== "text" && phoneNumberId && accessToken) {
-              // Media message — acknowledge and escalate
-              const mediaAck = "Got it! 👍 Our team will check this out and get back to you soon.";
-              const ackMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, mediaAck);
+
+              // Fetch conversation history for context
+              const history = await getConversationHistory(supabase, `+${senderPhone}`);
+
+              // Get AI reply
+              const aiReply = await getAIReply(history.slice(0, -1), userContent);
+              console.log(`[webhook] AI reply to ${senderPhone}: ${aiReply.slice(0, 100)}`);
+
+              const replyMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, aiReply);
               await supabase.from("whatsapp_messages").insert({
                 lead_phone: `+${senderPhone}`,
                 lead_name: senderName,
@@ -525,64 +516,18 @@ Deno.serve(async (req) => {
                 template_name: "chatbot_auto_reply",
                 template_type: "confirmation",
                 status: "sent",
-                meta_message_id: ackMsgId,
-                message_body: mediaAck,
+                meta_message_id: replyMsgId,
+                message_body: aiReply,
                 message_type: "text",
               });
-              isEscalated = true;
             } else if (chatbotEnabled && !botEnabled) {
-              console.log(`[webhook] Bot disabled for contact ${senderPhone}, skipping auto-reply`);
-              isEscalated = true;
+              console.log(`[webhook] Bot disabled for ${senderPhone}, skipping auto-reply`);
+              // Mark as escalated
+              await supabase
+                .from("whatsapp_messages")
+                .update({ is_escalated: true })
+                .eq("meta_message_id", message.id);
             }
-
-            // Handle "Book Appointment" and "Tattoo Price" button clicks
-            if (buttonPayloadId === "book_appointment" && phoneNumberId && accessToken) {
-              const bookReply = "Awesome! 📅 To book your session, just share:\n\n1️⃣ Your preferred date\n2️⃣ Tattoo style (Traditional, Realism, Geometric, etc.)\n3️⃣ Size & placement\n\nWe'll lock in your slot! 💪";
-              const bookMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, bookReply);
-              await supabase.from("whatsapp_messages").insert({
-                lead_phone: `+${senderPhone}`,
-                lead_name: senderName,
-                lead_id: leadId,
-                template_name: "chatbot_auto_reply",
-                template_type: "confirmation",
-                status: "sent",
-                meta_message_id: bookMsgId,
-                message_body: bookReply,
-                message_type: "text",
-              });
-            }
-
-            if (buttonPayloadId === "tattoo_price" && phoneNumberId && accessToken) {
-              const priceReply = "Our pricing depends on the design! 🎨\n\n• Small tattoos start from ₹2,000\n• Medium pieces from ₹5,000\n• Custom large work — let's chat!\n\nShare your design idea or reference pic and we'll give you an exact quote 💰";
-              const priceMsgId = await sendAutoReply(phoneNumberId, accessToken, senderPhone, priceReply);
-              await supabase.from("whatsapp_messages").insert({
-                lead_phone: `+${senderPhone}`,
-                lead_name: senderName,
-                lead_id: leadId,
-                template_name: "chatbot_auto_reply",
-                template_type: "confirmation",
-                status: "sent",
-                meta_message_id: priceMsgId,
-                message_body: priceReply,
-                message_type: "text",
-              });
-            }
-
-            // Log incoming message
-            await supabase.from("whatsapp_messages").insert({
-              lead_phone: `+${senderPhone}`,
-              lead_name: senderName,
-              lead_id: leadId,
-              template_name: "incoming",
-              template_type: "incoming",
-              status: "received",
-              meta_message_id: message.id,
-              message_body: messageText || null,
-              is_escalated: isEscalated,
-              message_type: messageType,
-              media_url: mediaUrl,
-              file_name: fileName,
-            });
           }
         }
       }
