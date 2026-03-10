@@ -427,6 +427,7 @@ export function useLeads() {
   const stats = {
     total: leads.length,
     newLeads: leads.filter(l => l.status === 'New Lead').length,
+    hotLeads: leads.filter(l => l.status === 'Artist Consultation').length,
     booked: leads.filter(l => l.status === 'Booked').length,
     completed: leads.filter(l => l.status === 'Completed').length,
     conversionRate: leads.length
