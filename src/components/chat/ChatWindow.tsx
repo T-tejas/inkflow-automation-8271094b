@@ -82,9 +82,14 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
     );
   }
 
+  // Filter messages by search
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter(m => m.messageBody?.toLowerCase().includes(searchQuery.toLowerCase()) || m.templateName?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : messages;
+
   // Group messages by date
   const groupedMessages: { date: string; msgs: ChatMessage[] }[] = [];
-  for (const msg of messages) {
+  for (const msg of filteredMessages) {
     const dateStr = format(parseISO(msg.createdAt), 'yyyy-MM-dd');
     const lastGroup = groupedMessages[groupedMessages.length - 1];
     if (lastGroup && lastGroup.date === dateStr) {
