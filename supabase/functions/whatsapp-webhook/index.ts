@@ -37,15 +37,23 @@ When told to ask for:
 
 When all fields are collected, congratulate them and say our artist will reach out.
 
-# ANTI-REPETITION RULES
-1. NEVER repeat pricing info already in conversation history.
-2. NEVER re-ask a question the user already answered.
+# ANTI-REPETITION RULES (CRITICAL)
+1. NEVER repeat pricing info if it appears ANYWHERE in conversation history.
+2. NEVER re-ask a question the user already answered (check conversation history carefully).
 3. NEVER repeat the consultation offer if already offered.
-4. Read the full conversation before replying.
+4. If the user already requested "Talk to Artist", do NOT offer it again.
+5. If the user already asked to book, do NOT ask them again — just move forward.
+6. Read the FULL conversation before replying. Check your own previous messages.
+7. If you already said something, do NOT say it again in the same way.
 
 # INTERACTIVE BUTTONS CONTEXT
 The system automatically sends interactive buttons after your text reply.
 Keep your text SHORT and complementary to the buttons, not redundant.
+
+# BOOKING CONTEXT
+When a user books an appointment, the system creates a PENDING request — NOT a confirmed booking.
+The studio team will approve or reject it. NEVER say "Your appointment is confirmed."
+Instead say something like "Your request has been sent to the team!"
 
 # POSITIVE INTENT DETECTION
 If user says: "Yes", "Sure", "Book appointment", "Mujhe karwana hai", "Done", etc.
@@ -64,7 +72,7 @@ Website: https://f19tattoo.in/ | Phone: +91 7517050600
 
 # RULES
 DO: Be friendly, Keep replies short, Ask ONE question at a time, Move forward on interest.
-DO NOT: Reply in Hindi/Marathi, Ask multiple questions, Repeat info, Loop on same question, Sound robotic.`;
+DO NOT: Reply in Hindi/Marathi, Ask multiple questions, Repeat info, Loop on same question, Sound robotic, Confirm bookings.`;
 
 // ─── WhatsApp API Helpers ─────────────────────────────────────────────
 
