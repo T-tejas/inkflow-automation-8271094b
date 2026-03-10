@@ -93,6 +93,11 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
     navigate(`/designs?leadId=${leadId}`);
   };
 
+  const handleNotifLeadClick = (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) handleLeadClick(lead);
+  };
+
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
   return (

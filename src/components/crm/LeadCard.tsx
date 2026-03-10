@@ -110,7 +110,13 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </div>
         )}
 
-        {/* Design Assigned Indicator */}
+        {/* Hot Lead Indicator */}
+        {isHotLead(lead) && (
+          <div className="flex items-center gap-1 text-[10px] text-orange-500 font-semibold animate-pulse">
+            🔥 Artist Consultation Requested
+          </div>
+        )}
+
         {hasDesign && (
           <div className="flex items-center gap-1 text-[10px] text-purple-500 font-medium">
             <Palette className="h-3 w-3" />
