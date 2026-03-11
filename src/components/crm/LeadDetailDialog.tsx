@@ -170,6 +170,9 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
 
           <div className="flex flex-wrap justify-between gap-2 pt-2">
             <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => setProfileOpen(true)}>
+                <User className="h-3.5 w-3.5" /> Profile
+              </Button>
               <Button variant="destructive" size="sm" onClick={() => { onDelete(lead.id); onOpenChange(false); }}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
