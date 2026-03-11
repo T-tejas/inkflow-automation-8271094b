@@ -148,6 +148,9 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
                           ) : (
                             <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">Pending</Badge>
                           )}
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEditingForm(f)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => window.open(`/consent/${f.id}`, '_blank')}>
                             <ExternalLink className="h-3 w-3" />
                           </Button>
