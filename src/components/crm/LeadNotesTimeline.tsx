@@ -53,7 +53,10 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
 
       {showForm && (
         <div className="border border-border rounded-lg p-2.5 space-y-2 bg-muted/30">
-          <Select value={artistName} onValueChange={setArtistName}>
+          <Select value={artistName} onValueChange={v => {
+            if (v === '__manage__') { setManageOpen(true); return; }
+            setArtistName(v);
+          }}>
             <SelectTrigger className="h-7 text-xs">
               <SelectValue placeholder="Artist name" />
             </SelectTrigger>
