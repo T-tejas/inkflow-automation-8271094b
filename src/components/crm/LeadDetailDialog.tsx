@@ -28,7 +28,7 @@ interface LeadDetailDialogProps {
 
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
 
-export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign }: LeadDetailDialogProps) {
+export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign, onMarkCompleted }: LeadDetailDialogProps) {
   const navigate = useNavigate();
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
