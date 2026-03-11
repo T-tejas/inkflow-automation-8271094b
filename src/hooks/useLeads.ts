@@ -417,6 +417,9 @@ export function useLeads() {
       if (status === 'No Response') {
         return leads.filter(l => l.status === 'No Response' || l.status === 'Cancelled');
       }
+      if (status === 'Out of City') {
+        return leads.filter(l => l.status === 'Out of City');
+      }
       return leads.filter(l => l.status === status);
     },
     [leads]
