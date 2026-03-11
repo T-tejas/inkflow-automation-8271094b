@@ -34,7 +34,18 @@ export function HotLeadNotifications({ notifications, unreadCount, onMarkRead, o
 
   const getNotifLabel = (n: CrmNotification) => {
     if (n.notification_type === 'lead_qualified') return '📊 New Lead Captured';
+    if (n.notification_type === 'design_assigned') return '🎨 Design Assigned';
     return '🔥 Artist Consultation Requested';
+  };
+
+  const getNotifIcon = (n: CrmNotification) => {
+    if (n.notification_type === 'design_assigned') {
+      return <Palette className={`h-4 w-4 ${!n.is_read ? 'text-purple-500' : 'text-muted-foreground'}`} />;
+    }
+    if (n.lead_score === 'HOT') {
+      return <Flame className={`h-4 w-4 ${!n.is_read ? 'text-orange-500' : 'text-muted-foreground'}`} />;
+    }
+    return <Zap className={`h-4 w-4 ${!n.is_read ? 'text-amber-500' : 'text-muted-foreground'}`} />;
   };
 
   return (
