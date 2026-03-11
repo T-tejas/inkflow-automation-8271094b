@@ -32,6 +32,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
   const [dueDate, setDueDate] = useState('');
   const [tattooDate, setTattooDate] = useState('');
   const [referenceNotes, setReferenceNotes] = useState('');
+  const [manageArtistsOpen, setManageArtistsOpen] = useState(false);
 
   if (!lead) return null;
 
