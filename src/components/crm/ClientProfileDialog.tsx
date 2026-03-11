@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
-import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink } from 'lucide-react';
+import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil } from 'lucide-react';
 import type { TattooCompletion } from '@/hooks/useTattooCompletions';
 import type { ConsentForm } from '@/hooks/useConsentForms';
+import { ConsentFormEditDialog } from './ConsentFormEditDialog';
 
 interface ClientProfileDialogProps {
   lead: Lead | null;
