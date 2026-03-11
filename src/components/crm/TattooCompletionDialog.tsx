@@ -147,6 +147,14 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
       toast.error('Please fill artist name and tattoo price');
       return;
     }
+    if (!clientIdCode) {
+      toast.error('Client ID is missing — cannot save');
+      return;
+    }
+    if (photoUrls.length === 0) {
+      toast.error('Please upload at least one tattoo photo');
+      return;
+    }
     setSubmitting(true);
     if (artistName === '__custom__' && customArtist.trim()) {
       await addArtist(customArtist.trim());
