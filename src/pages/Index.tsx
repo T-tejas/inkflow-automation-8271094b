@@ -41,6 +41,8 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const [designAssignOpen, setDesignAssignOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [completionLead, setCompletionLead] = useState<Lead | null>(null);
+  const [completionOpen, setCompletionOpen] = useState(false);
 
   // Set of lead IDs that have designs assigned
   const designLeadIds = useMemo(() => new Set(designTasks.filter(t => t.lead_id).map(t => t.lead_id!)), [designTasks]);
