@@ -58,13 +58,17 @@ export function useLeadNotes(leadId: string | null) {
   }, [leadId]);
 
   const deleteNote = useCallback(async (noteId: string) => {
+    // Optimistically remove from UI immediately
+    setNotes(prev => prev.filter(n => n.id !== noteId));
     const { error } = await supabase.from('lead_notes').delete().eq('id', noteId);
     if (error) {
       toast.error('Failed to delete note');
+      fetchNotes(); // Restore on error
       return false;
     }
+    toast.success('Note deleted');
     return true;
-  }, []);
+  }, [fetchNotes]);
 
   return { notes, loading, addNote, deleteNote, refetch: fetchNotes };
 }
