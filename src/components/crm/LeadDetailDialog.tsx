@@ -116,11 +116,8 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
             </div>
           )}
 
-          {lead.notes && (
-            <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-              {lead.notes}
-            </div>
-          )}
+          {/* Structured Notes Timeline */}
+          <LeadNotesTimeline leadId={lead.id} />
 
           {/* WhatsApp Templates Section */}
           {lead.whatsappOptIn && (

@@ -272,6 +272,14 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onDesignAssigned={handleDesignAssigned}
         existingArtists={designArtists}
       />
+      <AnimatePresence>
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onMoveToStage={handleBulkMoveToStage}
+          onDeleteSelected={handleBulkDelete}
+          onClearSelection={() => { setSelectedIds(new Set()); setSelectMode(false); }}
+        />
+      </AnimatePresence>
     </div>
   );
 };
