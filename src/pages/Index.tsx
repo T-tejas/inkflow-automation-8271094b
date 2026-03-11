@@ -192,6 +192,15 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
               <MessageCircle className="h-4 w-4 text-success" />
               Chat
             </Button>
+            <Button
+              variant={selectMode ? 'default' : 'outline'}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => { setSelectMode(!selectMode); if (selectMode) setSelectedIds(new Set()); }}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? 'Exit Select' : 'Select'}
+            </Button>
             <Button onClick={() => { setEditLead(null); setFormOpen(true); }} size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />
               Add Lead
