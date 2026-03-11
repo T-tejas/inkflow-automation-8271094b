@@ -97,6 +97,10 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
       return;
     }
     setSubmitting(true);
+    // Auto-save custom artist
+    if (artistName === '__custom__' && customArtist.trim()) {
+      await addArtist(customArtist.trim());
+    }
 
     await supabase.from('leads').update({ client_id_code: clientIdCode } as any).eq('id', lead.id);
 

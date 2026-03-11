@@ -52,6 +52,10 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
     e.preventDefault();
     if (!resolvedArtist.trim()) return;
     setSubmitting(true);
+    // Auto-save custom artist
+    if (artistName === '__custom__' && customArtist.trim()) {
+      await addArtist(customArtist.trim());
+    }
 
     const success = await addTask({
       lead_id: lead.id,
