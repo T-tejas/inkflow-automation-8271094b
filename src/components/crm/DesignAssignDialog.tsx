@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
 import { useDesignTasks, type DesignType, type FeeStatus } from '@/hooks/useDesignTasks';
 import { useArtists } from '@/hooks/useArtists';
