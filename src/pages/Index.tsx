@@ -11,11 +11,13 @@ import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { DesignAssignDialog } from '@/components/crm/DesignAssignDialog';
 import { HotLeadNotifications } from '@/components/crm/HotLeadNotifications';
+import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette } from 'lucide-react';
-import { Lead } from '@/types/lead';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare } from 'lucide-react';
+import { Lead, LeadStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface IndexProps {
   signOut: () => Promise<void>;
@@ -36,6 +38,8 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [designAssignLead, setDesignAssignLead] = useState<Lead | null>(null);
   const [designAssignOpen, setDesignAssignOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Set of lead IDs that have designs assigned
   const designLeadIds = useMemo(() => new Set(designTasks.filter(t => t.lead_id).map(t => t.lead_id!)), [designTasks]);
