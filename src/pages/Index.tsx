@@ -277,7 +277,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Pipeline</h2>
           <PipelineBoard
-            leads={filteredLeads}
+            leads={displayLeads}
             getLeadsByStatus={getLeadsByStatus}
             onLeadClick={handleLeadClick}
             onStatusChange={updateLeadStatus}
