@@ -9,7 +9,8 @@ export type LeadStatus =
   | 'Booked'
   | 'Completed'
   | 'No Response'
-  | 'Cancelled';
+  | 'Cancelled'
+  | 'Out of City';
 
 export type AutomationTag =
   | 'whatsapp_inquiry'
