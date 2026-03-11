@@ -281,7 +281,6 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         open={designAssignOpen}
         onOpenChange={setDesignAssignOpen}
         onDesignAssigned={handleDesignAssigned}
-        existingArtists={designArtists}
       />
       <TattooCompletionDialog
         lead={completionLead}
