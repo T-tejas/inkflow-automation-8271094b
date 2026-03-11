@@ -240,6 +240,44 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_forms: {
+        Row: {
+          client_name: string
+          consent_text: string
+          created_at: string
+          id: string
+          lead_id: string
+          signature_data: string | null
+          signed_at: string | null
+        }
+        Insert: {
+          client_name: string
+          consent_text: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          signature_data?: string | null
+          signed_at?: string | null
+        }
+        Update: {
+          client_name?: string
+          consent_text?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          signature_data?: string | null
+          signed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_forms_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_notifications: {
         Row: {
           budget: string | null
@@ -456,10 +494,43 @@ export type Database = {
           },
         ]
       }
+      lead_notes: {
+        Row: {
+          artist_name: string
+          created_at: string
+          id: string
+          lead_id: string
+          note_text: string
+        }
+        Insert: {
+          artist_name?: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          note_text: string
+        }
+        Update: {
+          artist_name?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          note_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           bot_enabled: boolean
           budget: string | null
+          client_id_code: string | null
           created_at: string
           full_name: string
           id: string
@@ -480,6 +551,7 @@ export type Database = {
         Insert: {
           bot_enabled?: boolean
           budget?: string | null
+          client_id_code?: string | null
           created_at?: string
           full_name: string
           id?: string
@@ -500,6 +572,7 @@ export type Database = {
         Update: {
           bot_enabled?: boolean
           budget?: string | null
+          client_id_code?: string | null
           created_at?: string
           full_name?: string
           id?: string
@@ -593,6 +666,50 @@ export type Database = {
           start_time?: string
         }
         Relationships: []
+      }
+      tattoo_completions: {
+        Row: {
+          aftercare_notes: string | null
+          artist_name: string
+          client_id_code: string
+          created_at: string
+          id: string
+          invoice_url: string | null
+          lead_id: string
+          photo_urls: string[]
+          tattoo_price: number
+        }
+        Insert: {
+          aftercare_notes?: string | null
+          artist_name: string
+          client_id_code: string
+          created_at?: string
+          id?: string
+          invoice_url?: string | null
+          lead_id: string
+          photo_urls?: string[]
+          tattoo_price?: number
+        }
+        Update: {
+          aftercare_notes?: string | null
+          artist_name?: string
+          client_id_code?: string
+          created_at?: string
+          id?: string
+          invoice_url?: string | null
+          lead_id?: string
+          photo_urls?: string[]
+          tattoo_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tattoo_completions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
