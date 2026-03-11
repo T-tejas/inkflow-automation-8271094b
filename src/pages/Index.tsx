@@ -300,6 +300,12 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
           onClearSelection={() => { setSelectedIds(new Set()); setSelectMode(false); }}
         />
       </AnimatePresence>
+      <WalkInDialog
+        open={walkInOpen}
+        onOpenChange={setWalkInOpen}
+        onSubmit={handleFormSubmit}
+        artists={designArtists}
+      />
     </div>
   );
 };
