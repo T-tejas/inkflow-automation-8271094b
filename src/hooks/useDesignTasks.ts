@@ -22,6 +22,7 @@ export interface DesignTask {
   reference_images: string[];
   final_design_url: string | null;
   notes: string | null;
+  google_calendar_event_id: string | null;
   created_at: string;
   updated_at: string;
 }
