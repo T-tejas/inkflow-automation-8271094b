@@ -30,7 +30,8 @@ interface IndexProps {
 const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const navigate = useNavigate();
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
-  const { tasks: designTasks, artists: designArtists, fetchTasks: refetchDesignTasks } = useDesignTasks();
+  const { tasks: designTasks, fetchTasks: refetchDesignTasks } = useDesignTasks();
+  const { artists: designArtists } = useArtists();
   const { notifications, unreadCount, markAsRead, markAllRead } = useCrmNotifications();
   const [formOpen, setFormOpen] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
