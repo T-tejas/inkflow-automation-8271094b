@@ -105,6 +105,7 @@ export const STATUS_COLORS: Record<LeadStatus, string> = {
   'Completed': 'bg-pipeline-completed',
   'No Response': 'bg-pipeline-no-response',
   'Cancelled': 'bg-pipeline-cancelled',
+  'Out of City': 'bg-sky-500',
 };
 
 export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
@@ -117,6 +118,7 @@ export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
   'Completed': 'text-pipeline-completed',
   'No Response': 'text-pipeline-no-response',
   'Cancelled': 'text-pipeline-cancelled',
+  'Out of City': 'text-sky-500',
 };
 
 export function parseBudget(budget: string): number {
