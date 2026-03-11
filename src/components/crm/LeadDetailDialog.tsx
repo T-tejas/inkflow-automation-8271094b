@@ -181,6 +181,9 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
               }}>
                 <Palette className="h-3.5 w-3.5" /> Design Task
               </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={handleConsentForm}>
+                <FileSignature className="h-3.5 w-3.5" /> Consent Form
+              </Button>
               {lead.status === 'Booked' && onMarkCompleted && (
                 <Button variant="outline" size="sm" className="gap-1 border-green-500/30 text-green-600 hover:bg-green-500/10" onClick={() => {
                   onOpenChange(false);
