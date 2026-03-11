@@ -62,6 +62,7 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
                 <SelectItem key={a} value={a}>{a}</SelectItem>
               ))}
               <SelectItem value="__custom__">+ Add New Artist</SelectItem>
+              <SelectItem value="__manage__">⚙ Manage Artists</SelectItem>
             </SelectContent>
           </Select>
           {artistName === '__custom__' && (
