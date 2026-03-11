@@ -267,10 +267,10 @@ export default function BulkMessaging() {
                       {t.text}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">{{client_name}}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{{tattoo_idea}}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{{appointment_date}}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{{artist_name}}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{'{{client_name}}'}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{'{{tattoo_idea}}'}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{'{{appointment_date}}'}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{'{{artist_name}}'}</Badge>
                     </div>
                     <Button
                       size="sm"
