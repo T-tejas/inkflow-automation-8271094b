@@ -23,12 +23,12 @@ function formatTimeSlot(slot: string): string {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: any }> = {
-  pending: { bg: 'bg-amber-500/10', text: 'text-amber-400', icon: ClockIcon },
-  confirmed: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: CheckCircle2 },
-  completed: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: CheckCircle2 },
-  cancelled: { bg: 'bg-red-500/10', text: 'text-red-400', icon: XCircle },
-  rejected: { bg: 'bg-red-500/10', text: 'text-red-400', icon: XCircle },
-  no_show: { bg: 'bg-amber-500/10', text: 'text-amber-400', icon: AlertCircle },
+  pending: { bg: 'bg-warning/10', text: 'text-warning', icon: ClockIcon },
+  confirmed: { bg: 'bg-success/10', text: 'text-success', icon: CheckCircle2 },
+  completed: { bg: 'bg-info/10', text: 'text-info', icon: CheckCircle2 },
+  cancelled: { bg: 'bg-destructive/10', text: 'text-destructive', icon: XCircle },
+  rejected: { bg: 'bg-destructive/10', text: 'text-destructive', icon: XCircle },
+  no_show: { bg: 'bg-warning/10', text: 'text-warning', icon: AlertCircle },
 };
 
 async function sendWhatsAppMessage(phone: string, leadName: string, messageBody: string) {
@@ -57,7 +57,6 @@ export default function Appointments() {
 
   const handleApprove = async (appt: any) => {
     await updateAppointmentStatus(appt.id, 'confirmed');
-    // Update lead status to Booked
     if (appt.leadId) {
       await supabase.from('leads').update({ status: 'Booked', updated_at: new Date().toISOString() }).eq('id', appt.leadId);
     }
@@ -82,8 +81,8 @@ export default function Appointments() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-emerald-500" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -95,36 +94,36 @@ export default function Appointments() {
     const dateLabel = isToday(dateObj) ? 'Today' : isTomorrow(dateObj) ? 'Tomorrow' : format(dateObj, 'EEE, dd MMM yyyy');
 
     return (
-      <Card key={appt.id} className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors">
+      <Card key={appt.id} className="glass-card hover:border-border transition-colors">
         <CardContent className="py-3 px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="text-center min-w-[60px]">
-                <p className="text-lg font-bold text-white">{format(dateObj, 'dd')}</p>
-                <p className="text-[10px] text-zinc-500 uppercase">{format(dateObj, 'MMM')}</p>
+                <p className="text-lg font-bold text-foreground">{format(dateObj, 'dd')}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">{format(dateObj, 'MMM')}</p>
               </div>
-              <div className="h-10 w-px bg-zinc-800" />
+              <div className="h-10 w-px bg-border" />
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-white">{appt.leadName}</p>
+                  <p className="text-sm font-medium text-foreground">{appt.leadName}</p>
                   <Badge className={`${statusStyle.bg} ${statusStyle.text} border-0 text-[10px]`}>
                     <StatusIcon className="h-2.5 w-2.5 mr-0.5" />
                     {appt.status}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs text-zinc-400 flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" /> {appt.timeSlot}
                   </span>
-                  <span className="text-xs text-zinc-400 flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Phone className="h-3 w-3" /> {appt.leadPhone}
                   </span>
                   {appt.tattooStyle && (
-                    <span className="text-xs text-zinc-400 flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Palette className="h-3 w-3" /> {appt.tattooStyle}
                     </span>
                   )}
-                  <span className="text-xs text-zinc-500">{dateLabel}</span>
+                  <span className="text-xs text-muted-foreground">{dateLabel}</span>
                 </div>
               </div>
             </div>
@@ -135,7 +134,7 @@ export default function Appointments() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs border-zinc-700 text-emerald-400 hover:bg-emerald-500/10 gap-1"
+                    className="text-xs text-success hover:bg-success/10 gap-1"
                     onClick={() => handleApprove(appt)}
                   >
                     <ThumbsUp className="h-3 w-3" /> Approve
@@ -143,7 +142,7 @@ export default function Appointments() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs border-zinc-700 text-red-400 hover:bg-red-500/10 gap-1"
+                    className="text-xs text-destructive hover:bg-destructive/10 gap-1"
                     onClick={() => handleReject(appt)}
                   >
                     <ThumbsDown className="h-3 w-3" /> Reject
@@ -155,7 +154,7 @@ export default function Appointments() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs border-zinc-700 text-emerald-400 hover:bg-emerald-500/10"
+                    className="text-xs text-success hover:bg-success/10"
                     onClick={() => {
                       updateAppointmentStatus(appt.id, 'completed');
                       toast.success('Marked as completed');
@@ -166,7 +165,7 @@ export default function Appointments() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs border-zinc-700 text-red-400 hover:bg-red-500/10"
+                    className="text-xs text-destructive hover:bg-destructive/10"
                     onClick={() => {
                       cancelAppointment(appt);
                       toast.success('Appointment cancelled');
@@ -184,22 +183,22 @@ export default function Appointments() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-3">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 px-6 py-3">
         <div className="flex items-center justify-between max-w-[1200px] mx-auto">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white gap-1.5" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" /> CRM
             </Button>
-            <div className="h-5 w-px bg-zinc-700" />
+            <div className="h-5 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-emerald-400" />
+              <div className="h-7 w-7 rounded-md bg-success/10 flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-success" />
               </div>
-              <h1 className="text-sm font-semibold">Appointments</h1>
+              <h1 className="text-sm font-semibold text-foreground">Appointments</h1>
             </div>
           </div>
-          <Button onClick={() => setBookingOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2" size="sm">
+          <Button onClick={() => setBookingOpen(true)} className="gap-2" size="sm">
             <CalendarPlus className="h-4 w-4" /> New Booking
           </Button>
         </div>
@@ -207,36 +206,36 @@ export default function Appointments() {
 
       <main className="max-w-[1200px] mx-auto px-6 py-6">
         <div className="grid grid-cols-5 gap-4 mb-6">
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="glass-card">
             <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500">Pending</p>
-              <p className="text-2xl font-bold text-amber-400">{pending.length}</p>
+              <p className="text-xs text-muted-foreground">Pending</p>
+              <p className="text-2xl font-bold text-warning">{pending.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="glass-card">
             <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500">Today</p>
-              <p className="text-2xl font-bold text-white">{todayAppts.length}</p>
+              <p className="text-xs text-muted-foreground">Today</p>
+              <p className="text-2xl font-bold text-foreground">{todayAppts.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="glass-card">
             <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500">Upcoming</p>
-              <p className="text-2xl font-bold text-emerald-400">{upcoming.length}</p>
+              <p className="text-xs text-muted-foreground">Upcoming</p>
+              <p className="text-2xl font-bold text-success">{upcoming.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="glass-card">
             <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500">Completed</p>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-xs text-muted-foreground">Completed</p>
+              <p className="text-2xl font-bold text-info">
                 {appointments.filter(a => a.status === 'completed').length}
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card className="glass-card">
             <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-zinc-500">Cancelled</p>
-              <p className="text-2xl font-bold text-red-400">
+              <p className="text-xs text-muted-foreground">Cancelled</p>
+              <p className="text-2xl font-bold text-destructive">
                 {appointments.filter(a => a.status === 'cancelled' || a.status === 'rejected').length}
               </p>
             </CardContent>
@@ -244,20 +243,20 @@ export default function Appointments() {
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-zinc-900 border border-zinc-800">
-            <TabsTrigger value="pending" className="data-[state=active]:bg-zinc-700">
-              Pending {pending.length > 0 && <Badge className="ml-1.5 bg-amber-500/20 text-amber-400 border-0 text-[10px]">{pending.length}</Badge>}
+          <TabsList>
+            <TabsTrigger value="pending">
+              Pending {pending.length > 0 && <Badge className="ml-1.5 bg-warning/20 text-warning border-0 text-[10px]">{pending.length}</Badge>}
             </TabsTrigger>
-            <TabsTrigger value="upcoming" className="data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="upcoming">
               Upcoming ({upcoming.length})
             </TabsTrigger>
-            <TabsTrigger value="today" className="data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="today">
               Today ({todayAppts.length})
             </TabsTrigger>
-            <TabsTrigger value="past" className="data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="past">
               Past ({past.length})
             </TabsTrigger>
-            <TabsTrigger value="all" className="data-[state=active]:bg-zinc-700">
+            <TabsTrigger value="all">
               All ({appointments.length})
             </TabsTrigger>
           </TabsList>
@@ -273,7 +272,7 @@ export default function Appointments() {
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="space-y-2">
                   {list.length === 0 && (
-                    <div className="text-center py-12 text-zinc-500">
+                    <div className="text-center py-12 text-muted-foreground">
                       <Calendar className="h-10 w-10 mx-auto mb-3 opacity-40" />
                       <p>{key === 'pending' ? 'No pending requests' : 'No appointments'}</p>
                     </div>

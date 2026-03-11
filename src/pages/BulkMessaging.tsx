@@ -80,7 +80,6 @@ export default function BulkMessaging() {
 
   useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
 
-  // Import by pipeline stage
   const importByStage = async () => {
     if (selectedStages.length === 0) {
       toast.error('Select at least one pipeline stage');
@@ -140,7 +139,7 @@ export default function BulkMessaging() {
     const text = await file.text();
     const lines = text.split('\n').slice(1);
     const newRecips: Recipient[] = lines.map(line => {
-      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const cols = line.split(',').map(c => c.trim().replace(/^\"|\"$/g, ''));
       const phone = cols[0]?.replace(/[^+\d]/g, '') || '';
       const name = cols[1] || 'Unknown';
       return { phone: phone.startsWith('+') ? phone : `+91${phone}`, name };
@@ -210,29 +209,29 @@ export default function BulkMessaging() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      draft: 'bg-zinc-500/10 text-zinc-400',
-      queued: 'bg-amber-500/10 text-amber-400',
-      sending: 'bg-blue-500/10 text-blue-400',
-      sent: 'bg-emerald-500/10 text-emerald-400',
-      failed: 'bg-red-500/10 text-red-400',
+      draft: 'bg-muted/50 text-muted-foreground',
+      queued: 'bg-warning/10 text-warning',
+      sending: 'bg-info/10 text-info',
+      sent: 'bg-success/10 text-success',
+      failed: 'bg-destructive/10 text-destructive',
     };
     return <Badge className={`${styles[status] || styles.draft} border-0`}>{status}</Badge>;
   };
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 100%)' }}>
-      <header className="border-b border-amber-500/10 px-6 py-3" style={{ background: 'rgba(0,0,0,0.6)' }}>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 px-6 py-3">
         <div className="flex items-center justify-between max-w-[1200px] mx-auto">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-amber-400 gap-1.5" onClick={() => navigate('/admin')}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5" onClick={() => navigate('/admin')}>
               <ArrowLeft className="h-4 w-4" /> Dashboard
             </Button>
-            <div className="h-5 w-px bg-amber-500/20" />
+            <div className="h-5 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-amber-500/15 flex items-center justify-center">
-                <Send className="h-4 w-4 text-amber-400" />
+              <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+                <Send className="h-4 w-4 text-primary" />
               </div>
-              <h1 className="text-sm font-semibold">Bulk Messaging & Campaigns</h1>
+              <h1 className="text-sm font-semibold text-foreground">Bulk Messaging & Campaigns</h1>
             </div>
           </div>
         </div>
@@ -240,14 +239,14 @@ export default function BulkMessaging() {
 
       <main className="max-w-[1200px] mx-auto px-6 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-zinc-900 border border-zinc-800">
-            <TabsTrigger value="create" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 gap-1.5">
+          <TabsList>
+            <TabsTrigger value="create" className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> Create Campaign
             </TabsTrigger>
-            <TabsTrigger value="templates" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 gap-1.5">
+            <TabsTrigger value="templates" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" /> Templates
             </TabsTrigger>
-            <TabsTrigger value="campaigns" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 gap-1.5">
+            <TabsTrigger value="campaigns" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" /> Campaigns ({campaigns.length})
             </TabsTrigger>
           </TabsList>
@@ -256,27 +255,27 @@ export default function BulkMessaging() {
           <TabsContent value="templates">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {WHATSAPP_TEMPLATES.map(t => (
-                <Card key={t.key} className="bg-zinc-900/80 border-zinc-800">
+                <Card key={t.key} className="glass-card">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-amber-50 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-amber-400" />
+                    <CardTitle className="text-sm text-foreground flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-primary" />
                       {t.label}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-xs text-zinc-400 whitespace-pre-wrap bg-zinc-800/50 rounded-lg p-3 mb-3">
+                    <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 mb-3">
                       {t.text}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-zinc-800 text-zinc-500 border-0 text-[10px]">{'{{client_name}}'}</Badge>
-                      <Badge className="bg-zinc-800 text-zinc-500 border-0 text-[10px]">{'{{tattoo_idea}}'}</Badge>
-                      <Badge className="bg-zinc-800 text-zinc-500 border-0 text-[10px]">{'{{appointment_date}}'}</Badge>
-                      <Badge className="bg-zinc-800 text-zinc-500 border-0 text-[10px]">{'{{artist_name}}'}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{{client_name}}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{{tattoo_idea}}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{{appointment_date}}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{{artist_name}}</Badge>
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-3 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs"
+                      className="mt-3 text-xs"
                       onClick={() => {
                         setMessageContent(t.text);
                         setTab('create');
@@ -295,30 +294,30 @@ export default function BulkMessaging() {
             <div className="grid grid-cols-2 gap-6 mt-4">
               {/* Left: Campaign Details */}
               <div className="space-y-4">
-                <Card className="bg-zinc-900/80 border-zinc-800">
+                <Card className="glass-card">
                   <CardHeader>
-                    <CardTitle className="text-sm text-amber-50">Campaign Details</CardTitle>
+                    <CardTitle className="text-sm text-foreground">Campaign Details</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-xs text-zinc-400 mb-1 block">Campaign Name</label>
-                      <Input value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="e.g. March Promo" className="bg-zinc-800 border-zinc-700 text-white" />
+                      <label className="text-xs text-muted-foreground mb-1 block">Campaign Name</label>
+                      <Input value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="e.g. March Promo" />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-400 mb-1 block">Message Content</label>
+                      <label className="text-xs text-muted-foreground mb-1 block">Message Content</label>
                       <Textarea
                         value={messageContent}
                         onChange={e => setMessageContent(e.target.value)}
                         placeholder="Hi {{client_name}}, check out our latest designs..."
-                        className="bg-zinc-800 border-zinc-700 text-white min-h-[120px]"
+                        className="min-h-[120px]"
                       />
-                      <p className="text-[10px] text-zinc-500 mt-1">Variables: {'{{client_name}}'} {'{{tattoo_idea}}'} {'{{appointment_date}}'} {'{{artist_name}}'}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Variables: {{client_name}} {{tattoo_idea}} {{appointment_date}} {{artist_name}}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">CTA Button</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">CTA Button</label>
                         <Select value={ctaType} onValueChange={setCtaType}>
-                          <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="None" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">No CTA</SelectItem>
                             {CTA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -326,8 +325,8 @@ export default function BulkMessaging() {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">Button Label</label>
-                        <Input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} placeholder="e.g. Book Now" className="bg-zinc-800 border-zinc-700 text-white" disabled={!ctaType || ctaType === 'none'} />
+                        <label className="text-xs text-muted-foreground mb-1 block">Button Label</label>
+                        <Input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} placeholder="e.g. Book Now" disabled={!ctaType || ctaType === 'none'} />
                       </div>
                     </div>
                   </CardContent>
@@ -335,33 +334,33 @@ export default function BulkMessaging() {
 
                 {/* Cost Estimate & Preview */}
                 {recipients.length > 0 && (
-                  <Card className="bg-zinc-900/80 border-amber-500/30">
+                  <Card className="glass-card border-primary/30">
                     <CardContent className="py-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Send Preview</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Send Preview</p>
                           <div className="flex items-center gap-4 mt-1">
                             <div className="flex items-center gap-1">
-                              <Users className="h-3.5 w-3.5 text-sky-400" />
-                              <span className="text-sm font-bold text-white">{recipients.length}</span>
-                              <span className="text-[10px] text-zinc-500">recipients</span>
+                              <Users className="h-3.5 w-3.5 text-info" />
+                              <span className="text-sm font-bold text-foreground">{recipients.length}</span>
+                              <span className="text-[10px] text-muted-foreground">recipients</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <IndianRupee className="h-3.5 w-3.5 text-amber-400" />
-                              <span className="text-sm font-bold text-amber-400">₹{COST_PER_MESSAGE.toFixed(2)}</span>
-                              <span className="text-[10px] text-zinc-500">per msg</span>
+                              <IndianRupee className="h-3.5 w-3.5 text-warning" />
+                              <span className="text-sm font-bold text-warning">₹{COST_PER_MESSAGE.toFixed(2)}</span>
+                              <span className="text-[10px] text-muted-foreground">per msg</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <IndianRupee className="h-3.5 w-3.5 text-emerald-400" />
-                              <span className="text-sm font-bold text-emerald-400">₹{estimatedCost.toFixed(0)}</span>
-                              <span className="text-[10px] text-zinc-500">total</span>
+                              <IndianRupee className="h-3.5 w-3.5 text-success" />
+                              <span className="text-sm font-bold text-success">₹{estimatedCost.toFixed(0)}</span>
+                              <span className="text-[10px] text-muted-foreground">total</span>
                             </div>
                           </div>
                         </div>
                         <Button
                           onClick={handleSendCampaign}
                           disabled={sending || !campaignName || !messageContent}
-                          className="bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2"
+                          className="gap-2"
                         >
                           {sending ? <Clock className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           {sending ? 'Sending...' : 'Send Campaign'}
@@ -375,10 +374,10 @@ export default function BulkMessaging() {
               {/* Right: Recipients */}
               <div className="space-y-4">
                 {/* Stage Filter */}
-                <Card className="bg-zinc-900/80 border-zinc-800">
+                <Card className="glass-card">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xs text-amber-50 flex items-center gap-2">
-                      <Filter className="h-3.5 w-3.5 text-amber-400" />
+                    <CardTitle className="text-xs text-foreground flex items-center gap-2">
+                      <Filter className="h-3.5 w-3.5 text-primary" />
                       Filter by Pipeline Stage
                     </CardTitle>
                   </CardHeader>
@@ -389,29 +388,28 @@ export default function BulkMessaging() {
                           <Checkbox
                             checked={selectedStages.includes(stage)}
                             onCheckedChange={() => toggleStage(stage)}
-                            className="border-zinc-600 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                           />
-                          <span className="text-xs text-zinc-300">{stage}</span>
+                          <span className="text-xs text-foreground">{stage}</span>
                         </label>
                       ))}
                     </div>
-                    <Button size="sm" onClick={importByStage} disabled={selectedStages.length === 0} className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 gap-1.5 text-xs">
+                    <Button size="sm" onClick={importByStage} disabled={selectedStages.length === 0} variant="outline" className="gap-1.5 text-xs">
                       <Filter className="h-3 w-3" /> Import from Selected Stages
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-900/80 border-zinc-800">
+                <Card className="glass-card">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm text-amber-50">Recipients ({recipients.length})</CardTitle>
+                      <CardTitle className="text-sm text-foreground">Recipients ({recipients.length})</CardTitle>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={importFromCRM} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 gap-1 text-xs">
+                        <Button variant="outline" size="sm" onClick={importFromCRM} className="gap-1 text-xs">
                           <Users className="h-3 w-3" /> All CRM
                         </Button>
                         <label className="cursor-pointer">
                           <input type="file" accept=".csv,.xlsx,.xls,.txt" onChange={handleFileImport} className="hidden" />
-                          <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 gap-1 text-xs" asChild>
+                          <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
                             <span><FileText className="h-3 w-3" /> CSV</span>
                           </Button>
                         </label>
@@ -420,28 +418,28 @@ export default function BulkMessaging() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <Textarea value={pasteInput} onChange={e => setPasteInput(e.target.value)} placeholder="Paste phone numbers (one per line)" className="bg-zinc-800 border-zinc-700 text-white min-h-[60px] text-xs" />
-                      <Button variant="outline" size="sm" onClick={handlePaste} className="mt-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800 gap-1 text-xs">
+                      <Textarea value={pasteInput} onChange={e => setPasteInput(e.target.value)} placeholder="Paste phone numbers (one per line)" className="min-h-[60px] text-xs" />
+                      <Button variant="outline" size="sm" onClick={handlePaste} className="mt-2 gap-1 text-xs">
                         <Plus className="h-3 w-3" /> Add
                       </Button>
                     </div>
                     {recipients.length > 0 && (
                       <>
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-zinc-400">{recipients.length} contacts</p>
-                          <Button variant="ghost" size="sm" onClick={() => setRecipients([])} className="text-red-400 hover:text-red-300 text-xs gap-1">
+                          <p className="text-xs text-muted-foreground">{recipients.length} contacts</p>
+                          <Button variant="ghost" size="sm" onClick={() => setRecipients([])} className="text-destructive hover:text-destructive text-xs gap-1">
                             <Trash2 className="h-3 w-3" /> Clear
                           </Button>
                         </div>
                         <ScrollArea className="h-[160px]">
                           <div className="space-y-1">
                             {recipients.slice(0, 50).map((r, i) => (
-                              <div key={i} className="flex items-center justify-between py-1 px-2 rounded bg-zinc-800/50 text-xs">
-                                <span className="text-white">{r.name}</span>
-                                <span className="text-zinc-500">{r.phone}</span>
+                              <div key={i} className="flex items-center justify-between py-1 px-2 rounded bg-muted/30 text-xs">
+                                <span className="text-foreground">{r.name}</span>
+                                <span className="text-muted-foreground">{r.phone}</span>
                               </div>
                             ))}
-                            {recipients.length > 50 && <p className="text-xs text-zinc-500 text-center py-2">+ {recipients.length - 50} more</p>}
+                            {recipients.length > 50 && <p className="text-xs text-muted-foreground text-center py-2">+ {recipients.length - 50} more</p>}
                           </div>
                         </ScrollArea>
                       </>
@@ -455,50 +453,50 @@ export default function BulkMessaging() {
           <TabsContent value="campaigns">
             <div className="space-y-3 mt-4">
               {campaigns.length === 0 && (
-                <div className="text-center py-16 text-zinc-500">
+                <div className="text-center py-16 text-muted-foreground">
                   <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-40" />
                   <p>No campaigns yet</p>
                 </div>
               )}
               {campaigns.map(c => (
-                <Card key={c.id} className="bg-zinc-900/80 border-zinc-800">
+                <Card key={c.id} className="glass-card">
                   <CardContent className="py-4 px-5">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-medium text-white">{c.campaign_name}</h3>
+                          <h3 className="text-sm font-medium text-foreground">{c.campaign_name}</h3>
                           {getStatusBadge(c.status)}
                         </div>
-                        <p className="text-xs text-zinc-500 mt-1 max-w-[400px] truncate">{c.message_content}</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[400px] truncate">{c.message_content}</p>
                         <div className="flex items-center gap-3 mt-1">
-                          <p className="text-[10px] text-zinc-600">
+                          <p className="text-[10px] text-muted-foreground">
                             {c.sent_at ? new Date(c.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not sent'}
                           </p>
-                          <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[10px]">
+                          <Badge variant="outline" className="text-[10px]">
                             Cost: ₹{(c.total_recipients * COST_PER_MESSAGE).toFixed(0)}
                           </Badge>
                         </div>
                       </div>
                       <div className="flex gap-5 text-center">
                         <div>
-                          <p className="text-lg font-bold text-white">{c.messages_sent}</p>
-                          <p className="text-[10px] text-zinc-500">Sent</p>
+                          <p className="text-lg font-bold text-foreground">{c.messages_sent}</p>
+                          <p className="text-[10px] text-muted-foreground">Sent</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-blue-400">{c.messages_delivered}</p>
-                          <p className="text-[10px] text-zinc-500">Delivered</p>
+                          <p className="text-lg font-bold text-info">{c.messages_delivered}</p>
+                          <p className="text-[10px] text-muted-foreground">Delivered</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-emerald-400">{c.messages_read}</p>
-                          <p className="text-[10px] text-zinc-500">Read</p>
+                          <p className="text-lg font-bold text-success">{c.messages_read}</p>
+                          <p className="text-[10px] text-muted-foreground">Read</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-purple-400">{c.replies_received}</p>
-                          <p className="text-[10px] text-zinc-500">Replies</p>
+                          <p className="text-lg font-bold text-primary">{c.replies_received}</p>
+                          <p className="text-[10px] text-muted-foreground">Replies</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-amber-400">{c.total_recipients - c.messages_sent > 0 ? c.total_recipients - c.messages_sent : 0}</p>
-                          <p className="text-[10px] text-zinc-500">Failed</p>
+                          <p className="text-lg font-bold text-destructive">{c.total_recipients - c.messages_sent > 0 ? c.total_recipients - c.messages_sent : 0}</p>
+                          <p className="text-[10px] text-muted-foreground">Failed</p>
                         </div>
                       </div>
                     </div>
