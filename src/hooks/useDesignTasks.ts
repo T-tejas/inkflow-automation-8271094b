@@ -22,6 +22,7 @@ export interface DesignTask {
   reference_images: string[];
   final_design_url: string | null;
   notes: string | null;
+  google_calendar_event_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -49,7 +50,7 @@ export function useDesignTasks(artistFilter?: string) {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  const addTask = async (task: Omit<DesignTask, 'id' | 'created_at' | 'updated_at' | 'reference_images' | 'final_design_url'>) => {
+  const addTask = async (task: Omit<DesignTask, 'id' | 'created_at' | 'updated_at' | 'reference_images' | 'final_design_url' | 'google_calendar_event_id'>) => {
     const { error } = await supabase.from('design_tasks').insert(task as any);
     if (error) { toast.error('Failed to create task'); return false; }
     toast.success('Design task created');
@@ -60,6 +61,32 @@ export function useDesignTasks(artistFilter?: string) {
   const updateTask = async (id: string, updates: Partial<DesignTask>) => {
     const { error } = await supabase.from('design_tasks').update({ ...updates, updated_at: new Date().toISOString() } as any).eq('id', id);
     if (error) { toast.error('Failed to update task'); return false; }
+
+    // Auto-update Google Calendar if dates changed and event exists
+    const task = tasks.find(t => t.id === id);
+    if (task?.google_calendar_event_id && (updates.design_due_date || updates.design_start_date || updates.final_tattoo_date)) {
+      const merged = { ...task, ...updates };
+      const endDate = new Date(merged.design_due_date);
+      endDate.setDate(endDate.getDate() + 1);
+      try {
+        await supabase.functions.invoke('google-calendar-event', {
+          body: {
+            action: 'update',
+            event_id: task.google_calendar_event_id,
+            event_data: {
+              client_name: merged.client_name,
+              client_phone: merged.client_phone,
+              start_date: merged.design_start_date,
+              end_date: endDate.toISOString().split('T')[0],
+              design_due_date: merged.design_due_date,
+              tattoo_date: merged.final_tattoo_date,
+              notes: merged.notes,
+            },
+          },
+        });
+      } catch { /* calendar update is best-effort */ }
+    }
+
     toast.success('Task updated');
     fetchTasks();
     return true;

@@ -372,6 +372,7 @@ export type Database = {
           fee_status: string
           final_design_url: string | null
           final_tattoo_date: string | null
+          google_calendar_event_id: string | null
           id: string
           lead_id: string | null
           notes: string | null
@@ -391,6 +392,7 @@ export type Database = {
           fee_status?: string
           final_design_url?: string | null
           final_tattoo_date?: string | null
+          google_calendar_event_id?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
@@ -410,6 +412,7 @@ export type Database = {
           fee_status?: string
           final_design_url?: string | null
           final_tattoo_date?: string | null
+          google_calendar_event_id?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
@@ -425,6 +428,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          calendar_id: string
+          created_at: string
+          id: string
+          refresh_token: string
+          token_expiry: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          calendar_id?: string
+          created_at?: string
+          id?: string
+          refresh_token: string
+          token_expiry: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          calendar_id?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          token_expiry?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       inventory_items: {
         Row: {
