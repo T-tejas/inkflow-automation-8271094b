@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { Lead, LEAD_SOURCES, KANBAN_STATUSES, parseBudget } from '@/types/lead';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { subDays, format, startOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
-import { formatINRShort } from '@/lib/currency';
+import { formatINR, formatINRShort } from '@/lib/currency';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardChartsProps {
   leads: Lead[];
