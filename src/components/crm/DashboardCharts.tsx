@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { Lead, LEAD_SOURCES, KANBAN_STATUSES, parseBudget } from '@/types/lead';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { subDays, format, startOfDay } from 'date-fns';
 import { motion } from 'framer-motion';
-import { formatINRShort } from '@/lib/currency';
+import { formatINR, formatINRShort } from '@/lib/currency';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardChartsProps {
   leads: Lead[];
@@ -18,6 +20,26 @@ const SOURCE_COLORS = [
 ];
 
 export function DashboardCharts({ leads }: DashboardChartsProps) {
+  const [completionPrices, setCompletionPrices] = useState<Record<string, number>>({});
+
+  // Fetch actual tattoo_price for completed leads
+  useEffect(() => {
+    const completedLeads = leads.filter(l => l.status === 'Completed');
+    if (completedLeads.length === 0) return;
+    supabase
+      .from('tattoo_completions')
+      .select('lead_id, tattoo_price')
+      .in('lead_id', completedLeads.map(l => l.id))
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, number> = {};
+        data.forEach((c: any) => {
+          map[c.lead_id] = Math.max(map[c.lead_id] || 0, Number(c.tattoo_price) || 0);
+        });
+        setCompletionPrices(map);
+      });
+  }, [leads]);
+
   // Weekly trend: leads created per day over last 7 days
   const today = startOfDay(new Date());
   const weeklyData = Array.from({ length: 7 }, (_, i) => {
@@ -36,18 +58,26 @@ export function DashboardCharts({ leads }: DashboardChartsProps) {
     value: leads.filter(l => l.source === source).length,
   })).filter(d => d.value > 0);
 
-  // Revenue distribution by stage
+  // Revenue distribution by stage - use actual price for completed, budget for others
+  const getLeadValue = (l: Lead) => {
+    if (l.status === 'Completed' && completionPrices[l.id]) {
+      return completionPrices[l.id];
+    }
+    return parseBudget(l.budget);
+  };
+
   const stageRevenueData = KANBAN_STATUSES
     .map(status => {
       const stageLeads = leads.filter(l => l.status === status || (status === 'No Response' && l.status === 'Cancelled'));
-      const total = stageLeads.reduce((sum, l) => sum + parseBudget(l.budget), 0);
-      return { name: status === 'No Response' ? 'No Resp.' : status, value: total };
+      const total = stageLeads.reduce((sum, l) => sum + getLeadValue(l), 0);
+      return { name: status === 'No Response' ? 'No Resp.' : status, value: total, count: stageLeads.length };
     })
     .filter(d => d.value > 0);
 
   const STAGE_COLORS = [
     'hsl(199, 89%, 48%)', 'hsl(220, 70%, 55%)', 'hsl(36, 90%, 55%)',
     'hsl(25, 85%, 55%)', 'hsl(262, 83%, 58%)', 'hsl(142, 71%, 45%)', 'hsl(0, 50%, 55%)',
+    'hsl(195, 80%, 50%)', 'hsl(340, 65%, 50%)',
   ];
 
   return (
@@ -144,7 +174,9 @@ export function DashboardCharts({ leads }: DashboardChartsProps) {
               <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} tickFormatter={v => formatINRShort(v)} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} width={65} />
               <Tooltip
-                formatter={(value: number) => [formatINRShort(value), 'Value']}
+                formatter={(value: number, _name: string, props: any) => [
+                  `${formatINR(value)} (${props.payload.count} leads)`, 'Value'
+                ]}
                 contentStyle={{
                   background: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',

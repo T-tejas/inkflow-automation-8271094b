@@ -123,7 +123,18 @@ export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
 
 export function parseBudget(budget: string): number {
   if (!budget) return 0;
-  const numbers = budget.replace(/[₹,\s]/g, '').match(/\d+/g);
+  const cleaned = budget.replace(/[₹,\s]/g, '');
+  
+  // Handle "5k", "10K", "1.5k" patterns
+  const kMatch = cleaned.match(/([\d.]+)\s*[kK]/);
+  if (kMatch) return Math.round(parseFloat(kMatch[1]) * 1000);
+  
+  // Handle "1L", "1.5L", "2l" patterns (Lakhs)
+  const lMatch = cleaned.match(/([\d.]+)\s*[lL]/);
+  if (lMatch) return Math.round(parseFloat(lMatch[1]) * 100000);
+  
+  // Handle range like "5000-10000" → take max
+  const numbers = cleaned.match(/\d+/g);
   if (!numbers) return 0;
   return Math.max(...numbers.map(Number));
 }
