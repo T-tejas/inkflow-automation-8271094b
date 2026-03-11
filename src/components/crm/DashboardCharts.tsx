@@ -172,7 +172,9 @@ export function DashboardCharts({ leads }: DashboardChartsProps) {
               <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} tickFormatter={v => formatINRShort(v)} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} width={65} />
               <Tooltip
-                formatter={(value: number) => [formatINRShort(value), 'Value']}
+                formatter={(value: number, _name: string, props: any) => [
+                  `${formatINR(value)} (${props.payload.count} leads)`, 'Value'
+                ]}
                 contentStyle={{
                   background: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
