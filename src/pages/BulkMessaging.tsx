@@ -311,7 +311,7 @@ export default function BulkMessaging() {
                         placeholder="Hi {{client_name}}, check out our latest designs..."
                         className="min-h-[120px]"
                       />
-                      <p className="text-[10px] text-muted-foreground mt-1">Variables: {{client_name}} {{tattoo_idea}} {{appointment_date}} {{artist_name}}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Variables: {'{{client_name}}'} {'{{tattoo_idea}}'} {'{{appointment_date}}'} {'{{artist_name}}'}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
