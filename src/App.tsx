@@ -16,6 +16,8 @@ import WhatsAppSettings from "./pages/WhatsAppSettings";
 import DesignTracker from "./pages/DesignTracker";
 import BulkMessaging from "./pages/BulkMessaging";
 import BotTemplates from "./pages/BotTemplates";
+import ConsentForm from "./pages/ConsentForm";
+import WalkInForm from "./pages/WalkInForm";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
