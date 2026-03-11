@@ -21,6 +21,7 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
   const [consentForms, setConsentForms] = useState<ConsentForm[]>([]);
   const [loading, setLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [editingForm, setEditingForm] = useState<ConsentForm | null>(null);
 
   useEffect(() => {
     if (!lead || !open) return;
