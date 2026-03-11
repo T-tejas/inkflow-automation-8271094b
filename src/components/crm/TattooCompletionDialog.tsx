@@ -13,6 +13,7 @@ import { generateInvoiceHTML, downloadInvoice } from '@/lib/invoiceGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useArtists } from '@/hooks/useArtists';
+import { ArtistManagerDialog } from './ArtistManagerDialog';
 
 const DEFAULT_AFTERCARE = `*DRY HEALING*
 
@@ -41,13 +42,14 @@ interface TattooCompletionDialogProps {
 
 export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }: TattooCompletionDialogProps) {
   const { addCompletion } = useTattooCompletions();
-  const { artists } = useArtists();
+  const { artistNames: artists, addArtist } = useArtists();
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
   const [tattooPrice, setTattooPrice] = useState('');
   const [aftercareNotes, setAftercareNotes] = useState(DEFAULT_AFTERCARE);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [manageArtistsOpen, setManageArtistsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [clientIdCode] = useState(() => generateClientId());
@@ -97,6 +99,10 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
       return;
     }
     setSubmitting(true);
+    // Auto-save custom artist
+    if (artistName === '__custom__' && customArtist.trim()) {
+      await addArtist(customArtist.trim());
+    }
 
     await supabase.from('leads').update({ client_id_code: clientIdCode } as any).eq('id', lead.id);
 
@@ -158,6 +164,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -172,7 +179,10 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
 
           <div className="space-y-1.5">
             <Label className="text-xs">Artist Name *</Label>
-            <Select value={artistName} onValueChange={setArtistName}>
+            <Select value={artistName} onValueChange={v => {
+              if (v === '__manage__') { setManageArtistsOpen(true); return; }
+              setArtistName(v);
+            }}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Select artist" />
               </SelectTrigger>
@@ -181,6 +191,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
                   <SelectItem key={a} value={a}>{a}</SelectItem>
                 ))}
                 <SelectItem value="__custom__">+ Add New Artist</SelectItem>
+                <SelectItem value="__manage__">⚙ Manage Artists</SelectItem>
               </SelectContent>
             </Select>
             {artistName === '__custom__' && (
@@ -237,5 +248,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
         </div>
       </DialogContent>
     </Dialog>
+    <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
+    </>
   );
 }

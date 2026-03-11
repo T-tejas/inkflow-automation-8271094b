@@ -76,6 +76,24 @@ export type Database = {
           },
         ]
       }
+      artists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       bot_response_templates: {
         Row: {
           created_at: string

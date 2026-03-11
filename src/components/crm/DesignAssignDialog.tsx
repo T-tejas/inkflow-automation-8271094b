@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lead } from '@/types/lead';
 import { useDesignTasks, type DesignType, type FeeStatus } from '@/hooks/useDesignTasks';
 import { useArtists } from '@/hooks/useArtists';
+import { ArtistManagerDialog } from './ArtistManagerDialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -21,7 +22,7 @@ interface DesignAssignDialogProps {
 
 export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned }: DesignAssignDialogProps) {
   const { addTask } = useDesignTasks();
-  const { artists: existingArtists } = useArtists();
+  const { artistNames: existingArtists, addArtist } = useArtists();
   const [submitting, setSubmitting] = useState(false);
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
@@ -31,6 +32,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
   const [dueDate, setDueDate] = useState('');
   const [tattooDate, setTattooDate] = useState('');
   const [referenceNotes, setReferenceNotes] = useState('');
+  const [manageArtistsOpen, setManageArtistsOpen] = useState(false);
 
   if (!lead) return null;
 
@@ -52,6 +54,10 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
     e.preventDefault();
     if (!resolvedArtist.trim()) return;
     setSubmitting(true);
+    // Auto-save custom artist
+    if (artistName === '__custom__' && customArtist.trim()) {
+      await addArtist(customArtist.trim());
+    }
 
     const success = await addTask({
       lead_id: lead.id,
@@ -83,6 +89,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -138,7 +145,10 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground">Assign Artist *</Label>
-              <Select value={artistName} onValueChange={setArtistName}>
+              <Select value={artistName} onValueChange={v => {
+                if (v === '__manage__') { setManageArtistsOpen(true); return; }
+                setArtistName(v);
+              }}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Select artist" />
                 </SelectTrigger>
@@ -147,6 +157,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
                     <SelectItem key={a} value={a}>{a}</SelectItem>
                   ))}
                   <SelectItem value="__custom__">+ New Artist</SelectItem>
+                  <SelectItem value="__manage__">⚙ Manage Artists</SelectItem>
                 </SelectContent>
               </Select>
               {artistName === '__custom__' && (
@@ -227,5 +238,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
         </form>
       </DialogContent>
     </Dialog>
+    <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
+    </>
   );
 }

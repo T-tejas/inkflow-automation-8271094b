@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useLeadNotes } from '@/hooks/useLeadNotes';
 import { useArtists } from '@/hooks/useArtists';
+import { ArtistManagerDialog } from './ArtistManagerDialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, User, Clock } from 'lucide-react';
+import { Plus, Trash2, User, Clock, Settings } from 'lucide-react';
 
 interface LeadNotesTimelineProps {
   leadId: string;
 }
 
 export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
-  const { artists } = useArtists();
+  const { artistNames: artists, addArtist } = useArtists();
   const { notes, loading, addNote, deleteNote } = useLeadNotes(leadId);
   const [showForm, setShowForm] = useState(false);
   const [artistName, setArtistName] = useState('');
@@ -20,12 +21,17 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
   const [noteText, setNoteText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const finalArtistName = artistName === '__custom__' ? customArtist.trim() : artistName;
 
   const handleSubmit = async () => {
     if (!noteText.trim()) return;
     setSubmitting(true);
+    // Auto-save custom artist to artists table
+    if (artistName === '__custom__' && customArtist.trim()) {
+      await addArtist(customArtist.trim());
+    }
     const ok = await addNote(finalArtistName || 'Unknown', noteText.trim());
     if (ok) {
       setNoteText('');
@@ -47,7 +53,10 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
 
       {showForm && (
         <div className="border border-border rounded-lg p-2.5 space-y-2 bg-muted/30">
-          <Select value={artistName} onValueChange={setArtistName}>
+          <Select value={artistName} onValueChange={v => {
+            if (v === '__manage__') { setManageOpen(true); return; }
+            setArtistName(v);
+          }}>
             <SelectTrigger className="h-7 text-xs">
               <SelectValue placeholder="Artist name" />
             </SelectTrigger>
@@ -56,6 +65,7 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
                 <SelectItem key={a} value={a}>{a}</SelectItem>
               ))}
               <SelectItem value="__custom__">+ Add New Artist</SelectItem>
+              <SelectItem value="__manage__">⚙ Manage Artists</SelectItem>
             </SelectContent>
           </Select>
           {artistName === '__custom__' && (
@@ -118,6 +128,7 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
           <p className="text-xs text-muted-foreground/60 text-center py-3">No notes yet</p>
         )}
       </div>
+      <ArtistManagerDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>
   );
 }
