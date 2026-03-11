@@ -186,6 +186,27 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {searchOpen ? (
+              <div className="flex items-center gap-1 bg-muted rounded-md px-2 py-1">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  ref={searchInputRef}
+                  autoFocus
+                  type="text"
+                  placeholder="Search leads..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm w-48 text-foreground placeholder:text-muted-foreground"
+                />
+                <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }}>
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              </div>
+            ) : (
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSearchOpen(true)}>
+                <Search className="h-4 w-4" />
+              </Button>
+            )}
             <HotLeadNotifications
               notifications={notifications}
               unreadCount={unreadCount}
