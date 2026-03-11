@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lead } from '@/types/lead';
 import { useDesignTasks, type DesignType, type FeeStatus } from '@/hooks/useDesignTasks';
 import { useArtists } from '@/hooks/useArtists';
+import { ArtistManagerDialog } from './ArtistManagerDialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
