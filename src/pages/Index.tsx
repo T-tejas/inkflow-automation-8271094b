@@ -12,6 +12,7 @@ import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { DesignAssignDialog } from '@/components/crm/DesignAssignDialog';
 import { HotLeadNotifications } from '@/components/crm/HotLeadNotifications';
 import { BulkActionBar } from '@/components/crm/BulkActionBar';
+import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
 import { Button } from '@/components/ui/button';
 import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare } from 'lucide-react';
 import { Lead, LeadStatus } from '@/types/lead';
