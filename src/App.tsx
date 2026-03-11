@@ -37,6 +37,8 @@ function AuthenticatedApp() {
     return (
       <Routes>
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/consent/:formId" element={<ConsentForm />} />
+        <Route path="/walk-in-form" element={<WalkInForm />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
