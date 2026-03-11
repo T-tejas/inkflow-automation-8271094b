@@ -266,6 +266,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onEdit={handleEdit}
         onDelete={deleteLead}
         onAssignDesign={handleAssignDesign}
+        onMarkCompleted={(lead) => { setCompletionLead(lead); setCompletionOpen(true); }}
       />
       <WhatsAppLogDialog open={whatsappLogOpen} onOpenChange={setWhatsappLogOpen} />
       <DesignAssignDialog
@@ -274,6 +275,16 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onOpenChange={setDesignAssignOpen}
         onDesignAssigned={handleDesignAssigned}
         existingArtists={designArtists}
+      />
+      <TattooCompletionDialog
+        lead={completionLead}
+        open={completionOpen}
+        onOpenChange={setCompletionOpen}
+        onCompleted={() => {
+          if (completionLead) {
+            updateLeadStatus(completionLead.id, 'Completed');
+          }
+        }}
       />
       <AnimatePresence>
         <BulkActionBar
