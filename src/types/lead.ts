@@ -64,6 +64,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   'Completed',
   'No Response',
   'Cancelled',
+  'Out of City',
 ];
 
 // Display statuses for Kanban columns (No Response + Cancelled share a column)
@@ -76,6 +77,7 @@ export const KANBAN_STATUSES: LeadStatus[] = [
   'Booked',
   'Completed',
   'No Response', // "No Response / Cancelled" column
+  'Out of City',
 ];
 
 export const LEAD_SOURCES: LeadSource[] = ['Instagram', 'WhatsApp', 'Walk-in', 'Referral', 'Website', 'Facebook'];
