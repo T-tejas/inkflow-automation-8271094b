@@ -23,6 +23,7 @@ interface LeadDetailDialogProps {
   onEdit: (lead: Lead) => void;
   onDelete: (id: string) => void;
   onAssignDesign?: (lead: Lead) => void;
+  onMarkCompleted?: (lead: Lead) => void;
 }
 
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
