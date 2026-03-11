@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature, User } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LeadNotesTimeline } from './LeadNotesTimeline';
 import { useConsentForms } from '@/hooks/useConsentForms';
+import { ClientProfileDialog } from './ClientProfileDialog';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
