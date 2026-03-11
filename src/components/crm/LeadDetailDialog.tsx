@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature, User } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { LeadNotesTimeline } from './LeadNotesTimeline';
 import { useConsentForms } from '@/hooks/useConsentForms';
+import { ClientProfileDialog } from './ClientProfileDialog';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -34,6 +35,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
   const { createConsentForm } = useConsentForms();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleConsentForm = async () => {
     if (!lead) return;
@@ -168,6 +170,9 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
 
           <div className="flex flex-wrap justify-between gap-2 pt-2">
             <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => setProfileOpen(true)}>
+                <User className="h-3.5 w-3.5" /> Profile
+              </Button>
               <Button variant="destructive" size="sm" onClick={() => { onDelete(lead.id); onOpenChange(false); }}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
@@ -199,6 +204,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
           </div>
         </div>
       </DialogContent>
+      <ClientProfileDialog lead={lead} open={profileOpen} onOpenChange={setProfileOpen} />
     </Dialog>
   );
 }
