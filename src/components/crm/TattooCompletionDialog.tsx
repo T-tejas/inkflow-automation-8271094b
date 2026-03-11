@@ -12,7 +12,7 @@ import { useTattooCompletions } from '@/hooks/useTattooCompletions';
 import { generateInvoiceHTML, downloadInvoice } from '@/lib/invoiceGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useDesignTasks } from '@/hooks/useDesignTasks';
+import { useArtists } from '@/hooks/useArtists';
 
 const DEFAULT_AFTERCARE = `*DRY HEALING*
 
@@ -41,7 +41,7 @@ interface TattooCompletionDialogProps {
 
 export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }: TattooCompletionDialogProps) {
   const { addCompletion } = useTattooCompletions();
-  const { artists } = useDesignTasks();
+  const { artists } = useArtists();
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
   const [tattooPrice, setTattooPrice] = useState('');

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { useDesignTasks } from '@/hooks/useDesignTasks';
+
 import { useCrmNotifications } from '@/hooks/useCrmNotifications';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
@@ -30,7 +31,8 @@ interface IndexProps {
 const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const navigate = useNavigate();
   const { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads } = useLeads();
-  const { tasks: designTasks, artists: designArtists, fetchTasks: refetchDesignTasks } = useDesignTasks();
+  const { tasks: designTasks, fetchTasks: refetchDesignTasks } = useDesignTasks();
+  
   const { notifications, unreadCount, markAsRead, markAllRead } = useCrmNotifications();
   const [formOpen, setFormOpen] = useState(false);
   const [editLead, setEditLead] = useState<Lead | null>(null);
@@ -280,7 +282,6 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         open={designAssignOpen}
         onOpenChange={setDesignAssignOpen}
         onDesignAssigned={handleDesignAssigned}
-        existingArtists={designArtists}
       />
       <TattooCompletionDialog
         lead={completionLead}
@@ -304,7 +305,6 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         open={walkInOpen}
         onOpenChange={setWalkInOpen}
         onSubmit={handleFormSubmit}
-        artists={designArtists}
       />
     </div>
   );

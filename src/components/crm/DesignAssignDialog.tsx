@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lead } from '@/types/lead';
 import { useDesignTasks, type DesignType, type FeeStatus } from '@/hooks/useDesignTasks';
+import { useArtists } from '@/hooks/useArtists';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -16,11 +17,11 @@ interface DesignAssignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDesignAssigned: (leadId: string) => void;
-  existingArtists: string[];
 }
 
-export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned, existingArtists }: DesignAssignDialogProps) {
+export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned }: DesignAssignDialogProps) {
   const { addTask } = useDesignTasks();
+  const { artists: existingArtists } = useArtists();
   const [submitting, setSubmitting] = useState(false);
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
