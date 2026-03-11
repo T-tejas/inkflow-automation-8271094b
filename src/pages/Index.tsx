@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { useDesignTasks } from '@/hooks/useDesignTasks';
+import { useArtists } from '@/hooks/useArtists';
 import { useCrmNotifications } from '@/hooks/useCrmNotifications';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
