@@ -40,7 +40,10 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:snap-none" style={{ height: 'calc(100vh - 320px)', minHeight: '400px' }}>
       {KANBAN_STATUSES.map(status => {
-        const statusLeads = getLeadsByStatus(status);
+        const statusLeads = leads.filter(l => {
+          if (status === 'No Response') return l.status === 'No Response' || l.status === 'Cancelled';
+          return l.status === status;
+        });
         const sourceBreakdown = LEAD_SOURCES
           .map(source => ({ source, count: statusLeads.filter(lead => lead.source === source).length }))
           .filter(item => item.count > 0);
