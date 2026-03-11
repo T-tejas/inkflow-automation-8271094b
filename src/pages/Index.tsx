@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { useDesignTasks } from '@/hooks/useDesignTasks';
