@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { ChatMessage, ChatContact } from '@/hooks/useChat';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
+import { ConversationTimer } from './ConversationTimer';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';

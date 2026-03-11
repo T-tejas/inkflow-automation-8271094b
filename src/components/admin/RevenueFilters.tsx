@@ -26,7 +26,7 @@ export function RevenueFilters({ filters, onChange }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Date range buttons */}
-      {(['week', 'month', 'custom'] as DateRange[]).map(r => (
+      {(['today', 'week', 'month', 'all', 'custom'] as DateRange[]).map(r => (
         <Button
           key={r}
           size="sm"
@@ -39,7 +39,7 @@ export function RevenueFilters({ filters, onChange }: Props) {
           )}
           onClick={() => setRange(r)}
         >
-          {r === 'week' ? 'This Week' : r === 'month' ? 'This Month' : 'Custom'}
+          {r === 'today' ? 'Today' : r === 'week' ? 'This Week' : r === 'month' ? 'This Month' : r === 'all' ? 'All Time' : 'Custom'}
         </Button>
       ))}
 

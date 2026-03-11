@@ -59,6 +59,7 @@ function AuthenticatedApp() {
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="/admin/bulk-messaging" element={<ProtectedAdminRoute><BulkMessaging /></ProtectedAdminRoute>} />
       <Route path="/admin/bot-templates" element={<ProtectedAdminRoute><BotTemplates /></ProtectedAdminRoute>} />
+      <Route path="/admin/price-calculator" element={<ProtectedAdminRoute><PriceCalculator /></ProtectedAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
