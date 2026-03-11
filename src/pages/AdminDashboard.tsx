@@ -84,6 +84,7 @@ export default function AdminDashboard() {
             <RevenueCards stats={stats} />
             <RevenueCharts completed={completed} booked={booked} pending={pending} />
             <CompletedTable leads={completed} />
+            <SystemLogsPanel />
           </>
         }
       </main>
