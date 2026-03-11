@@ -33,8 +33,9 @@ export function useGoogleCalendar() {
         toast.error('Failed to get auth URL');
         return;
       }
-      // Open in new tab (popups get blocked in iframe previews)
-      window.open(data.url, '_blank');
+      // Use top-level window to avoid iframe blocking
+      const targetWindow = window.top || window.parent || window;
+      targetWindow.open(data.url, '_blank');
       // Poll for connection status after user completes OAuth
       const interval = setInterval(async () => {
         await checkStatus();
