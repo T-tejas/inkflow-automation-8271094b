@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
-import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink } from 'lucide-react';
+import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil } from 'lucide-react';
 import type { TattooCompletion } from '@/hooks/useTattooCompletions';
 import type { ConsentForm } from '@/hooks/useConsentForms';
+import { ConsentFormEditDialog } from './ConsentFormEditDialog';
 
 interface ClientProfileDialogProps {
   lead: Lead | null;
@@ -20,6 +21,7 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
   const [consentForms, setConsentForms] = useState<ConsentForm[]>([]);
   const [loading, setLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [editingForm, setEditingForm] = useState<ConsentForm | null>(null);
 
   useEffect(() => {
     if (!lead || !open) return;
@@ -146,6 +148,9 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
                           ) : (
                             <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">Pending</Badge>
                           )}
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEditingForm(f)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
                           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => window.open(`/consent/${f.id}`, '_blank')}>
                             <ExternalLink className="h-3 w-3" />
                           </Button>
@@ -166,6 +171,19 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
           <img src={lightboxUrl} alt="Tattoo" className="max-w-full max-h-[90vh] rounded-lg" />
         </div>
       )}
+
+      <ConsentFormEditDialog
+        form={editingForm}
+        open={!!editingForm}
+        onOpenChange={(v) => { if (!v) setEditingForm(null); }}
+        onSaved={() => {
+          // Refresh consent forms
+          if (lead) {
+            supabase.from('consent_forms').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false })
+              .then(({ data }) => setConsentForms((data as ConsentForm[]) || []));
+          }
+        }}
+      />
     </>
   );
 }
