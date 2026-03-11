@@ -1,76 +1,165 @@
 
 
-# WhatsApp Chat Module -- Functional Upgrade Plan
+# CRM System Upgrade Plan
 
-## Overview
-Make all chat UI elements fully functional: lead status badge with dropdown, emoji picker, file attachments, free-text messaging, template preview/edit, error banners, and auto-resize textarea.
+This is a large upgrade covering 8 feature areas. Here is the implementation plan broken into phases.
 
-## 1. Lead Status Badge + Dropdown in Chat Header
-**File: `ChatWindow.tsx`**
-- Add a colored badge next to contact name showing `contact.leadStatus`
-- Color map: New Lead (grey), Contacted (blue), Interested (purple), Negotiating (orange), Booked (green), Completed (dark green)
-- Wrap badge in a Popover/DropdownMenu with all status options
-- On status change: update via `supabase.from('leads').update({ status })` and log interaction, show toast
-- Remove the individual "Mark as Booked" / "Mark as Completed" icon buttons (replaced by dropdown)
+---
 
-## 2. Functional Emoji Picker
-**File: `ChatInput.tsx`**
-- Build a simple emoji grid popover (common emojis organized in categories) using Radix Popover
-- On emoji click: insert at cursor position in the textarea
-- No external library needed -- use a curated set of ~100 common emojis
+## What Already Exists
+- **Design Assignment**: `DesignAssignDialog` already handles artist selection, dates, and lead data sync — only needs notification enhancement
+- **Pipeline Board**: Kanban with drag-drop, but no multi-select
+- **Lead Notes**: Simple text field on the lead, no structured entries
+- **Completed Table**: Basic CSV export, no completion workflow
 
-## 3. File Attachment Button
-**File: `ChatInput.tsx`, new component `ChatAttachmentPreview.tsx`**
-- Hidden file input triggered by Paperclip button, accept images + PDFs
-- Show preview overlay before sending (image thumbnail or PDF icon + filename)
-- Upload file to existing `f19` storage bucket via Supabase Storage
-- Save message record with `message_body` containing the public URL and a new field or convention (prefix `[file]` or store URL)
-- Display attachments in `MessageBubble.tsx` -- detect URL pattern and render image or PDF link
+---
 
-## 4. Free-Text Send + Template Preview
-**File: `ChatInput.tsx`**
-- Change input from disabled to always enabled in message mode
-- Send button: works for both note mode AND message mode (free text sends via `send-whatsapp` edge function as a text message, or stores as outgoing)
-- Template selector: when template selected, load template text into textarea for editing before sending
-- Enter key sends in both modes
-- Update `QuickReplyTemplates.tsx` to return template text to input instead of immediately sending
+## Phase 1: Pipeline + Notes Improvements
 
-**File: `send-whatsapp/index.ts`**
-- Add support for `type: "text"` messages (not just templates) for free-text sending via Meta API
+### 1A. Multi-Select Pipeline
+- Add checkbox overlay on each `LeadCard` (visible on hover or via "Select Mode" toggle)
+- Floating bulk action bar at bottom: **Move to Stage**, **Delete Selected**, **Clear Selection**
+- State managed in `Index.tsx` with a `Set<string>` of selected lead IDs
 
-## 5. Auto-Resize Textarea
-**File: `ChatInput.tsx`**
-- Replace `<input>` with `<textarea>` that auto-resizes (max 5 rows)
-- Use `onInput` to adjust height based on `scrollHeight`
+### 1B. New Pipeline Stage: "Out of City / External Client"
+- Add to `LeadStatus` type union and all status arrays (`LEAD_STATUSES`, `KANBAN_STATUSES`)
+- Add color mapping (e.g. `bg-sky-500`)
+- DB migration not needed — status is stored as `text`
 
-## 6. Error Banner System
-**File: `ChatWindow.tsx`**
-- Check for recent failed messages with specific error patterns
-- Token expired: red banner at top "WhatsApp token expired -- update in settings"
-- Number not allowed: yellow warning in message bubble (already partially done)
-- API failure: add retry button on failed message bubbles in `MessageBubble.tsx`
+### 1C. Structured Lead Notes
+- **New table**: `lead_notes` with columns: `id`, `lead_id`, `artist_name`, `note_text`, `created_at` (auto date/time)
+- Replace the simple `notes` text field in `LeadDetailDialog` with a notes timeline showing:
+  ```text
+  Artist: Rahul | 11 Mar 2026, 2:30 PM
+  Note: Client wants geometric sleeve, discussed pricing
+  ```
+- Add "Add Note" form with artist name dropdown + text input
 
-## 7. Retry Failed Messages
-**File: `MessageBubble.tsx`**
-- For `status === 'failed'` messages, show a "Retry" button
-- On click: re-invoke `send-whatsapp` with same parameters, update the message record
+---
 
-## 8. Contact Status Refresh
-**File: `useChat.ts`**
-- After status change in chat header, call `fetchContacts()` to refresh sidebar
-- Pass `fetchContacts` or a status update callback to ChatWindow
+## Phase 2: Tattoo Completion Workflow
 
-## Files to Create/Edit
-| File | Action |
-|------|--------|
-| `src/components/chat/ChatWindow.tsx` | Status badge, dropdown, error banner, remove old buttons |
-| `src/components/chat/ChatInput.tsx` | Emoji picker, attachment, auto-resize textarea, free-text send |
-| `src/components/chat/MessageBubble.tsx` | Retry button, file/image rendering |
-| `src/components/chat/QuickReplyTemplates.tsx` | Return text to input instead of direct send |
-| `src/components/chat/EmojiPicker.tsx` | New: simple emoji grid popover |
-| `src/hooks/useChat.ts` | Add updateLeadStatus, retryMessage functions |
-| `supabase/functions/send-whatsapp/index.ts` | Add text message support |
-| `src/pages/Chat.tsx` | Wire new callbacks |
+### 2A. Completion Form
+- When lead moves to "Completed" or user clicks "Mark Tattoo Completed" in lead detail:
+  - Open `TattooCompletionDialog` with fields: Artist Name, Tattoo Price, Photo Upload, Aftercare Instructions
+  - Auto-generate **Client Unique ID**: `F19-CLIENT-XXXXX` (random 5-digit number, stored on lead)
 
-No database migrations needed -- existing schema supports all changes.
+### 2B. New table: `tattoo_completions`
+- Columns: `id`, `lead_id`, `client_id_code` (F19-CLIENT-XXXXX), `artist_name`, `tattoo_price`, `photo_urls` (text array), `aftercare_notes`, `invoice_url`, `created_at`
+
+### 2C. Invoice Generation
+- Client-side PDF generation using the completion data
+- Branded "F19 Tattoo Studio" header with client ID, price, date, artist
+- Upload generated PDF to `f19` storage bucket
+
+### 2D. Photo Upload
+- Upload tattoo photos to `f19` bucket under `completions/{lead_id}/`
+- Show thumbnail previews in the completion form and lead detail
+
+---
+
+## Phase 3: Smart Review + Walk-in + Consent
+
+### 3A. Smart Client Review
+- After completion, trigger WhatsApp message asking for rating (1-5 stars via interactive buttons)
+- Edge function logic in `whatsapp-webhook`:
+  - Rating 5 → Send Google Review link
+  - Rating ≤ 4 → Create CRM notification: "Low Rating Alert"
+
+### 3B. Walk-in Customer System
+- Add "New Walk-in" button in CRM header
+- Opens `WalkInDialog` with: Name, Phone, Tattoo Idea, Placement, Budget, Artist, Appointment Date
+- Creates lead with `source: 'Walk-in'` and creates appointment simultaneously
+- **Shareable walk-in form**: Public route `/walk-in-form` that submits data via edge function (no auth required)
+
+### 3C. Digital Tattoo Consent Form
+- New table: `consent_forms` with: `id`, `lead_id`, `client_name`, `signature_data` (base64), `signed_at`, `consent_text`
+- "Consent Form" button in lead detail generates a unique link: `/consent/{form_id}`
+- Public page with safety instructions, client details, and HTML Canvas signature pad
+- Signed data saved to DB and linked to lead
+
+---
+
+## Database Migrations Required
+
+```sql
+-- 1. lead_notes table
+CREATE TABLE public.lead_notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  artist_name text NOT NULL DEFAULT '',
+  note_text text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.lead_notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to lead_notes" ON public.lead_notes FOR ALL USING (true) WITH CHECK (true);
+
+-- 2. tattoo_completions table
+CREATE TABLE public.tattoo_completions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  client_id_code text NOT NULL,
+  artist_name text NOT NULL,
+  tattoo_price numeric NOT NULL DEFAULT 0,
+  photo_urls text[] NOT NULL DEFAULT '{}',
+  aftercare_notes text DEFAULT '',
+  invoice_url text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.tattoo_completions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to tattoo_completions" ON public.tattoo_completions FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. consent_forms table
+CREATE TABLE public.consent_forms (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  client_name text NOT NULL,
+  signature_data text,
+  consent_text text NOT NULL,
+  signed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.consent_forms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to consent_forms" ON public.consent_forms FOR ALL USING (true) WITH CHECK (true);
+
+-- 4. Add client_id_code to leads
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS client_id_code text;
+```
+
+---
+
+## New Files to Create
+| File | Purpose |
+|------|---------|
+| `src/components/crm/BulkActionBar.tsx` | Floating bar for multi-select actions |
+| `src/components/crm/LeadNotesTimeline.tsx` | Structured notes display + add form |
+| `src/components/crm/TattooCompletionDialog.tsx` | Completion form with photo upload + invoice |
+| `src/components/crm/WalkInDialog.tsx` | Walk-in customer quick-add form |
+| `src/pages/ConsentForm.tsx` | Public consent form page with signature pad |
+| `src/pages/WalkInForm.tsx` | Public shareable walk-in form |
+| `src/hooks/useLeadNotes.ts` | CRUD for lead_notes table |
+| `src/hooks/useTattooCompletions.ts` | CRUD for tattoo_completions |
+| `src/hooks/useConsentForms.ts` | CRUD for consent_forms |
+| `src/lib/invoiceGenerator.ts` | Client-side invoice PDF generation |
+
+## Files to Modify
+| File | Changes |
+|------|---------|
+| `src/types/lead.ts` | Add "Out of City" status, update arrays and color maps |
+| `src/pages/Index.tsx` | Multi-select state, bulk action bar, walk-in button |
+| `src/components/crm/PipelineBoard.tsx` | Checkbox on cards, selection state |
+| `src/components/crm/LeadCard.tsx` | Selection checkbox prop |
+| `src/components/crm/LeadDetailDialog.tsx` | Notes timeline, completion button, consent form button |
+| `src/App.tsx` | Add public routes for consent and walk-in forms |
+| `supabase/functions/whatsapp-webhook/index.ts` | Review rating handler |
+
+---
+
+## Implementation Order
+1. Pipeline multi-select + "Out of City" stage (quickest wins)
+2. Structured lead notes system
+3. Tattoo completion workflow + client ID + invoice
+4. Walk-in customer system + shareable form
+5. Digital consent form with signature
+6. Smart review system (WhatsApp integration)
 
