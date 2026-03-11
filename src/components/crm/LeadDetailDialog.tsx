@@ -204,6 +204,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
           </div>
         </div>
       </DialogContent>
+      <ClientProfileDialog lead={lead} open={profileOpen} onOpenChange={setProfileOpen} />
     </Dialog>
   );
 }
