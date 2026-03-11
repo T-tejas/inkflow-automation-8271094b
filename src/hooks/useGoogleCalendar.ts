@@ -33,15 +33,14 @@ export function useGoogleCalendar() {
         toast.error('Failed to get auth URL');
         return;
       }
-      // Open in popup
-      const popup = window.open(data.url, 'google-calendar-auth', 'width=500,height=600');
-      // Poll for popup close
-      const interval = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(interval);
-          checkStatus();
-        }
-      }, 1000);
+      // Open in new tab (popups get blocked in iframe previews)
+      window.open(data.url, '_blank');
+      // Poll for connection status after user completes OAuth
+      const interval = setInterval(async () => {
+        await checkStatus();
+      }, 3000);
+      // Stop polling after 5 minutes
+      setTimeout(() => clearInterval(interval), 300000);
     } catch {
       toast.error('Failed to connect Google Calendar');
     }
