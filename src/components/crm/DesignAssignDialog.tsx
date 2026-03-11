@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
 import { useDesignTasks, type DesignType, type FeeStatus } from '@/hooks/useDesignTasks';
 import { useArtists } from '@/hooks/useArtists';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { ArtistManagerDialog } from './ArtistManagerDialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -12,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Palette } from 'lucide-react';
+import { Loader2, Palette, Calendar, CheckCircle2, Link } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface DesignAssignDialogProps {
   lead: Lead | null;
@@ -24,6 +26,7 @@ interface DesignAssignDialogProps {
 export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned }: DesignAssignDialogProps) {
   const { addTask } = useDesignTasks();
   const { artistNames: existingArtists, addArtist } = useArtists();
+  const { connected: gcalConnected, checking: gcalChecking, connect: connectGcal, createEvent } = useGoogleCalendar();
   const [submitting, setSubmitting] = useState(false);
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
@@ -39,7 +42,6 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
 
   const resolvedArtist = artistName === '__custom__' ? customArtist : artistName;
 
-  // Build comprehensive notes from lead data
   const buildNotes = () => {
     const parts: string[] = [];
     if (lead.tattooStyle && lead.tattooStyle !== 'Other') parts.push(`Style: ${lead.tattooStyle}`);
@@ -55,7 +57,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
     e.preventDefault();
     if (!resolvedArtist.trim()) return;
     setSubmitting(true);
-    // Auto-save custom artist
+
     if (artistName === '__custom__' && customArtist.trim()) {
       await addArtist(customArtist.trim());
     }
@@ -75,8 +77,8 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
       notes: buildNotes(),
     });
 
-    // Create CRM notification for design assignment
     if (success) {
+      // Create CRM notification
       const notifBody = [
         `Artist: ${resolvedArtist.trim()}`,
         `Design Deadline: ${dueDate}`,
@@ -99,10 +101,44 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
         chat_summary: notifBody,
         timeline: dueDate,
       } as any);
-    }
 
-    setSubmitting(false);
-    if (success) {
+      // Google Calendar event creation
+      if (gcalConnected) {
+        // Get the newly created task ID
+        const { data: latestTask } = await supabase
+          .from('design_tasks')
+          .select('id')
+          .eq('lead_id', lead.id)
+          .eq('artist_name', resolvedArtist.trim())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const endDate = new Date(dueDate);
+        endDate.setDate(endDate.getDate() + 1);
+
+        const eventId = await createEvent({
+          client_name: lead.fullName,
+          client_phone: lead.phone,
+          tattoo_idea: lead.tattooStyle || undefined,
+          placement: lead.placement || undefined,
+          size: lead.size || undefined,
+          budget: lead.budget || undefined,
+          notes: buildNotes(),
+          start_date: startDate,
+          end_date: endDate.toISOString().split('T')[0],
+          design_due_date: dueDate,
+          tattoo_date: tattooDate || lead.preferredDate || undefined,
+          design_task_id: latestTask?.id,
+        });
+
+        if (eventId) {
+          toast.success('📅 Google Calendar event created');
+        } else {
+          toast.warning('Design saved but calendar event failed');
+        }
+      }
+
       onDesignAssigned(lead.id);
       onOpenChange(false);
       setArtistName('');
@@ -113,6 +149,8 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
       setTattooDate('');
       setReferenceNotes('');
     }
+
+    setSubmitting(false);
   };
 
   return (
@@ -125,6 +163,25 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
             Assign Design
           </DialogTitle>
         </DialogHeader>
+
+        {/* Google Calendar Connection Status */}
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 p-2.5">
+          <div className="flex items-center gap-2 text-xs">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">Google Calendar</span>
+          </div>
+          {gcalChecking ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          ) : gcalConnected ? (
+            <span className="flex items-center gap-1 text-xs text-green-500">
+              <CheckCircle2 className="h-3 w-3" /> Connected
+            </span>
+          ) : (
+            <Button type="button" variant="outline" size="sm" className="h-6 text-[10px] gap-1" onClick={connectGcal}>
+              <Link className="h-3 w-3" /> Connect
+            </Button>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Auto-filled client details */}
