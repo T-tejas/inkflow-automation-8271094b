@@ -80,8 +80,8 @@ export function SystemLogsPanel() {
             <div key={log.id} className={`flex items-start gap-2 p-2 rounded-md text-xs ${log.is_resolved ? 'bg-zinc-900/30 opacity-60' : 'bg-zinc-900/60'}`}>
                 <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${log.log_type === 'error' ? 'text-red-400' : 'text-blue-400'}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-neutral-200 truncate">{log.message}</p>
-                  <p className="text-[10px] bg-accent text-neutral-800">
+                  <p className="truncate font-sans text-neutral-900 bg-accent">{log.message}</p>
+                  <p className="text-[10px] bg-accent text-stone-600">
                     {log.category} · {new Date(log.created_at).toLocaleString('en-IN')}
                   </p>
                 </div>
