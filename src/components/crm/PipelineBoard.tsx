@@ -13,6 +13,9 @@ interface PipelineBoardProps {
   onAssignDesign?: (lead: Lead) => void;
   onViewDesign?: (leadId: string) => void;
   designLeadIds?: Set<string>;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (leadId: string) => void;
+  selectMode?: boolean;
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
@@ -25,13 +28,15 @@ const STATUS_DOT_COLORS: Record<string, string> = {
   'Completed': 'bg-pipeline-completed',
   'No Response': 'bg-pipeline-no-response',
   'Cancelled': 'bg-pipeline-cancelled',
+  'Out of City': 'bg-sky-500',
 };
 
 const COLUMN_LABELS: Record<string, string> = {
   'No Response': 'No Response / Cancelled',
+  'Out of City': 'Out of City / External',
 };
 
-export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds }: PipelineBoardProps) {
+export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds, selectedIds, onToggleSelect, selectMode }: PipelineBoardProps) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:snap-none" style={{ height: 'calc(100vh - 320px)', minHeight: '400px' }}>
       {KANBAN_STATUSES.map(status => {
@@ -106,6 +111,9 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                         onAssignDesign={onAssignDesign}
                         onViewDesign={onViewDesign}
                         hasDesign={designLeadIds?.has(lead.id)}
+                        isSelected={selectedIds?.has(lead.id)}
+                        onToggleSelect={onToggleSelect}
+                        selectMode={selectMode}
                       />
                     </div>
                   ))}

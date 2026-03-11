@@ -16,6 +16,8 @@ import WhatsAppSettings from "./pages/WhatsAppSettings";
 import DesignTracker from "./pages/DesignTracker";
 import BulkMessaging from "./pages/BulkMessaging";
 import BotTemplates from "./pages/BotTemplates";
+import ConsentForm from "./pages/ConsentForm";
+import WalkInForm from "./pages/WalkInForm";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ function AuthenticatedApp() {
     return (
       <Routes>
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/consent/:formId" element={<ConsentForm />} />
+        <Route path="/walk-in-form" element={<WalkInForm />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -48,6 +52,8 @@ function AuthenticatedApp() {
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/designs" element={<DesignTracker />} />
       <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/consent/:formId" element={<ConsentForm />} />
+      <Route path="/walk-in-form" element={<WalkInForm />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="/admin/bulk-messaging" element={<ProtectedAdminRoute><BulkMessaging /></ProtectedAdminRoute>} />

@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { LeadNotesTimeline } from './LeadNotesTimeline';
+import { useConsentForms } from '@/hooks/useConsentForms';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -22,14 +24,26 @@ interface LeadDetailDialogProps {
   onEdit: (lead: Lead) => void;
   onDelete: (id: string) => void;
   onAssignDesign?: (lead: Lead) => void;
+  onMarkCompleted?: (lead: Lead) => void;
 }
 
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
 
-export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign }: LeadDetailDialogProps) {
+export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign, onMarkCompleted }: LeadDetailDialogProps) {
   const navigate = useNavigate();
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
+  const { createConsentForm } = useConsentForms();
+
+  const handleConsentForm = async () => {
+    if (!lead) return;
+    const form = await createConsentForm(lead.id, lead.fullName);
+    if (form) {
+      const url = `${window.location.origin}/consent/${form.id}`;
+      navigator.clipboard.writeText(url);
+      toast.success('Consent form link copied to clipboard!');
+    }
+  };
 
   if (!lead) return null;
 
@@ -115,11 +129,8 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
             </div>
           )}
 
-          {lead.notes && (
-            <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-              {lead.notes}
-            </div>
-          )}
+          {/* Structured Notes Timeline */}
+          <LeadNotesTimeline leadId={lead.id} />
 
           {/* WhatsApp Templates Section */}
           {lead.whatsappOptIn && (
@@ -155,8 +166,8 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
             </div>
           )}
 
-          <div className="flex justify-between pt-2">
-            <div className="flex gap-2">
+          <div className="flex flex-wrap justify-between gap-2 pt-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="destructive" size="sm" onClick={() => { onDelete(lead.id); onOpenChange(false); }}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
@@ -170,6 +181,17 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
               }}>
                 <Palette className="h-3.5 w-3.5" /> Design Task
               </Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={handleConsentForm}>
+                <FileSignature className="h-3.5 w-3.5" /> Consent Form
+              </Button>
+              {lead.status === 'Booked' && onMarkCompleted && (
+                <Button variant="outline" size="sm" className="gap-1 border-green-500/30 text-green-600 hover:bg-green-500/10" onClick={() => {
+                  onOpenChange(false);
+                  onMarkCompleted(lead);
+                }}>
+                  <Award className="h-3.5 w-3.5" /> Mark Completed
+                </Button>
+              )}
             </div>
             <Button size="sm" onClick={() => { onEdit(lead); onOpenChange(false); }}>
               <Pencil className="h-3.5 w-3.5 mr-1" /> Edit

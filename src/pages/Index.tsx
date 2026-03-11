@@ -11,11 +11,15 @@ import { LeadDetailDialog } from '@/components/crm/LeadDetailDialog';
 import { WhatsAppLogDialog } from '@/components/crm/WhatsAppLogDialog';
 import { DesignAssignDialog } from '@/components/crm/DesignAssignDialog';
 import { HotLeadNotifications } from '@/components/crm/HotLeadNotifications';
+import { BulkActionBar } from '@/components/crm/BulkActionBar';
+import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
+import { WalkInDialog } from '@/components/crm/WalkInDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette } from 'lucide-react';
-import { Lead } from '@/types/lead';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus } from 'lucide-react';
+import { Lead, LeadStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface IndexProps {
   signOut: () => Promise<void>;
@@ -36,6 +40,11 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [designAssignLead, setDesignAssignLead] = useState<Lead | null>(null);
   const [designAssignOpen, setDesignAssignOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [completionLead, setCompletionLead] = useState<Lead | null>(null);
+  const [completionOpen, setCompletionOpen] = useState(false);
+  const [walkInOpen, setWalkInOpen] = useState(false);
 
   // Set of lead IDs that have designs assigned
   const designLeadIds = useMemo(() => new Set(designTasks.filter(t => t.lead_id).map(t => t.lead_id!)), [designTasks]);
@@ -100,6 +109,32 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
 
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
+  const handleToggleSelect = (leadId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId); else next.add(leadId);
+      return next;
+    });
+  };
+
+  const handleBulkMoveToStage = async (status: LeadStatus) => {
+    for (const id of selectedIds) {
+      await updateLeadStatus(id, status);
+    }
+    toast.success(`${selectedIds.size} leads moved to ${status}`);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  };
+
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      await deleteLead(id);
+    }
+    toast.success(`${selectedIds.size} leads deleted`);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Sync Error Banner */}
@@ -162,6 +197,19 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
               <MessageCircle className="h-4 w-4 text-success" />
               Chat
             </Button>
+            <Button
+              variant={selectMode ? 'default' : 'outline'}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => { setSelectMode(!selectMode); if (selectMode) setSelectedIds(new Set()); }}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? 'Exit Select' : 'Select'}
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setWalkInOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              Walk-in
+            </Button>
             <Button onClick={() => { setEditLead(null); setFormOpen(true); }} size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />
               Add Lead
@@ -203,6 +251,9 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             onAssignDesign={handleAssignDesign}
             onViewDesign={handleViewDesign}
             designLeadIds={designLeadIds}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            selectMode={selectMode}
           />
         </div>
       </main>
@@ -221,6 +272,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onEdit={handleEdit}
         onDelete={deleteLead}
         onAssignDesign={handleAssignDesign}
+        onMarkCompleted={(lead) => { setCompletionLead(lead); setCompletionOpen(true); }}
       />
       <WhatsAppLogDialog open={whatsappLogOpen} onOpenChange={setWhatsappLogOpen} />
       <DesignAssignDialog
@@ -229,6 +281,30 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onOpenChange={setDesignAssignOpen}
         onDesignAssigned={handleDesignAssigned}
         existingArtists={designArtists}
+      />
+      <TattooCompletionDialog
+        lead={completionLead}
+        open={completionOpen}
+        onOpenChange={setCompletionOpen}
+        onCompleted={() => {
+          if (completionLead) {
+            updateLeadStatus(completionLead.id, 'Completed');
+          }
+        }}
+      />
+      <AnimatePresence>
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onMoveToStage={handleBulkMoveToStage}
+          onDeleteSelected={handleBulkDelete}
+          onClearSelection={() => { setSelectedIds(new Set()); setSelectMode(false); }}
+        />
+      </AnimatePresence>
+      <WalkInDialog
+        open={walkInOpen}
+        onOpenChange={setWalkInOpen}
+        onSubmit={handleFormSubmit}
+        artists={designArtists}
       />
     </div>
   );

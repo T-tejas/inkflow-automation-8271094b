@@ -4,6 +4,7 @@ import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowR
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 
 interface LeadCardProps {
@@ -15,6 +16,9 @@ interface LeadCardProps {
   onAssignDesign?: (lead: Lead) => void;
   onViewDesign?: (leadId: string) => void;
   hasDesign?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (leadId: string) => void;
+  selectMode?: boolean;
 }
 
 function getBorderColor(lead: Lead): string {
@@ -30,7 +34,7 @@ function isHotLead(lead: Lead): boolean {
   return lead.status === 'Artist Consultation';
 }
 
-export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign, isSelected, onToggleSelect, selectMode }: LeadCardProps) {
   const [stageOpen, setStageOpen] = useState(false);
 
   const handleQuickAction = (e: React.MouseEvent, action: () => void) => {
@@ -47,11 +51,21 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         exit={{ opacity: 0, y: -8 }}
         whileHover={{ scale: 1.01 }}
         onClick={() => onClick(lead)}
-        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''}`}
+        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
-          <h4 className="font-medium text-sm text-foreground truncate">{lead.fullName}</h4>
+          <div className="flex items-center gap-2">
+            {(selectMode || isSelected) && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelect?.(lead.id)}
+                onClick={e => e.stopPropagation()}
+                className="h-3.5 w-3.5"
+              />
+            )}
+            <h4 className="font-medium text-sm text-foreground truncate">{lead.fullName}</h4>
+          </div>
           <div className="flex items-center gap-1 shrink-0">
             {lead.whatsappOptIn && (
               <MessageCircle className="h-3.5 w-3.5 text-success" />
