@@ -13,6 +13,7 @@ import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Sen
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { LeadNotesTimeline } from './LeadNotesTimeline';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
