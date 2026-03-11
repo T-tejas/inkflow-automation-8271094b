@@ -206,6 +206,10 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
               <CheckSquare className="h-4 w-4" />
               {selectMode ? 'Exit Select' : 'Select'}
             </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setWalkInOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              Walk-in
+            </Button>
             <Button onClick={() => { setEditLead(null); setFormOpen(true); }} size="sm" className="gap-1.5">
               <Plus className="h-4 w-4" />
               Add Lead
