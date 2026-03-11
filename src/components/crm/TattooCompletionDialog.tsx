@@ -12,7 +12,7 @@ import { useTattooCompletions } from '@/hooks/useTattooCompletions';
 import { generateInvoiceHTML, downloadInvoice } from '@/lib/invoiceGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useDesignTasks } from '@/hooks/useDesignTasks';
+import { useArtists } from '@/hooks/useArtists';
 
 const DEFAULT_AFTERCARE = `*DRY HEALING*
 

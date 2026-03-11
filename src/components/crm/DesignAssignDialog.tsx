@@ -16,11 +16,11 @@ interface DesignAssignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDesignAssigned: (leadId: string) => void;
-  existingArtists: string[];
 }
 
-export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned, existingArtists }: DesignAssignDialogProps) {
+export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned }: DesignAssignDialogProps) {
   const { addTask } = useDesignTasks();
+  const { artists: existingArtists } = useArtists();
   const [submitting, setSubmitting] = useState(false);
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
