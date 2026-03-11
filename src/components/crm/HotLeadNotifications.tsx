@@ -95,12 +95,8 @@ export function HotLeadNotifications({ notifications, unreadCount, onMarkRead, o
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!n.is_read ? 'bg-orange-500/20' : 'bg-muted'}`}>
-                        {n.lead_score === 'HOT' ? (
-                          <Flame className={`h-4 w-4 ${!n.is_read ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                        ) : (
-                          <Zap className={`h-4 w-4 ${!n.is_read ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                        )}
+                      <div className={`mt-0.5 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!n.is_read ? (n.notification_type === 'design_assigned' ? 'bg-purple-500/20' : 'bg-orange-500/20') : 'bg-muted'}`}>
+                        {getNotifIcon(n)}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-center gap-2">
