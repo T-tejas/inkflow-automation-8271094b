@@ -171,6 +171,19 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
           <img src={lightboxUrl} alt="Tattoo" className="max-w-full max-h-[90vh] rounded-lg" />
         </div>
       )}
+
+      <ConsentFormEditDialog
+        form={editingForm}
+        open={!!editingForm}
+        onOpenChange={(v) => { if (!v) setEditingForm(null); }}
+        onSaved={() => {
+          // Refresh consent forms
+          if (lead) {
+            supabase.from('consent_forms').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false })
+              .then(({ data }) => setConsentForms((data as ConsentForm[]) || []));
+          }
+        }}
+      />
     </>
   );
 }
