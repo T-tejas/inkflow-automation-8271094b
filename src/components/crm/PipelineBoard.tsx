@@ -33,6 +33,7 @@ const STATUS_DOT_COLORS: Record<string, string> = {
 
 const COLUMN_LABELS: Record<string, string> = {
   'No Response': 'No Response / Cancelled',
+  'Out of City': 'Out of City / External',
 };
 
 export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds }: PipelineBoardProps) {
