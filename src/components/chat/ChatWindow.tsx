@@ -61,6 +61,12 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   const tokenExpired = recentFailed.some(m => m.errorMessage?.toLowerCase().includes('token') || m.errorMessage?.toLowerCase().includes('expired') || m.errorMessage?.toLowerCase().includes('oauth'));
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
+  // Find last incoming message time for 24hr window (must be before early return)
+  const lastIncomingAt = useMemo(() => {
+    const incoming = messages.filter(m => m.status === 'received');
+    return incoming.length > 0 ? incoming[incoming.length - 1].createdAt : null;
+  }, [messages]);
+
   if (!contact) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center" style={{ backgroundColor: '#f0f2f5' }}>
