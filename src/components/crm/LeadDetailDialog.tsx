@@ -33,6 +33,17 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
   const navigate = useNavigate();
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
+  const { createConsentForm } = useConsentForms();
+
+  const handleConsentForm = async () => {
+    if (!lead) return;
+    const form = await createConsentForm(lead.id, lead.fullName);
+    if (form) {
+      const url = `${window.location.origin}/consent/${form.id}`;
+      navigator.clipboard.writeText(url);
+      toast.success('Consent form link copied to clipboard!');
+    }
+  };
 
   if (!lead) return null;
 
