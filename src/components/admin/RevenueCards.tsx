@@ -26,10 +26,8 @@ export function RevenueCards({ stats }: { stats: Stats }) {
       count: stats.todayCount,
       countLabel: 'today',
       icon: TrendingUp,
-      accent: 'text-amber-400',
-      bg: 'bg-amber-500/10',
-      border: 'border-amber-500/30',
-      glow: 'shadow-amber-500/5',
+      color: 'hsl(var(--warning))',
+      isCount: false,
     },
     {
       title: 'Monthly Revenue',
@@ -37,10 +35,8 @@ export function RevenueCards({ stats }: { stats: Stats }) {
       count: stats.completedCount,
       countLabel: 'this period',
       icon: CheckCircle2,
-      accent: 'text-emerald-400',
-      bg: 'bg-emerald-500/10',
-      border: 'border-emerald-500/30',
-      glow: 'shadow-emerald-500/5',
+      color: 'hsl(var(--success))',
+      isCount: false,
     },
     {
       title: 'Total Revenue',
@@ -48,10 +44,8 @@ export function RevenueCards({ stats }: { stats: Stats }) {
       count: stats.totalCompleted,
       countLabel: 'all time',
       icon: Trophy,
-      accent: 'text-amber-300',
-      bg: 'bg-amber-400/10',
-      border: 'border-amber-400/30',
-      glow: 'shadow-amber-400/5',
+      color: 'hsl(var(--primary))',
+      isCount: false,
     },
     {
       title: 'Pending Payments',
@@ -59,10 +53,8 @@ export function RevenueCards({ stats }: { stats: Stats }) {
       count: stats.pendingCount,
       countLabel: 'leads',
       icon: Clock,
-      accent: 'text-orange-400',
-      bg: 'bg-orange-500/10',
-      border: 'border-orange-500/30',
-      glow: 'shadow-orange-500/5',
+      color: 'hsl(var(--destructive))',
+      isCount: false,
     },
     {
       title: 'Total Completed',
@@ -70,10 +62,7 @@ export function RevenueCards({ stats }: { stats: Stats }) {
       count: stats.bookedCount,
       countLabel: 'booked',
       icon: CalendarCheck,
-      accent: 'text-sky-400',
-      bg: 'bg-sky-500/10',
-      border: 'border-sky-500/30',
-      glow: 'shadow-sky-500/5',
+      color: 'hsl(var(--info))',
       isCount: true,
     },
   ];
@@ -81,23 +70,26 @@ export function RevenueCards({ stats }: { stats: Stats }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map(c => (
-        <Card key={c.title} className={`bg-zinc-900/80 border ${c.border} shadow-lg ${c.glow}`}>
+        <Card key={c.title} className="glass-card">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">{c.title}</p>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{c.title}</p>
                 {c.isCount ? (
-                  <span className={`text-3xl font-bold ${c.accent}`}>{c.value}</span>
+                  <span className="text-3xl font-bold text-foreground">{c.value}</span>
                 ) : (
                   <div className="flex items-baseline gap-0.5">
-                    <IndianRupee className={`h-4 w-4 ${c.accent}`} />
-                    <span className={`text-2xl font-bold ${c.accent}`}>{fmt(c.value)}</span>
+                    <IndianRupee className="h-4 w-4 text-foreground" />
+                    <span className="text-2xl font-bold text-foreground">{fmt(c.value)}</span>
                   </div>
                 )}
-                <p className="text-[10px] text-zinc-600">{c.count} {c.countLabel}</p>
+                <p className="text-[10px] text-muted-foreground">{c.count} {c.countLabel}</p>
               </div>
-              <div className={`p-2.5 rounded-xl ${c.bg}`}>
-                <c.icon className={`h-5 w-5 ${c.accent}`} />
+              <div
+                className="p-2.5 rounded-xl"
+                style={{ backgroundColor: `${c.color}20` }}
+              >
+                <c.icon className="h-5 w-5" style={{ color: c.color }} />
               </div>
             </div>
           </CardContent>
