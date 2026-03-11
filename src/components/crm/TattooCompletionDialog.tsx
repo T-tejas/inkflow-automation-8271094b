@@ -247,5 +247,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
         </div>
       </DialogContent>
     </Dialog>
+    <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
+    </>
   );
 }
