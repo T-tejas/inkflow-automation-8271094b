@@ -128,6 +128,7 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
           <p className="text-xs text-muted-foreground/60 text-center py-3">No notes yet</p>
         )}
       </div>
+      <ArtistManagerDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>
   );
 }
