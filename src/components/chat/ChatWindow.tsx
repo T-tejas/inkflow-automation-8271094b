@@ -188,8 +188,9 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="text-xs" style={{ color: '#667781' }}>
+            <div className="text-xs flex items-center gap-2" style={{ color: '#667781' }}>
               {contact.leadPhone}
+              <ConversationTimer lastIncomingAt={lastIncomingAt} />
             </div>
           </div>
         </div>
