@@ -89,6 +89,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
