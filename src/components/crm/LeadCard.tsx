@@ -4,6 +4,7 @@ import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowR
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 
 interface LeadCardProps {
@@ -15,6 +16,9 @@ interface LeadCardProps {
   onAssignDesign?: (lead: Lead) => void;
   onViewDesign?: (leadId: string) => void;
   hasDesign?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (leadId: string) => void;
+  selectMode?: boolean;
 }
 
 function getBorderColor(lead: Lead): string {
