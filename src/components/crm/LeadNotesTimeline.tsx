@@ -97,8 +97,14 @@ export function LeadNotesTimeline({ leadId, artists = [] }: LeadNotesTimelinePro
                   {dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}, {dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 <button
-                  onClick={() => deleteNote(note.id)}
-                  className="ml-auto opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity"
+                  onClick={async () => {
+                    if (deletingId) return;
+                    setDeletingId(note.id);
+                    await deleteNote(note.id);
+                    setDeletingId(null);
+                  }}
+                  disabled={deletingId === note.id}
+                  className="ml-auto opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive/80 transition-opacity disabled:opacity-50"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
