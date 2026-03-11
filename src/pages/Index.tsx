@@ -242,6 +242,9 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             onAssignDesign={handleAssignDesign}
             onViewDesign={handleViewDesign}
             designLeadIds={designLeadIds}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            selectMode={selectMode}
           />
         </div>
       </main>
