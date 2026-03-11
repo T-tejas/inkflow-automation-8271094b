@@ -12,7 +12,7 @@ interface LeadNotesTimelineProps {
 }
 
 export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
-  const { artists } = useArtists();
+  const { artistNames: artists, addArtist } = useArtists();
   const { notes, loading, addNote, deleteNote } = useLeadNotes(leadId);
   const [showForm, setShowForm] = useState(false);
   const [artistName, setArtistName] = useState('');
