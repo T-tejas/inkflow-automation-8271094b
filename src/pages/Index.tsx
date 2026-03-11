@@ -104,6 +104,32 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
 
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
+  const handleToggleSelect = (leadId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(leadId)) next.delete(leadId); else next.add(leadId);
+      return next;
+    });
+  };
+
+  const handleBulkMoveToStage = async (status: LeadStatus) => {
+    for (const id of selectedIds) {
+      await updateLeadStatus(id, status);
+    }
+    toast.success(`${selectedIds.size} leads moved to ${status}`);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  };
+
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      await deleteLead(id);
+    }
+    toast.success(`${selectedIds.size} leads deleted`);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Sync Error Banner */}
