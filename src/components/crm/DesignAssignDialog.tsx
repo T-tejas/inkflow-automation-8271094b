@@ -237,5 +237,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
         </form>
       </DialogContent>
     </Dialog>
+    <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
+    </>
   );
 }
