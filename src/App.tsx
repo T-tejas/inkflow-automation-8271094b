@@ -52,6 +52,8 @@ function AuthenticatedApp() {
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/designs" element={<DesignTracker />} />
       <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/consent/:formId" element={<ConsentForm />} />
+      <Route path="/walk-in-form" element={<WalkInForm />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="/admin/bulk-messaging" element={<ProtectedAdminRoute><BulkMessaging /></ProtectedAdminRoute>} />
