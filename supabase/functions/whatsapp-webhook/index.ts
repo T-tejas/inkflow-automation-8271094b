@@ -894,6 +894,74 @@ Deno.serve(async (req) => {
               }
             }
 
+            // ─── REVIEW RATING HANDLER ────────────────────────
+            // Check if message is a rating (1-5) from a recent completion
+            const ratingMatch = messageText.trim().match(/^([1-5])$/);
+            if (ratingMatch && phoneNumberId && accessToken) {
+              const rating = parseInt(ratingMatch[1]);
+              // Check if we recently sent a review request to this phone
+              const { data: recentReview } = await supabase.from("whatsapp_messages")
+                .select("id")
+                .eq("lead_phone", `+${senderPhone}`)
+                .ilike("message_body", "%rate your experience%")
+                .order("created_at", { ascending: false })
+                .limit(1);
+              
+              if (recentReview && recentReview.length > 0) {
+                // Log incoming rating
+                await supabase.from("whatsapp_messages").insert({
+                  lead_phone: `+${senderPhone}`, lead_name: senderName, lead_id: null,
+                  template_name: "incoming", template_type: "incoming", status: "received",
+                  meta_message_id: message.id, message_body: messageText, message_type: "text",
+                });
+
+                // Find the lead
+                const { data: ratingLeads } = await supabase.from("leads").select("id, full_name").eq("phone", `+${senderPhone}`).limit(1);
+                const ratingLead = ratingLeads?.[0];
+
+                if (rating === 5) {
+                  // Send Google Review link
+                  const { data: reviewSetting } = await supabase.from("whatsapp_settings").select("setting_value").eq("setting_key", "google_review_url").single();
+                  const googleReviewUrl = reviewSetting?.setting_value || "https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review";
+                  
+                  const thankYouMsg = `Thank you so much for the amazing rating! ⭐⭐⭐⭐⭐\n\nWe'd be grateful if you could leave us a Google Review too! It really helps us grow 🙏\n\n👉 ${googleReviewUrl}`;
+                  const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, thankYouMsg);
+                  await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, ratingLead?.id || null, "review_5star", thankYouMsg, msgId);
+                } else {
+                  // Low rating: send thank you + alert admin
+                  const thankYouMsg = `Thank you for your honest feedback! 🙏\n\nWe take your experience very seriously and our team will reach out to you shortly to address any concerns.`;
+                  const msgId = await sendTextMessage(phoneNumberId, accessToken, senderPhone, thankYouMsg);
+                  await logOutgoingMessage(supabase, `+${senderPhone}`, senderName, ratingLead?.id || null, "review_low", thankYouMsg, msgId);
+
+                  // CRM notification
+                  await supabase.from("crm_notifications").insert({
+                    lead_id: ratingLead?.id || null,
+                    lead_name: senderName,
+                    lead_phone: `+${senderPhone}`,
+                    notification_type: "low_rating_alert",
+                    chat_summary: `⚠️ Low Rating Alert – Client rated ${rating}/5 stars. Please review and follow up.`,
+                  });
+
+                  // System log
+                  await supabase.from("system_logs").insert({
+                    log_type: "info",
+                    category: "review",
+                    message: `Low rating (${rating}/5) from ${senderName}`,
+                    lead_id: ratingLead?.id || null,
+                  });
+
+                  // Send admin WhatsApp alert
+                  const adminPhone = settingsMap["admin_phone"];
+                  if (adminPhone) {
+                    const alertMsg = `🔔 *LOW RATING ALERT*\n\nClient: ${senderName}\nPhone: +${senderPhone}\nRating: ${rating}/5 ⭐\n\n⚠️ Please review the conversation and follow up.`;
+                    const alertMsgId = await sendTextMessage(phoneNumberId, accessToken, adminPhone.replace(/^\+/, ""), alertMsg);
+                    await logOutgoingMessage(supabase, adminPhone, "F19 System", null, "admin_low_rating_alert", alertMsg, alertMsgId);
+                  }
+                }
+                continue;
+              }
+            }
+
             // ─── REGULAR CLIENT FLOW ────────────────────────
 
             // Upsert lead
