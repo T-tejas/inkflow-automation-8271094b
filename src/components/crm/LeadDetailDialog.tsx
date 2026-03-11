@@ -184,7 +184,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
               <Button variant="outline" size="sm" className="gap-1" onClick={handleConsentForm}>
                 <FileSignature className="h-3.5 w-3.5" /> Consent Form
               </Button>
-              {lead.status !== 'Completed' && lead.status !== 'No Response' && lead.status !== 'Cancelled' && onMarkCompleted && (
+              {lead.status === 'Completed' && onMarkCompleted && (
                 <Button variant="outline" size="sm" className="gap-1 border-green-500/30 text-green-600 hover:bg-green-500/10" onClick={() => {
                   onOpenChange(false);
                   onMarkCompleted(lead);
