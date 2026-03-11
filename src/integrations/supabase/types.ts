@@ -721,6 +721,47 @@ export type Database = {
         }
         Relationships: []
       }
+      system_logs: {
+        Row: {
+          category: string
+          created_at: string
+          details: Json | null
+          id: string
+          is_resolved: boolean
+          lead_id: string | null
+          log_type: string
+          message: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_resolved?: boolean
+          lead_id?: string | null
+          log_type?: string
+          message: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_resolved?: boolean
+          lead_id?: string | null
+          log_type?: string
+          message?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tattoo_completions: {
         Row: {
           aftercare_notes: string | null

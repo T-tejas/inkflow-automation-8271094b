@@ -6,6 +6,7 @@ import { RevenueCards } from '@/components/admin/RevenueCards';
 import { RevenueFilters } from '@/components/admin/RevenueFilters';
 import { RevenueCharts } from '@/components/admin/RevenueCharts';
 import { CompletedTable } from '@/components/admin/CompletedTable';
+import { SystemLogsPanel } from '@/components/admin/SystemLogsPanel';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, LogOut, Settings } from 'lucide-react';
 import { toast } from 'sonner';
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
             <RevenueCards stats={stats} />
             <RevenueCharts completed={completed} booked={booked} pending={pending} />
             <CompletedTable leads={completed} />
+            <SystemLogsPanel />
           </>
         }
       </main>
