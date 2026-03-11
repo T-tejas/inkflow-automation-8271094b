@@ -154,8 +154,8 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
             </div>
           )}
 
-          <div className="flex justify-between pt-2">
-            <div className="flex gap-2">
+          <div className="flex flex-wrap justify-between gap-2 pt-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="destructive" size="sm" onClick={() => { onDelete(lead.id); onOpenChange(false); }}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
@@ -169,6 +169,14 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
               }}>
                 <Palette className="h-3.5 w-3.5" /> Design Task
               </Button>
+              {lead.status === 'Booked' && onMarkCompleted && (
+                <Button variant="outline" size="sm" className="gap-1 border-green-500/30 text-green-600 hover:bg-green-500/10" onClick={() => {
+                  onOpenChange(false);
+                  onMarkCompleted(lead);
+                }}>
+                  <Award className="h-3.5 w-3.5" /> Mark Completed
+                </Button>
+              )}
             </div>
             <Button size="sm" onClick={() => { onEdit(lead); onOpenChange(false); }}>
               <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
