@@ -21,7 +21,7 @@ interface DesignAssignDialogProps {
 
 export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned }: DesignAssignDialogProps) {
   const { addTask } = useDesignTasks();
-  const { artists: existingArtists } = useArtists();
+  const { artistNames: existingArtists, addArtist } = useArtists();
   const [submitting, setSubmitting] = useState(false);
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');

@@ -17,7 +17,7 @@ interface WalkInDialogProps {
 }
 
 export function WalkInDialog({ open, onOpenChange, onSubmit }: WalkInDialogProps) {
-  const { artists } = useArtists();
+  const { artistNames: artists } = useArtists();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [tattooIdea, setTattooIdea] = useState('');

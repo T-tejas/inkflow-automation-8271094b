@@ -41,7 +41,7 @@ interface TattooCompletionDialogProps {
 
 export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }: TattooCompletionDialogProps) {
   const { addCompletion } = useTattooCompletions();
-  const { artists } = useArtists();
+  const { artistNames: artists, addArtist } = useArtists();
   const [artistName, setArtistName] = useState('');
   const [customArtist, setCustomArtist] = useState('');
   const [tattooPrice, setTattooPrice] = useState('');
