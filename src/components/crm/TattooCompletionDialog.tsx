@@ -49,6 +49,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   const [aftercareNotes, setAftercareNotes] = useState(DEFAULT_AFTERCARE);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [manageArtistsOpen, setManageArtistsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [clientIdCode] = useState(() => generateClientId());
