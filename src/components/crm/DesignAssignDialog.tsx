@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
 import { useDesignTasks, type DesignType, type FeeStatus } from '@/hooks/useDesignTasks';
 import { useArtists } from '@/hooks/useArtists';
@@ -73,6 +74,32 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
       design_status: 'Pending',
       notes: buildNotes(),
     });
+
+    // Create CRM notification for design assignment
+    if (success) {
+      const notifBody = [
+        `Artist: ${resolvedArtist.trim()}`,
+        `Design Deadline: ${dueDate}`,
+        tattooDate ? `Tattoo Date: ${tattooDate}` : null,
+        lead.placement ? `Placement: ${lead.placement}` : null,
+        lead.size ? `Size: ${lead.size}` : null,
+        lead.budget ? `Budget: ${lead.budget}` : null,
+        lead.notes ? `Notes: ${lead.notes}` : null,
+      ].filter(Boolean).join(' | ');
+
+      await supabase.from('crm_notifications').insert({
+        lead_id: lead.id,
+        lead_name: lead.fullName,
+        lead_phone: lead.phone,
+        notification_type: 'design_assigned',
+        tattoo_idea: lead.tattooStyle || null,
+        placement: lead.placement || null,
+        size: lead.size || null,
+        budget: lead.budget || null,
+        chat_summary: notifBody,
+        timeline: dueDate,
+      } as any);
+    }
 
     setSubmitting(false);
     if (success) {
