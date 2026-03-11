@@ -50,7 +50,7 @@ export function useDesignTasks(artistFilter?: string) {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  const addTask = async (task: Omit<DesignTask, 'id' | 'created_at' | 'updated_at' | 'reference_images' | 'final_design_url'>) => {
+  const addTask = async (task: Omit<DesignTask, 'id' | 'created_at' | 'updated_at' | 'reference_images' | 'final_design_url' | 'google_calendar_event_id'>) => {
     const { error } = await supabase.from('design_tasks').insert(task as any);
     if (error) { toast.error('Failed to create task'); return false; }
     toast.success('Design task created');
