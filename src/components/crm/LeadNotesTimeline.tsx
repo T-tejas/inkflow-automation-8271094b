@@ -26,6 +26,10 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
   const handleSubmit = async () => {
     if (!noteText.trim()) return;
     setSubmitting(true);
+    // Auto-save custom artist to artists table
+    if (artistName === '__custom__' && customArtist.trim()) {
+      await addArtist(customArtist.trim());
+    }
     const ok = await addNote(finalArtistName || 'Unknown', noteText.trim());
     if (ok) {
       setNoteText('');
