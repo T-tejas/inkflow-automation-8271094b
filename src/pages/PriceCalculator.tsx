@@ -17,7 +17,6 @@ const ARTIST_LEVELS = [
   { label: 'Guest Artist', multiplier: 1.5 },
 ];
 
-// Base price per sq inch = ₹800, per hour = ₹4000
 const SIZE_HOURS: Record<string, { minHours: number; maxHours: number; sqInch: number }> = {
   'Small (2-4 in)': { minHours: 1, maxHours: 2, sqInch: 6 },
   'Medium (4-6 in)': { minHours: 2, maxHours: 4, sqInch: 15 },
@@ -28,20 +27,10 @@ const SIZE_HOURS: Record<string, { minHours: number; maxHours: number; sqInch: n
 };
 
 const STYLE_MULT: Record<string, number> = {
-  'Realism': 1.4,
-  'Portrait': 1.5,
-  'Watercolor': 1.2,
-  'Japanese': 1.3,
-  'Geometric': 1.1,
-  'Dotwork': 1.15,
-  'Blackwork': 1.0,
-  'Minimalist': 0.9,
-  'Minimal': 0.9,
-  'Lettering': 0.85,
-  'Traditional': 1.0,
-  'Neo-Traditional': 1.1,
-  'Tribal': 0.95,
-  'Other': 1.0,
+  'Realism': 1.4, 'Portrait': 1.5, 'Watercolor': 1.2, 'Japanese': 1.3,
+  'Geometric': 1.1, 'Dotwork': 1.15, 'Blackwork': 1.0, 'Minimalist': 0.9,
+  'Minimal': 0.9, 'Lettering': 0.85, 'Traditional': 1.0, 'Neo-Traditional': 1.1,
+  'Tribal': 0.95, 'Other': 1.0,
 };
 
 function fmt(n: number) {
@@ -60,21 +49,16 @@ export default function PriceCalculator() {
     if (!size) return null;
     const sizeData = SIZE_HOURS[size];
     if (!sizeData) return null;
-
     const styleMult = STYLE_MULT[style] || 1.0;
     const artistMult = ARTIST_LEVELS.find(a => a.label === artistLevel)?.multiplier || 1.0;
     const customHours = hours ? parseFloat(hours) : undefined;
-
     const basePerInch = 800 * sizeData.sqInch * styleMult * artistMult;
     const hourlyMin = 4000 * (customHours || sizeData.minHours) * artistMult;
     const hourlyMax = 4000 * (customHours || sizeData.maxHours) * artistMult;
-
     const minPrice = Math.min(basePerInch * 0.7, hourlyMin);
     const maxPrice = Math.max(basePerInch, hourlyMax);
-
     const estMinHours = customHours || sizeData.minHours;
     const estMaxHours = customHours || sizeData.maxHours;
-
     return {
       minPrice: Math.round(minPrice / 100) * 100,
       maxPrice: Math.round(maxPrice / 100) * 100,
@@ -92,18 +76,18 @@ export default function PriceCalculator() {
   };
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 100%)' }}>
-      <header className="border-b border-amber-500/10 px-6 py-3" style={{ background: 'rgba(0,0,0,0.6)' }}>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 px-6 py-3">
         <div className="flex items-center gap-3 max-w-[800px] mx-auto">
-          <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-amber-400 gap-1.5" onClick={() => navigate('/admin')}>
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5" onClick={() => navigate('/admin')}>
             <ArrowLeft className="h-4 w-4" /> Dashboard
           </Button>
-          <div className="h-5 w-px bg-amber-500/20" />
+          <div className="h-5 w-px bg-border" />
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
-              <Calculator className="h-4 w-4 text-amber-400" />
+            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Calculator className="h-4 w-4 text-primary" />
             </div>
-            <h1 className="text-sm font-bold">Tattoo Price Calculator</h1>
+            <h1 className="text-sm font-bold text-foreground">Tattoo Price Calculator</h1>
           </div>
         </div>
       </header>
@@ -111,54 +95,53 @@ export default function PriceCalculator() {
       <main className="max-w-[800px] mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Input */}
-          <Card className="bg-zinc-900/80 border-zinc-800">
+          <Card className="glass-card">
             <CardHeader>
-              <CardTitle className="text-sm text-amber-50">Tattoo Details</CardTitle>
+              <CardTitle className="text-sm text-foreground">Tattoo Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Tattoo Size *</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Tattoo Size *</label>
                 <Select value={size} onValueChange={setSize}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Select size" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select size" /></SelectTrigger>
                   <SelectContent>
                     {TATTOO_SIZES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Placement</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Placement</label>
                 <Select value={placement} onValueChange={setPlacement}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Select placement" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select placement" /></SelectTrigger>
                   <SelectContent>
                     {PLACEMENTS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Tattoo Style</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Tattoo Style</label>
                 <Select value={style} onValueChange={setStyle}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue placeholder="Select style" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select style" /></SelectTrigger>
                   <SelectContent>
                     {TATTOO_STYLES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Estimated Hours (optional)</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Estimated Hours (optional)</label>
                 <Input
                   type="number"
                   value={hours}
                   onChange={e => setHours(e.target.value)}
                   placeholder="Auto-calculated if empty"
-                  className="bg-zinc-800 border-zinc-700 text-white"
                   min={0.5}
                   step={0.5}
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-400 mb-1 block">Artist Level</label>
+                <label className="text-xs text-muted-foreground mb-1 block">Artist Level</label>
                 <Select value={artistLevel} onValueChange={setArtistLevel}>
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white"><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ARTIST_LEVELS.map(a => <SelectItem key={a.label} value={a.label}>{a.label} ({a.multiplier}x)</SelectItem>)}
                   </SelectContent>
@@ -171,47 +154,47 @@ export default function PriceCalculator() {
           <div className="space-y-4">
             {estimate ? (
               <>
-                <Card className="bg-zinc-900/80 border-amber-500/30">
+                <Card className="glass-card border-primary/30">
                   <CardContent className="p-6 space-y-5">
                     <div className="text-center">
-                      <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">Price Range</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Price Range</p>
                       <div className="flex items-center justify-center gap-2">
-                        <IndianRupee className="h-6 w-6 text-amber-400" />
-                        <span className="text-3xl font-bold text-amber-400">{fmt(estimate.minPrice)}</span>
-                        <span className="text-xl text-zinc-500">—</span>
-                        <IndianRupee className="h-6 w-6 text-amber-400" />
-                        <span className="text-3xl font-bold text-amber-400">{fmt(estimate.maxPrice)}</span>
+                        <IndianRupee className="h-6 w-6 text-primary" />
+                        <span className="text-3xl font-bold text-primary">{fmt(estimate.minPrice)}</span>
+                        <span className="text-xl text-muted-foreground">—</span>
+                        <IndianRupee className="h-6 w-6 text-primary" />
+                        <span className="text-3xl font-bold text-primary">{fmt(estimate.maxPrice)}</span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-zinc-800/50 rounded-xl p-4 text-center">
-                        <Clock className="h-5 w-5 text-sky-400 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-white">{estimate.minHours}-{estimate.maxHours} hrs</p>
-                        <p className="text-[10px] text-zinc-500">Estimated Time</p>
+                      <div className="bg-muted/30 rounded-xl p-4 text-center">
+                        <Clock className="h-5 w-5 text-info mx-auto mb-1" />
+                        <p className="text-lg font-bold text-foreground">{estimate.minHours}-{estimate.maxHours} hrs</p>
+                        <p className="text-[10px] text-muted-foreground">Estimated Time</p>
                       </div>
-                      <div className="bg-zinc-800/50 rounded-xl p-4 text-center">
-                        <Calculator className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
-                        <p className="text-lg font-bold text-white">{estimate.sessions}</p>
-                        <p className="text-[10px] text-zinc-500">Session{estimate.sessions > 1 ? 's' : ''}</p>
+                      <div className="bg-muted/30 rounded-xl p-4 text-center">
+                        <Calculator className="h-5 w-5 text-success mx-auto mb-1" />
+                        <p className="text-lg font-bold text-foreground">{estimate.sessions}</p>
+                        <p className="text-[10px] text-muted-foreground">Session{estimate.sessions > 1 ? 's' : ''}</p>
                       </div>
                     </div>
 
-                    <Button onClick={copyEstimate} className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold gap-2">
+                    <Button onClick={copyEstimate} className="w-full gap-2">
                       <Copy className="h-4 w-4" /> Copy Estimate for Client
                     </Button>
                   </CardContent>
                 </Card>
 
-                <p className="text-[10px] text-zinc-600 text-center">
+                <p className="text-[10px] text-muted-foreground text-center">
                   Rates: ₹800/sq inch • ₹4,000/hour • ₹25,000/full day. Final quote after consultation.
                 </p>
               </>
             ) : (
-              <Card className="bg-zinc-900/80 border-zinc-800">
+              <Card className="glass-card">
                 <CardContent className="py-16 text-center">
-                  <Calculator className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
-                  <p className="text-sm text-zinc-500">Select tattoo size to see price estimate</p>
+                  <Calculator className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Select tattoo size to see price estimate</p>
                 </CardContent>
               </Card>
             )}

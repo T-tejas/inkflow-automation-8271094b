@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -59,29 +58,29 @@ export default function BotTemplates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-amber-500" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="border-b border-zinc-800 px-6 py-3">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 px-6 py-3">
         <div className="flex items-center justify-between max-w-[900px] mx-auto">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white gap-1.5" onClick={() => navigate('/admin/settings/whatsapp')}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5" onClick={() => navigate('/admin/settings/whatsapp')}>
               <ArrowLeft className="h-4 w-4" /> WhatsApp Settings
             </Button>
-            <div className="h-5 w-px bg-zinc-700" />
+            <div className="h-5 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-amber-500/10 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-amber-400" />
+              <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-primary" />
               </div>
-              <h1 className="text-sm font-semibold">AI Response Templates</h1>
+              <h1 className="text-sm font-semibold text-foreground">AI Response Templates</h1>
             </div>
           </div>
-          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+          <Badge variant="outline">
             <MessageSquare className="h-3 w-3 mr-1" /> {templates.length} Templates
           </Badge>
         </div>
@@ -89,20 +88,20 @@ export default function BotTemplates() {
 
       <ScrollArea className="h-[calc(100vh-52px)]">
         <main className="max-w-[900px] mx-auto px-6 py-6 space-y-4">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             Edit the AI assistant's responses. Changes take effect instantly. You can also edit these via WhatsApp by sending "admin" from the studio owner's number.
           </p>
           {templates.map(t => (
-            <Card key={t.id} className="bg-zinc-900 border-zinc-800">
+            <Card key={t.id} className="glass-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm text-white">{t.template_label}</CardTitle>
-                    <Badge className="text-[10px] bg-zinc-800 text-zinc-400 border-0">{t.template_key}</Badge>
+                    <CardTitle className="text-sm text-foreground">{t.template_label}</CardTitle>
+                    <Badge variant="outline" className="text-[10px]">{t.template_key}</Badge>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-zinc-500">{t.is_active ? 'Active' : 'Disabled'}</span>
+                      <span className="text-[10px] text-muted-foreground">{t.is_active ? 'Active' : 'Disabled'}</span>
                       <Switch checked={t.is_active} onCheckedChange={() => toggleActive(t.id, t.is_active)} />
                     </div>
                   </div>
@@ -114,27 +113,27 @@ export default function BotTemplates() {
                     <Textarea
                       value={editText}
                       onChange={e => setEditText(e.target.value)}
-                      className="bg-zinc-800 border-zinc-700 text-white min-h-[100px] text-sm"
+                      className="min-h-[100px] text-sm"
                     />
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleSave(t.id)} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 gap-1">
+                      <Button size="sm" onClick={() => handleSave(t.id)} disabled={saving} className="gap-1">
                         {saving ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                         Save
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)} className="border-zinc-700 text-zinc-300">
+                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
                         Cancel
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div
-                    className="text-sm text-zinc-300 whitespace-pre-wrap bg-zinc-800/50 rounded-md p-3 cursor-pointer hover:bg-zinc-800 transition-colors"
+                    className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-md p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => { setEditingId(t.id); setEditText(t.response_text); }}
                   >
                     {t.response_text}
                   </div>
                 )}
-                <p className="text-[10px] text-zinc-600 mt-2">
+                <p className="text-[10px] text-muted-foreground mt-2">
                   Last updated: {new Date(t.updated_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </CardContent>

@@ -23,7 +23,6 @@ export default function AdminLogin() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // Check if admin role was assigned
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           const { data: isAdmin } = await supabase.rpc('has_role', {
@@ -63,23 +62,23 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-[#111] border-[#222] shadow-2xl">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-            <Lock className="h-6 w-6 text-amber-500" />
+          <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Lock className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-xl text-white">F19 Admin Access</CardTitle>
-          <p className="text-sm text-neutral-400">
+          <CardTitle className="text-xl text-foreground">F19 Admin Access</CardTitle>
+          <p className="text-sm text-muted-foreground">
             {isSignUp ? 'Create admin account (first signup only)' : 'Sign in to access the revenue dashboard'}
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-neutral-300">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
@@ -87,14 +86,14 @@ export default function AdminLogin() {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="admin@f19tattoo.com"
                   required
-                  className="pl-10 bg-[#0a0a0a] border-[#333] text-white placeholder:text-neutral-600"
+                  className="pl-10"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-neutral-300">Password</Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
@@ -103,11 +102,11 @@ export default function AdminLogin() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="pl-10 bg-[#0a0a0a] border-[#333] text-white placeholder:text-neutral-600"
+                  className="pl-10"
                 />
               </div>
             </div>
-            <Button type="submit" disabled={loading} className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold">
+            <Button type="submit" disabled={loading} className="w-full font-semibold">
               {loading ? 'Please wait...' : isSignUp ? 'Create Admin Account' : 'Sign In'}
             </Button>
           </form>
@@ -115,7 +114,7 @@ export default function AdminLogin() {
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-xs text-neutral-500 hover:text-amber-500 transition-colors"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               {isSignUp ? 'Already have an account? Sign in' : 'First time? Create admin account'}
             </button>
