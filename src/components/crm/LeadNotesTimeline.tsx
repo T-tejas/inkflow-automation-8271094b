@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLeadNotes } from '@/hooks/useLeadNotes';
+import { useArtists } from '@/hooks/useArtists';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,10 +9,10 @@ import { Plus, Trash2, User, Clock } from 'lucide-react';
 
 interface LeadNotesTimelineProps {
   leadId: string;
-  artists?: string[];
 }
 
-export function LeadNotesTimeline({ leadId, artists = [] }: LeadNotesTimelineProps) {
+export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
+  const { artists } = useArtists();
   const { notes, loading, addNote, deleteNote } = useLeadNotes(leadId);
   const [showForm, setShowForm] = useState(false);
   const [artistName, setArtistName] = useState('');
