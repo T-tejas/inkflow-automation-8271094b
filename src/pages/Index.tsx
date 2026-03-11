@@ -112,6 +112,15 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
     if (lead) handleLeadClick(lead);
   };
 
+  const searchFiltered = searchQuery.trim()
+    ? filteredLeads.filter(l =>
+        l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.phone.includes(searchQuery) ||
+        (l.tattooStyle && l.tattooStyle.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (l.notes && l.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : filteredLeads;
+
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
   const handleToggleSelect = (leadId: string) => {
