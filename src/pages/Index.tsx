@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeads } from '@/hooks/useLeads';
 import { useDesignTasks } from '@/hooks/useDesignTasks';
@@ -16,7 +16,7 @@ import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
 import { WalkInDialog } from '@/components/crm/WalkInDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X } from 'lucide-react';
 import { Lead, LeadStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
@@ -47,6 +47,9 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const [completionLead, setCompletionLead] = useState<Lead | null>(null);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [walkInOpen, setWalkInOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Set of lead IDs that have designs assigned
   const designLeadIds = useMemo(() => new Set(designTasks.filter(t => t.lead_id).map(t => t.lead_id!)), [designTasks]);
@@ -111,6 +114,15 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
 
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
+  const displayLeads = searchQuery.trim()
+    ? filteredLeads.filter(l =>
+        l.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.phone.includes(searchQuery) ||
+        (l.tattooStyle && l.tattooStyle.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (l.notes && l.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : filteredLeads;
+
   const handleToggleSelect = (leadId: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -174,6 +186,27 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {searchOpen ? (
+              <div className="flex items-center gap-1 bg-muted rounded-md px-2 py-1">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  ref={searchInputRef}
+                  autoFocus
+                  type="text"
+                  placeholder="Search leads..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="bg-transparent border-none outline-none text-sm w-48 text-foreground placeholder:text-muted-foreground"
+                />
+                <button onClick={() => { setSearchOpen(false); setSearchQuery(''); }}>
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              </div>
+            ) : (
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSearchOpen(true)}>
+                <Search className="h-4 w-4" />
+              </Button>
+            )}
             <HotLeadNotifications
               notifications={notifications}
               unreadCount={unreadCount}
@@ -244,7 +277,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Pipeline</h2>
           <PipelineBoard
-            leads={filteredLeads}
+            leads={displayLeads}
             getLeadsByStatus={getLeadsByStatus}
             onLeadClick={handleLeadClick}
             onStatusChange={updateLeadStatus}
