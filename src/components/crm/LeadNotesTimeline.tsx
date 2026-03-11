@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useLeadNotes } from '@/hooks/useLeadNotes';
 import { useArtists } from '@/hooks/useArtists';
+import { ArtistManagerDialog } from './ArtistManagerDialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, User, Clock } from 'lucide-react';
+import { Plus, Trash2, User, Clock, Settings } from 'lucide-react';
 
 interface LeadNotesTimelineProps {
   leadId: string;
@@ -20,6 +21,7 @@ export function LeadNotesTimeline({ leadId }: LeadNotesTimelineProps) {
   const [noteText, setNoteText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const finalArtistName = artistName === '__custom__' ? customArtist.trim() : artistName;
 
