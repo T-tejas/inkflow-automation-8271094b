@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { ChatMessage, ChatContact } from '@/hooks/useChat';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
+import { ConversationTimer } from './ConversationTimer';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
@@ -59,6 +60,12 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   const recentFailed = messages.filter(m => (m.status === 'failed' || m.deliveryStatus === 'failed'));
   const tokenExpired = recentFailed.some(m => m.errorMessage?.toLowerCase().includes('token') || m.errorMessage?.toLowerCase().includes('expired') || m.errorMessage?.toLowerCase().includes('oauth'));
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Find last incoming message time for 24hr window (must be before early return)
+  const lastIncomingAt = useMemo(() => {
+    const incoming = messages.filter(m => m.status === 'received');
+    return incoming.length > 0 ? incoming[incoming.length - 1].createdAt : null;
+  }, [messages]);
 
   if (!contact) {
     return (
@@ -181,8 +188,9 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="text-xs" style={{ color: '#667781' }}>
+            <div className="text-xs flex items-center gap-2" style={{ color: '#667781' }}>
               {contact.leadPhone}
+              <ConversationTimer lastIncomingAt={lastIncomingAt} />
             </div>
           </div>
         </div>

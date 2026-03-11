@@ -18,6 +18,7 @@ import BulkMessaging from "./pages/BulkMessaging";
 import BotTemplates from "./pages/BotTemplates";
 import ConsentForm from "./pages/ConsentForm";
 import WalkInForm from "./pages/WalkInForm";
+import PriceCalculator from "./pages/PriceCalculator";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ function AuthenticatedApp() {
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="/admin/bulk-messaging" element={<ProtectedAdminRoute><BulkMessaging /></ProtectedAdminRoute>} />
       <Route path="/admin/bot-templates" element={<ProtectedAdminRoute><BotTemplates /></ProtectedAdminRoute>} />
+      <Route path="/admin/price-calculator" element={<ProtectedAdminRoute><PriceCalculator /></ProtectedAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
