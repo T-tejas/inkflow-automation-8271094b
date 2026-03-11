@@ -111,6 +111,9 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                         onAssignDesign={onAssignDesign}
                         onViewDesign={onViewDesign}
                         hasDesign={designLeadIds?.has(lead.id)}
+                        isSelected={selectedIds?.has(lead.id)}
+                        onToggleSelect={onToggleSelect}
+                        selectMode={selectMode}
                       />
                     </div>
                   ))}
