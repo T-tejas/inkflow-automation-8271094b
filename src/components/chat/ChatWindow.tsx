@@ -110,12 +110,6 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
   const statusColor = getStatusColor(contact.leadStatus);
   const botActive = contact.botEnabled !== false;
 
-  // Find last incoming message time for 24hr window
-  const lastIncomingAt = useMemo(() => {
-    const incoming = messages.filter(m => m.status === 'received');
-    return incoming.length > 0 ? incoming[incoming.length - 1].createdAt : null;
-  }, [messages]);
-
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Error banner */}
