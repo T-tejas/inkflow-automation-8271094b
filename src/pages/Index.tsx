@@ -305,7 +305,6 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         open={walkInOpen}
         onOpenChange={setWalkInOpen}
         onSubmit={handleFormSubmit}
-        artists={designArtists}
       />
     </div>
   );

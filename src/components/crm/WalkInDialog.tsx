@@ -8,15 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, UserPlus } from 'lucide-react';
 import { TATTOO_STYLES, TATTOO_SIZES } from '@/types/lead';
+import { useArtists } from '@/hooks/useArtists';
 
 interface WalkInDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => Promise<boolean>;
-  artists?: string[];
 }
 
-export function WalkInDialog({ open, onOpenChange, onSubmit, artists = [] }: WalkInDialogProps) {
+export function WalkInDialog({ open, onOpenChange, onSubmit }: WalkInDialogProps) {
+  const { artists } = useArtists();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [tattooIdea, setTattooIdea] = useState('');
