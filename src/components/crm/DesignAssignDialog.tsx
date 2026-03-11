@@ -144,7 +144,10 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground">Assign Artist *</Label>
-              <Select value={artistName} onValueChange={setArtistName}>
+              <Select value={artistName} onValueChange={v => {
+                if (v === '__manage__') { setManageArtistsOpen(true); return; }
+                setArtistName(v);
+              }}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Select artist" />
                 </SelectTrigger>
@@ -153,6 +156,7 @@ export function DesignAssignDialog({ lead, open, onOpenChange, onDesignAssigned 
                     <SelectItem key={a} value={a}>{a}</SelectItem>
                   ))}
                   <SelectItem value="__custom__">+ New Artist</SelectItem>
+                  <SelectItem value="__manage__">⚙ Manage Artists</SelectItem>
                 </SelectContent>
               </Select>
               {artistName === '__custom__' && (
