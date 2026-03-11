@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,56 @@ import {
 import { ChatbotRulesManager } from '@/components/admin/ChatbotRulesManager';
 
 type SettingsMap = Record<string, string>;
+
+function GoogleCalendarCard() {
+  const { connected, checking, connect } = useGoogleCalendar();
+  return (
+    <Card className="bg-zinc-900 border-zinc-800">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base text-white">Google Calendar Integration</CardTitle>
+              <CardDescription className="text-zinc-500">Sync design tasks & appointments with Google Calendar</CardDescription>
+            </div>
+          </div>
+          <Badge className={connected ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}>
+            {connected ? <><CheckCircle2 className="h-3 w-3 mr-1" /> Connected</> : <><XCircle className="h-3 w-3 mr-1" /> Not Connected</>}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {checking ? (
+          <div className="flex items-center gap-2 text-sm text-zinc-400"><RefreshCw className="h-4 w-4 animate-spin" /> Checking connection...</div>
+        ) : connected ? (
+          <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center"><Calendar className="h-4 w-4 text-emerald-400" /></div>
+              <div>
+                <p className="text-sm font-medium text-white">Google Calendar Connected</p>
+                <p className="text-xs text-zinc-500">Design tasks will auto-sync to your calendar</p>
+              </div>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+          </div>
+        ) : (
+          <>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white gap-2" onClick={connect}>
+              <Calendar className="h-4 w-4" /> Connect Google Calendar
+            </Button>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+              <Info className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-purple-300/80">Connecting Google Calendar will automatically create events when designs are assigned to artists.</p>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function WhatsAppSettings() {
   const navigate = useNavigate();
@@ -263,80 +314,7 @@ export default function WhatsAppSettings() {
           </Card>
 
           {/* Google Calendar Integration */}
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base text-white">Google Calendar Integration</CardTitle>
-                    <CardDescription className="text-zinc-500">Sync appointments with Google Calendar</CardDescription>
-                  </div>
-                </div>
-                <StatusBadge configured={isConfigured('google_calendar_connected')} />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isConfigured('google_calendar_connected') ? (
-                <>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                        <Calendar className="h-4 w-4 text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">{settings['google_calendar_account'] || 'Connected Account'}</p>
-                        <p className="text-xs text-zinc-500">Google Calendar connected</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1.5"
-                      onClick={async () => {
-                        await saveSetting('google_calendar_connected');
-                        setEditValues(prev => ({ ...prev, google_calendar_connected: 'false', google_calendar_account: '' }));
-                        await saveSetting('google_calendar_account');
-                        toast.success('Google Calendar disconnected');
-                        fetchSettings();
-                      }}
-                    >
-                      <Unplug className="h-3.5 w-3.5" /> Disconnect
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
-                    <div>
-                      <p className="text-sm font-medium text-white">Auto-sync appointments</p>
-                      <p className="text-xs text-zinc-500">Automatically sync booking appointments to calendar</p>
-                    </div>
-                    <Switch
-                      checked={settings['calendar_sync_enabled'] === 'true'}
-                      onCheckedChange={async (checked) => {
-                        setEditValues(prev => ({ ...prev, calendar_sync_enabled: String(checked) }));
-                        const { error } = await supabase
-                          .from('whatsapp_settings')
-                          .update({ setting_value: String(checked), updated_at: new Date().toISOString() } as any)
-                          .eq('setting_key', 'calendar_sync_enabled');
-                        if (!error) {
-                          setSettings(prev => ({ ...prev, calendar_sync_enabled: String(checked) }));
-                          toast.success(checked ? 'Calendar sync enabled' : 'Calendar sync disabled');
-                        }
-                      }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <Button
-                  className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
-                  onClick={() => toast.info('Google Calendar OAuth coming soon. Stay tuned!')}
-                >
-                  <Calendar className="h-4 w-4" /> Connect Google Calendar
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <GoogleCalendarCard />
 
           {/* Webhook Settings */}
           <Card className="bg-zinc-900 border-zinc-800">
