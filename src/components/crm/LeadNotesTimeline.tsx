@@ -20,15 +20,15 @@ export function LeadNotesTimeline({ leadId, artists = [] }: LeadNotesTimelinePro
   const [submitting, setSubmitting] = useState(false);
 
   const finalArtistName = artistName === '__custom__' ? customArtist.trim() : artistName;
-  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!noteText.trim()) return;
     setSubmitting(true);
-    const ok = await addNote(artistName.trim() || 'Unknown', noteText.trim());
+    const ok = await addNote(finalArtistName || 'Unknown', noteText.trim());
     if (ok) {
       setNoteText('');
       setArtistName('');
+      setCustomArtist('');
       setShowForm(false);
     }
     setSubmitting(false);
@@ -45,17 +45,24 @@ export function LeadNotesTimeline({ leadId, artists = [] }: LeadNotesTimelinePro
 
       {showForm && (
         <div className="border border-border rounded-lg p-2.5 space-y-2 bg-muted/30">
-          <Input
-            placeholder="Artist name"
-            value={artistName}
-            onChange={e => setArtistName(e.target.value)}
-            className="h-7 text-xs"
-            list="artist-suggestions"
-          />
-          {artists.length > 0 && (
-            <datalist id="artist-suggestions">
-              {artists.map(a => <option key={a} value={a} />)}
-            </datalist>
+          <Select value={artistName} onValueChange={setArtistName}>
+            <SelectTrigger className="h-7 text-xs">
+              <SelectValue placeholder="Artist name" />
+            </SelectTrigger>
+            <SelectContent>
+              {artists.map(a => (
+                <SelectItem key={a} value={a}>{a}</SelectItem>
+              ))}
+              <SelectItem value="__custom__">+ Add New Artist</SelectItem>
+            </SelectContent>
+          </Select>
+          {artistName === '__custom__' && (
+            <Input
+              placeholder="Enter artist name"
+              value={customArtist}
+              onChange={e => setCustomArtist(e.target.value)}
+              className="h-7 text-xs"
+            />
           )}
           <Textarea
             placeholder="Write a note..."
