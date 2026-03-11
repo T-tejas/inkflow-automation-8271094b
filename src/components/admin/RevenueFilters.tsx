@@ -25,35 +25,28 @@ export function RevenueFilters({ filters, onChange }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Date range buttons */}
       {(['today', 'week', 'month', 'all', 'custom'] as DateRange[]).map(r => (
         <Button
           key={r}
           size="sm"
           variant={filters.dateRange === r ? 'default' : 'outline'}
-          className={cn(
-            'text-xs h-8',
-            filters.dateRange === r
-              ? 'bg-amber-500 text-black hover:bg-amber-600'
-              : 'border-[#333] text-neutral-400 hover:text-white bg-transparent'
-          )}
+          className="text-xs h-8"
           onClick={() => setRange(r)}
         >
           {r === 'today' ? 'Today' : r === 'week' ? 'This Week' : r === 'month' ? 'This Month' : r === 'all' ? 'All Time' : 'Custom'}
         </Button>
       ))}
 
-      {/* Custom date pickers */}
       {filters.dateRange === 'custom' && (
         <>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs border-[#333] text-neutral-400 bg-transparent gap-1">
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
                 <CalendarIcon className="h-3 w-3" />
                 {filters.customFrom ? format(filters.customFrom, 'dd MMM') : 'From'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-[#111] border-[#333]" align="start">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={filters.customFrom}
@@ -64,12 +57,12 @@ export function RevenueFilters({ filters, onChange }: Props) {
           </Popover>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs border-[#333] text-neutral-400 bg-transparent gap-1">
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
                 <CalendarIcon className="h-3 w-3" />
                 {filters.customTo ? format(filters.customTo, 'dd MMM') : 'To'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-[#111] border-[#333]" align="start">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={filters.customTo}
@@ -81,17 +74,16 @@ export function RevenueFilters({ filters, onChange }: Props) {
         </>
       )}
 
-      <div className="h-6 w-px bg-[#333] mx-1" />
+      <div className="h-6 w-px bg-border mx-1" />
 
-      {/* Style filter */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 text-xs border-[#333] text-neutral-400 bg-transparent gap-1">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
             <Filter className="h-3 w-3" />
             Style {filters.styles.length > 0 && `(${filters.styles.length})`}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-2 bg-[#111] border-[#333]" align="start">
+        <PopoverContent className="w-48 p-2" align="start">
           <div className="max-h-48 overflow-y-auto space-y-1">
             {TATTOO_STYLES.map(s => (
               <button
@@ -99,7 +91,7 @@ export function RevenueFilters({ filters, onChange }: Props) {
                 onClick={() => toggleItem('styles', s)}
                 className={cn(
                   'w-full text-left text-xs px-2 py-1.5 rounded transition-colors',
-                  filters.styles.includes(s) ? 'bg-amber-500/20 text-amber-400' : 'text-neutral-400 hover:bg-[#1a1a1a]'
+                  filters.styles.includes(s) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-accent'
                 )}
               >
                 {s}
@@ -109,15 +101,14 @@ export function RevenueFilters({ filters, onChange }: Props) {
         </PopoverContent>
       </Popover>
 
-      {/* Source filter */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 text-xs border-[#333] text-neutral-400 bg-transparent gap-1">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
             <Filter className="h-3 w-3" />
             Source {filters.sources.length > 0 && `(${filters.sources.length})`}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-2 bg-[#111] border-[#333]" align="start">
+        <PopoverContent className="w-48 p-2" align="start">
           <div className="space-y-1">
             {LEAD_SOURCES.map(s => (
               <button
@@ -125,7 +116,7 @@ export function RevenueFilters({ filters, onChange }: Props) {
                 onClick={() => toggleItem('sources', s)}
                 className={cn(
                   'w-full text-left text-xs px-2 py-1.5 rounded transition-colors',
-                  filters.sources.includes(s) ? 'bg-amber-500/20 text-amber-400' : 'text-neutral-400 hover:bg-[#1a1a1a]'
+                  filters.sources.includes(s) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-accent'
                 )}
               >
                 {s}
@@ -135,12 +126,11 @@ export function RevenueFilters({ filters, onChange }: Props) {
         </PopoverContent>
       </Popover>
 
-      {/* Reset */}
       {(filters.styles.length > 0 || filters.sources.length > 0 || filters.dateRange === 'custom') && (
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 text-xs text-neutral-500 hover:text-white"
+          className="h-8 text-xs text-muted-foreground hover:text-foreground"
           onClick={() => onChange({ dateRange: 'month', styles: [], sources: [] })}
         >
           Reset
