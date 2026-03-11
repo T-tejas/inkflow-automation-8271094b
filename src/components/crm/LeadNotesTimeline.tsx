@@ -18,6 +18,7 @@ export function LeadNotesTimeline({ leadId, artists = [] }: LeadNotesTimelinePro
   const [customArtist, setCustomArtist] = useState('');
   const [noteText, setNoteText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const finalArtistName = artistName === '__custom__' ? customArtist.trim() : artistName;
 
