@@ -13,6 +13,9 @@ interface PipelineBoardProps {
   onAssignDesign?: (lead: Lead) => void;
   onViewDesign?: (leadId: string) => void;
   designLeadIds?: Set<string>;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (leadId: string) => void;
+  selectMode?: boolean;
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
