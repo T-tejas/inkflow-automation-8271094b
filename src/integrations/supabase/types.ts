@@ -691,6 +691,41 @@ export type Database = {
           },
         ]
       }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          rating: number
+          review_text: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          rating: number
+          review_text?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          rating?: number
+          review_text?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_availability: {
         Row: {
           created_at: string
