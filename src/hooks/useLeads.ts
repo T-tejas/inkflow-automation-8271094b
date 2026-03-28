@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Lead, LeadStatus, AutomationTag, parseBudget } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { sendMetaConversion } from '@/lib/metaConversions';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 interface DbLead {
@@ -380,6 +381,19 @@ export function useLeads() {
       logInteraction(id, 'stage_change', oldStatus, status);
       toast.success(`Stage → ${status}`);
       setSyncError(false);
+
+      // Fire Meta Conversions API events
+      if (existing) {
+        if (status === 'Interested' && oldStatus !== 'Interested') {
+          sendMetaConversion('lead_qualified', { phone: existing.phone, leadId: id });
+        }
+        if (status === 'Booked' && oldStatus !== 'Booked') {
+          sendMetaConversion('booking_confirmed', { phone: existing.phone, leadId: id });
+        }
+        if (status === 'Completed' && oldStatus !== 'Completed') {
+          sendMetaConversion('tattoo_completed', { phone: existing.phone, leadId: id });
+        }
+      }
 
       // Auto-deduct needles when tattoo is completed
       if (status === 'Completed' && oldStatus !== 'Completed' && existing) {

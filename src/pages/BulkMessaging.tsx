@@ -13,9 +13,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Send, Upload, Users, BarChart3, Plus, Trash2,
-  MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee
+  MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee, Download, Target
 } from 'lucide-react';
 import { LEAD_STATUSES } from '@/types/lead';
+import { getRetargetingSegments, exportRetargetingCSV, downloadCSV, type RetargetingSegment } from '@/lib/retargetingExport';
 
 interface Campaign {
   id: string;
@@ -248,6 +249,9 @@ export default function BulkMessaging() {
             </TabsTrigger>
             <TabsTrigger value="campaigns" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" /> Campaigns ({campaigns.length})
+            </TabsTrigger>
+            <TabsTrigger value="retargeting" className="gap-1.5">
+              <Target className="h-3.5 w-3.5" /> Retargeting Export
             </TabsTrigger>
           </TabsList>
 
@@ -505,8 +509,70 @@ export default function BulkMessaging() {
               ))}
             </div>
           </TabsContent>
+
+          {/* Retargeting Export Tab */}
+          <TabsContent value="retargeting" className="space-y-4">
+            <RetargetingPanel />
+          </TabsContent>
         </Tabs>
       </main>
+    </div>
+  );
+}
+
+function RetargetingPanel() {
+  const [segments, setSegments] = useState<RetargetingSegment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  useEffect(() => {
+    getRetargetingSegments().then(s => { setSegments(s); setLoading(false); });
+  }, []);
+
+  const handleExport = async (status: string, name: string) => {
+    setExporting(status);
+    try {
+      const csv = await exportRetargetingCSV(status);
+      if (!csv) {
+        toast.error('No leads found for this segment');
+        return;
+      }
+      downloadCSV(csv, `f19_retargeting_${name.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`);
+      toast.success(`Exported ${name} segment`);
+    } catch {
+      toast.error('Export failed');
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  if (loading) return <p className="text-muted-foreground text-center py-8">Loading segments...</p>;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {segments.map(seg => (
+        <Card key={seg.status} className="glass-card">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-foreground">{seg.name}</h3>
+              </div>
+              <Badge variant="secondary" className="text-xs">{seg.count} leads</Badge>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              disabled={seg.count === 0 || exporting === seg.status}
+              onClick={() => handleExport(seg.status, seg.name)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {exporting === seg.status ? 'Exporting...' : 'Export CSV for Retargeting'}
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
