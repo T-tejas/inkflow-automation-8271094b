@@ -313,6 +313,40 @@ export default function WhatsAppSettings() {
             </CardContent>
           </Card>
 
+          {/* Meta Conversions API */}
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <AppWindow className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Meta Conversions API</CardTitle>
+                    <CardDescription className="text-zinc-500">Track lead events for ad optimization & retargeting</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured('meta_pixel_id') && isConfigured('meta_conversions_token')} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <SecretField label="Meta Pixel ID / Dataset ID" settingKey="meta_pixel_id" placeholder="123456789012345" />
+              <SecretField label="Conversions API Access Token" settingKey="meta_conversions_token" placeholder="EAABs..." secret />
+              <SecretField label="Page Access Token (for Lead Ads)" settingKey="meta_page_access_token" placeholder="EAABs..." secret />
+              <SecretField label="Lead Webhook Verify Token" settingKey="meta_lead_verify_token" placeholder="f19_meta_leads" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-blue-300/80 space-y-1">
+                  <p><strong>Meta Lead Ads Webhook URL:</strong></p>
+                  <code className="block bg-zinc-800 p-2 rounded text-[10px] break-all">
+                    {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-lead-webhook`}
+                  </code>
+                  <p>Events tracked: Lead Submitted → Lead Qualified → Booking Confirmed → Tattoo Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Google Calendar Integration */}
           <GoogleCalendarCard />
 
