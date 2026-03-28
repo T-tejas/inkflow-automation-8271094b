@@ -331,8 +331,8 @@ export default function WhatsAppSettings() {
             </CardHeader>
             <CardContent className="space-y-3">
               <SecretField label="Meta Pixel ID / Dataset ID" settingKey="meta_pixel_id" placeholder="123456789012345" />
-              <SecretField label="Conversions API Access Token" settingKey="meta_conversions_token" placeholder="EAABs..." secret />
-              <SecretField label="Page Access Token (for Lead Ads)" settingKey="meta_page_access_token" placeholder="EAABs..." secret />
+              <SecretField label="Conversions API Access Token" settingKey="meta_conversions_token" placeholder="EAABs..." />
+              <SecretField label="Page Access Token (for Lead Ads)" settingKey="meta_page_access_token" placeholder="EAABs..." />
               <SecretField label="Lead Webhook Verify Token" settingKey="meta_lead_verify_token" placeholder="f19_meta_leads" />
               <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
                 <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
