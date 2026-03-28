@@ -250,6 +250,9 @@ export default function BulkMessaging() {
             <TabsTrigger value="campaigns" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" /> Campaigns ({campaigns.length})
             </TabsTrigger>
+            <TabsTrigger value="retargeting" className="gap-1.5">
+              <Target className="h-3.5 w-3.5" /> Retargeting Export
+            </TabsTrigger>
           </TabsList>
 
           {/* Templates Tab */}
