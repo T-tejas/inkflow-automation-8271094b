@@ -465,6 +465,133 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_bot_state: {
+        Row: {
+          bot_enabled: boolean
+          collected_data: Json
+          created_at: string
+          current_step: string
+          followup_sent: boolean
+          id: string
+          instagram_sender_id: string
+          last_message_at: string
+          lead_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bot_enabled?: boolean
+          collected_data?: Json
+          created_at?: string
+          current_step?: string
+          followup_sent?: boolean
+          id?: string
+          instagram_sender_id: string
+          last_message_at?: string
+          lead_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bot_enabled?: boolean
+          collected_data?: Json
+          created_at?: string
+          current_step?: string
+          followup_sent?: boolean
+          id?: string
+          instagram_sender_id?: string
+          last_message_at?: string
+          lead_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_bot_state_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_messages: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
+          direction: string
+          error_message: string | null
+          file_name: string | null
+          id: string
+          instagram_sender_id: string
+          instagram_username: string
+          is_escalated: boolean
+          is_internal_note: boolean
+          lead_id: string | null
+          lead_name: string
+          lead_phone: string
+          media_url: string | null
+          message_body: string | null
+          message_type: string | null
+          meta_message_id: string | null
+          read_at: string | null
+          starred: boolean
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
+          direction?: string
+          error_message?: string | null
+          file_name?: string | null
+          id?: string
+          instagram_sender_id?: string
+          instagram_username?: string
+          is_escalated?: boolean
+          is_internal_note?: boolean
+          lead_id?: string | null
+          lead_name: string
+          lead_phone?: string
+          media_url?: string | null
+          message_body?: string | null
+          message_type?: string | null
+          meta_message_id?: string | null
+          read_at?: string | null
+          starred?: boolean
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
+          direction?: string
+          error_message?: string | null
+          file_name?: string | null
+          id?: string
+          instagram_sender_id?: string
+          instagram_username?: string
+          is_escalated?: boolean
+          is_internal_note?: boolean
+          lead_id?: string | null
+          lead_name?: string
+          lead_phone?: string
+          media_url?: string | null
+          message_body?: string | null
+          message_type?: string | null
+          meta_message_id?: string | null
+          read_at?: string | null
+          starred?: boolean
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           category: string
@@ -591,6 +718,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          instagram_username: string | null
           lead_score: string | null
           notes: string | null
           phone: string
@@ -612,6 +740,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id?: string
+          instagram_username?: string | null
           lead_score?: string | null
           notes?: string | null
           phone: string
@@ -633,6 +762,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          instagram_username?: string | null
           lead_score?: string | null
           notes?: string | null
           phone?: string
