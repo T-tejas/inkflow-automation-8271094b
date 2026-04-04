@@ -220,6 +220,10 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
                 Admin
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/appointments')}>
+              <Calendar className="h-4 w-4 text-success" />
+              Appointments
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/designs')}>
               <Palette className="h-4 w-4 text-purple-500" />
               Designs
