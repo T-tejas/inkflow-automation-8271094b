@@ -256,6 +256,7 @@ export function useInstagramChat() {
     messagesLoading,
     selectContact,
     sendMessage,
+    retryMessage,
     toggleBotEnabled,
     toggleStar,
     fetchContacts,
