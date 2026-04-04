@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
   try {
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     if (!GOOGLE_CLIENT_ID) {
       return new Response(JSON.stringify({ error: 'GOOGLE_CLIENT_ID not configured' }), {
@@ -24,9 +25,8 @@ Deno.serve(async (req) => {
 
     if (action === 'get_auth_url') {
       const redirectUri = `${SUPABASE_URL}/functions/v1/google-calendar-callback`;
-      const scopes = 'https://www.googleapis.com/auth/calendar.events';
+      const scopes = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
       
-      // Extract user token to pass as state
       const authHeader = req.headers.get('Authorization');
       const token = authHeader?.replace('Bearer ', '') || '';
 
@@ -52,21 +52,23 @@ Deno.serve(async (req) => {
         });
       }
 
-      const supabase = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
 
-      const { data: claims, error: claimsErr } = await supabase.auth.getClaims(authHeader.replace('Bearer ', ''));
-      if (claimsErr || !claims?.claims?.sub) {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) {
         return new Response(JSON.stringify({ connected: false }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const { data } = await supabase
+      // Use service role to check tokens table (RLS restricts to own user)
+      const supabaseAdmin = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      const { data } = await supabaseAdmin
         .from('google_calendar_tokens')
         .select('id, calendar_id')
-        .eq('user_id', claims.claims.sub)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       return new Response(JSON.stringify({ connected: !!data }), {

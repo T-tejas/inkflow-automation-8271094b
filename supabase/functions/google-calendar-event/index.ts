@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!;
     const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
@@ -23,16 +24,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUser = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    // Get user via getUser instead of getClaims
+    const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claims, error: claimsErr } = await supabaseUser.auth.getClaims(authHeader.replace('Bearer ', ''));
-    if (claimsErr || !claims?.claims?.sub) {
+    const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
+    if (userErr || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const userId = claims.claims.sub as string;
+    const userId = user.id;
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -77,13 +79,16 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, event_data, event_id, design_task_id } = body;
+    const { action, event_data, event_id, design_task_id, appointment_id } = body;
 
     const calendarId = tokenRow.calendar_id || 'primary';
     const baseUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 
     if (action === 'create') {
-      const gcalEvent = buildEvent(event_data);
+      const gcalEvent = event_data._type === 'appointment' 
+        ? buildAppointmentEvent(event_data) 
+        : buildDesignEvent(event_data);
+      
       const res = await fetch(baseUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -96,11 +101,16 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Save event ID to design_tasks
+      // Save event ID to the relevant table
       if (design_task_id) {
         await supabaseAdmin.from('design_tasks').update({
           google_calendar_event_id: data.id,
         }).eq('id', design_task_id);
+      }
+      if (appointment_id) {
+        await supabaseAdmin.from('appointments').update({
+          google_event_id: data.id,
+        } as any).eq('id', appointment_id);
       }
 
       return new Response(JSON.stringify({ success: true, event_id: data.id }), {
@@ -114,7 +124,9 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const gcalEvent = buildEvent(event_data);
+      const gcalEvent = event_data._type === 'appointment'
+        ? buildAppointmentEvent(event_data)
+        : buildDesignEvent(event_data);
       const res = await fetch(`${baseUrl}/${event_id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -141,7 +153,7 @@ Deno.serve(async (req) => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      if (!res.ok) {
+      if (!res.ok && res.status !== 404) {
         const text = await res.text();
         return new Response(JSON.stringify({ error: 'Failed to delete event', details: text }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -162,7 +174,40 @@ Deno.serve(async (req) => {
   }
 });
 
-function buildEvent(data: any) {
+function buildAppointmentEvent(data: any) {
+  const startDateTime = `${data.appointment_date}T${data.time_slot}:00`;
+  const durationMs = (data.duration_minutes || 120) * 60 * 1000;
+  const endDate = new Date(new Date(startDateTime).getTime() + durationMs);
+  const endDateTime = endDate.toISOString().replace('Z', '');
+
+  const event: any = {
+    summary: `Tattoo Appointment – ${data.client_name}`,
+    description: [
+      `👤 Client: ${data.client_name}`,
+      `📱 Phone: ${data.client_phone}`,
+      data.tattoo_style ? `🎨 Style: ${data.tattoo_style}` : null,
+      data.notes ? `📝 Notes: ${data.notes}` : null,
+      `🏢 Studio: F19 Tattoo Studio`,
+    ].filter(Boolean).join('\n'),
+    start: { dateTime: startDateTime, timeZone: 'Asia/Kolkata' },
+    end: { dateTime: endDateTime, timeZone: 'Asia/Kolkata' },
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: 'popup', minutes: 1440 },
+        { method: 'popup', minutes: 120 },
+      ],
+    },
+  };
+
+  if (data.artist_email) {
+    event.attendees = [{ email: data.artist_email }];
+  }
+
+  return event;
+}
+
+function buildDesignEvent(data: any) {
   const event: any = {
     summary: `Tattoo Design – ${data.client_name}`,
     description: [
@@ -181,8 +226,8 @@ function buildEvent(data: any) {
     reminders: {
       useDefault: false,
       overrides: [
-        { method: 'popup', minutes: 1440 }, // 1 day before
-        { method: 'popup', minutes: 120 },  // 2 hours before
+        { method: 'popup', minutes: 1440 },
+        { method: 'popup', minutes: 120 },
       ],
     },
   };
