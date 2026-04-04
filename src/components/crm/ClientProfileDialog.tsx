@@ -28,6 +28,7 @@ interface ClientProfileDialogProps {
 export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileDialogProps) {
   const [completions, setCompletions] = useState<TattooCompletion[]>([]);
   const [consentForms, setConsentForms] = useState<ConsentForm[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<ConsentForm | null>(null);
@@ -38,15 +39,19 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
     Promise.all([
       supabase.from('tattoo_completions').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false }),
       supabase.from('consent_forms').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false }),
-    ]).then(([compRes, consentRes]) => {
+      supabase.from('appointments').select('id, appointment_date, time_slot, status, tattoo_style').eq('lead_id', lead.id).order('appointment_date', { ascending: false }),
+    ]).then(([compRes, consentRes, apptRes]) => {
       setCompletions((compRes.data as TattooCompletion[]) || []);
       setConsentForms((consentRes.data as ConsentForm[]) || []);
+      setAppointments((apptRes.data as AppointmentRecord[]) || []);
       setLoading(false);
     });
   }, [lead, open]);
 
   if (!lead) return null;
 
+  const isRepeatClient = completions.length > 1;
+  const totalSpent = completions.reduce((s, c) => s + Number(c.tattoo_price || 0), 0);
   const allPhotos = completions.flatMap(c => (c.photo_urls || []).map(url => ({ url, artist: c.artist_name, date: c.created_at, price: c.tattoo_price })));
 
   return (
