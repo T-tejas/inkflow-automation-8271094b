@@ -17,12 +17,27 @@ type TokenCandidate = {
   token: string;
 };
 
+type PageIdCandidate = {
+  source: "env" | "db";
+  pageId: string;
+};
+
+type EndpointCandidate = {
+  kind: "page" | "me";
+  pageId: string | null;
+  pageIdSource: PageIdCandidate["source"] | null;
+  url: string;
+};
+
 type SendResult = {
   ok: boolean;
   messageId: string | null;
   error: string | null;
   details: any;
   tokenSource: TokenCandidate["source"] | null;
+  endpoint: EndpointCandidate["kind"] | null;
+  pageId: string | null;
+  pageIdSource: PageIdCandidate["source"] | null;
 };
 
 function normalizeAccessToken(value: string | null | undefined) {
@@ -41,6 +56,23 @@ function normalizeAccessToken(value: string | null | undefined) {
   token = token.replace(/[\r\n\t\s]+/g, "");
 
   return token;
+}
+
+function normalizePageId(value: string | null | undefined) {
+  if (!value) return "";
+
+  let pageId = value.trim();
+
+  if (
+    (pageId.startsWith('"') && pageId.endsWith('"')) ||
+    (pageId.startsWith("'") && pageId.endsWith("'"))
+  ) {
+    pageId = pageId.slice(1, -1).trim();
+  }
+
+  pageId = pageId.replace(/[\r\n\t\s]+/g, "");
+
+  return pageId;
 }
 
 async function getTokenCandidates(supabase: ReturnType<typeof createClient>): Promise<TokenCandidate[]> {
@@ -78,8 +110,64 @@ async function getTokenCandidates(supabase: ReturnType<typeof createClient>): Pr
   return candidates;
 }
 
+async function getPageIdCandidates(supabase: ReturnType<typeof createClient>): Promise<PageIdCandidate[]> {
+  const envPageIdRaw = Deno.env.get("INSTAGRAM_PAGE_ID") || "";
+  const envPageId = normalizePageId(envPageIdRaw);
+
+  const { data: pageIdSetting } = await supabase
+    .from("whatsapp_settings")
+    .select("setting_value")
+    .eq("setting_key", "instagram_page_id")
+    .maybeSingle();
+
+  const dbPageIdRaw = pageIdSetting?.setting_value || "";
+  const dbPageId = normalizePageId(dbPageIdRaw);
+
+  if (envPageIdRaw && envPageId !== envPageIdRaw.trim()) {
+    console.log("[send-instagram] Normalized Instagram page ID from runtime secret");
+  }
+
+  if (dbPageIdRaw && dbPageId !== dbPageIdRaw.trim()) {
+    console.log("[send-instagram] Normalized Instagram page ID from saved settings");
+  }
+
+  const candidates: PageIdCandidate[] = [];
+
+  if (dbPageId) {
+    candidates.push({ source: "db", pageId: dbPageId });
+  }
+
+  if (envPageId && !candidates.some((candidate) => candidate.pageId === envPageId)) {
+    candidates.push({ source: "env", pageId: envPageId });
+  }
+
+  return candidates;
+}
+
+function buildEndpointCandidates(pageIdCandidates: PageIdCandidate[]): EndpointCandidate[] {
+  const endpointCandidates: EndpointCandidate[] = pageIdCandidates.map((candidate) => ({
+    kind: "page",
+    pageId: candidate.pageId,
+    pageIdSource: candidate.source,
+    url: `https://graph.facebook.com/v21.0/${candidate.pageId}/messages`,
+  }));
+
+  endpointCandidates.push({
+    kind: "me",
+    pageId: null,
+    pageIdSource: null,
+    url: "https://graph.facebook.com/v21.0/me/messages",
+  });
+
+  return endpointCandidates.filter(
+    (candidate, index, allCandidates) =>
+      allCandidates.findIndex((entry) => entry.url === candidate.url) === index
+  );
+}
+
 async function sendWithRetry(
   tokenCandidate: TokenCandidate,
+  endpointCandidate: EndpointCandidate,
   recipientId: string,
   messageBody: string,
   maxRetries = 2
@@ -87,10 +175,10 @@ async function sendWithRetry(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       console.log(
-        `[send-instagram] Attempt ${attempt + 1} sending to ${recipientId} using ${tokenCandidate.source} token`
+          `[send-instagram] Attempt ${attempt + 1} sending to ${recipientId} using ${tokenCandidate.source} token via ${endpointCandidate.kind} endpoint${endpointCandidate.pageId ? ` (${endpointCandidate.pageIdSource} page ID)` : ""}`
       );
 
-      const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+        const response = await fetch(endpointCandidate.url, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${tokenCandidate.token}`,
@@ -112,6 +200,9 @@ async function sendWithRetry(
           error: null,
           details: result,
           tokenSource: tokenCandidate.source,
+          endpoint: endpointCandidate.kind,
+          pageId: endpointCandidate.pageId,
+          pageIdSource: endpointCandidate.pageIdSource,
         };
       }
 
@@ -132,6 +223,22 @@ async function sendWithRetry(
           error: `Permission error: ${errorMsg}`,
           details: result,
           tokenSource: tokenCandidate.source,
+          endpoint: endpointCandidate.kind,
+          pageId: endpointCandidate.pageId,
+          pageIdSource: endpointCandidate.pageIdSource,
+        };
+      }
+
+      if (errorCode === 100 && errorSubcode === 33) {
+        return {
+          ok: false,
+          messageId: null,
+          error: `Instagram page connection error: ${errorMsg}`,
+          details: result,
+          tokenSource: tokenCandidate.source,
+          endpoint: endpointCandidate.kind,
+          pageId: endpointCandidate.pageId,
+          pageIdSource: endpointCandidate.pageIdSource,
         };
       }
 
@@ -143,6 +250,9 @@ async function sendWithRetry(
           error: `Invalid recipient: ${errorMsg}`,
           details: result,
           tokenSource: tokenCandidate.source,
+          endpoint: endpointCandidate.kind,
+          pageId: endpointCandidate.pageId,
+          pageIdSource: endpointCandidate.pageIdSource,
         };
       }
 
@@ -160,11 +270,14 @@ async function sendWithRetry(
         error: errorMsg,
         details: result,
         tokenSource: tokenCandidate.source,
+        endpoint: endpointCandidate.kind,
+        pageId: endpointCandidate.pageId,
+        pageIdSource: endpointCandidate.pageIdSource,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Network error";
       console.error(
-        `[send-instagram] Fetch error (attempt ${attempt + 1}, ${tokenCandidate.source} token):`,
+        `[send-instagram] Fetch error (attempt ${attempt + 1}, ${tokenCandidate.source} token, ${endpointCandidate.kind} endpoint):`,
         msg
       );
       if (attempt < maxRetries) {
@@ -177,6 +290,9 @@ async function sendWithRetry(
         error: msg,
         details: null,
         tokenSource: tokenCandidate.source,
+        endpoint: endpointCandidate.kind,
+        pageId: endpointCandidate.pageId,
+        pageIdSource: endpointCandidate.pageIdSource,
       };
     }
   }
@@ -187,11 +303,60 @@ async function sendWithRetry(
     error: "Max retries exceeded",
     details: null,
     tokenSource: tokenCandidate.source,
+    endpoint: endpointCandidate.kind,
+    pageId: endpointCandidate.pageId,
+    pageIdSource: endpointCandidate.pageIdSource,
   };
+}
+
+async function sendWithEndpointFallback(
+  tokenCandidate: TokenCandidate,
+  endpointCandidates: EndpointCandidate[],
+  recipientId: string,
+  messageBody: string
+): Promise<SendResult> {
+  let lastResult: SendResult = {
+    ok: false,
+    messageId: null,
+    error: "Instagram endpoint not configured",
+    details: null,
+    tokenSource: tokenCandidate.source,
+    endpoint: null,
+    pageId: null,
+    pageIdSource: null,
+  };
+
+  for (let index = 0; index < endpointCandidates.length; index++) {
+    const endpointCandidate = endpointCandidates[index];
+    const result = await sendWithRetry(tokenCandidate, endpointCandidate, recipientId, messageBody);
+
+    if (result.ok) {
+      return result;
+    }
+
+    lastResult = result;
+
+    const errorCode = result.details?.error?.code;
+    const errorSubcode = result.details?.error?.error_subcode;
+    const hasNextEndpoint = index < endpointCandidates.length - 1;
+    const shouldTryNextEndpoint = hasNextEndpoint && errorCode === 100 && errorSubcode === 33;
+
+    if (shouldTryNextEndpoint) {
+      console.warn(
+        `[send-instagram] ${endpointCandidate.kind} endpoint failed with code ${errorCode}/${errorSubcode}; trying next endpoint`
+      );
+      continue;
+    }
+
+    return result;
+  }
+
+  return lastResult;
 }
 
 async function sendWithTokenFallback(
   tokenCandidates: TokenCandidate[],
+  endpointCandidates: EndpointCandidate[],
   recipientId: string,
   messageBody: string
 ): Promise<SendResult> {
@@ -201,11 +366,14 @@ async function sendWithTokenFallback(
     error: "Instagram access token not configured",
     details: null,
     tokenSource: null,
+    endpoint: null,
+    pageId: null,
+    pageIdSource: null,
   };
 
   for (let index = 0; index < tokenCandidates.length; index++) {
     const candidate = tokenCandidates[index];
-    const result = await sendWithRetry(candidate, recipientId, messageBody);
+    const result = await sendWithEndpointFallback(candidate, endpointCandidates, recipientId, messageBody);
 
     if (result.ok) {
       return result;
@@ -214,12 +382,18 @@ async function sendWithTokenFallback(
     lastResult = result;
 
     const errorCode = result.details?.error?.code;
+    const errorSubcode = result.details?.error?.error_subcode;
     const hasNextToken = index < tokenCandidates.length - 1;
-    const shouldTryNextToken = hasNextToken && (errorCode === 190 || errorCode === 10 || errorCode === 200);
+    const shouldTryNextToken = hasNextToken && (
+      errorCode === 190 ||
+      errorCode === 10 ||
+      errorCode === 200 ||
+      (errorCode === 100 && errorSubcode === 33)
+    );
 
     if (shouldTryNextToken) {
       console.warn(
-        `[send-instagram] ${candidate.source} token failed with code ${errorCode}; trying fallback token`
+        `[send-instagram] ${candidate.source} token failed with code ${errorCode}${errorSubcode ? `/${errorSubcode}` : ""}; trying fallback token`
       );
       continue;
     }
@@ -249,6 +423,8 @@ Deno.serve(async (req) => {
     }
 
     const tokenCandidates = await getTokenCandidates(supabase);
+    const pageIdCandidates = await getPageIdCandidates(supabase);
+    const endpointCandidates = buildEndpointCandidates(pageIdCandidates);
 
     if (!tokenCandidates.length) {
       console.error("[send-instagram] No access token found in secrets or saved settings");
@@ -263,8 +439,16 @@ Deno.serve(async (req) => {
 
     console.log(`[send-instagram] Sending to ${recipientId} (${leadName}): ${messageBody.slice(0, 100)}`);
 
-    // Send with retry and fallback between configured token sources
-    const result = await sendWithTokenFallback(tokenCandidates, recipientId, messageBody);
+    if (pageIdCandidates.length) {
+      console.log(
+        `[send-instagram] Using explicit page endpoint candidates from ${pageIdCandidates.map((candidate) => candidate.source).join(", ")}`
+      );
+    } else {
+      console.warn("[send-instagram] No Instagram page ID configured; falling back to /me/messages");
+    }
+
+    // Send with retry and fallback between configured token sources and endpoint variants
+    const result = await sendWithTokenFallback(tokenCandidates, endpointCandidates, recipientId, messageBody);
 
     // Log the outgoing message
     const { error: insertError } = await supabase.from("instagram_messages").insert({
@@ -293,15 +477,30 @@ Deno.serve(async (req) => {
         lead_id: leadId || null,
         details: {
           tokenSource: result.tokenSource,
+          endpoint: result.endpoint,
+          pageId: result.pageId,
+          pageIdSource: result.pageIdSource,
           recipientId,
           error: result.error,
           apiResponse: result.details,
         },
       });
-      return json({ error: result.error, details: result.details, tokenSource: result.tokenSource }, 502);
+      return json({
+        error: result.error,
+        details: result.details,
+        tokenSource: result.tokenSource,
+        endpoint: result.endpoint,
+        pageIdSource: result.pageIdSource,
+      }, 502);
     }
 
-    return json({ success: true, messageId: result.messageId, tokenSource: result.tokenSource });
+    return json({
+      success: true,
+      messageId: result.messageId,
+      tokenSource: result.tokenSource,
+      endpoint: result.endpoint,
+      pageIdSource: result.pageIdSource,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[send-instagram] Unhandled error:", message);
