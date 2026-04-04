@@ -5,6 +5,8 @@ import { useAppointments } from '@/hooks/useAppointments';
 import { ContactList } from '@/components/chat/ContactList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { BookingDialog } from '@/components/appointments/BookingDialog';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Chat = () => {
