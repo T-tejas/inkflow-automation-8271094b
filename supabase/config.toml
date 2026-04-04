@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.scheduled-reminders]
 verify_jwt = false
+
+[functions.instagram-webhook]
+verify_jwt = false
+
+[functions.send-instagram]
+verify_jwt = false

@@ -17,7 +17,7 @@ import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
 import { WalkInDialog } from '@/components/crm/WalkInDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar, Instagram } from 'lucide-react';
 import { Lead, LeadStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
@@ -237,6 +237,10 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/chat')}>
               <MessageCircle className="h-4 w-4 text-success" />
               Chat
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/instagram')}>
+              <Instagram className="h-4 w-4 text-pink-500" />
+              Instagram
             </Button>
             <Button
               variant={selectMode ? 'default' : 'outline'}
