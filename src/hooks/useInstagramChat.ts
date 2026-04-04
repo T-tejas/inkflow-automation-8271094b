@@ -205,6 +205,26 @@ export function useInstagramChat() {
       body: { recipientId: senderId, leadName, leadId, messageBody: text },
     });
     if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }, []);
+
+  const retryMessage = useCallback(async (message: InstagramMessage) => {
+    // Delete the failed message first
+    await supabase.from('instagram_messages').delete().eq('id', message.id);
+    setMessages(prev => prev.filter(m => m.id !== message.id));
+
+    // Resend
+    const { data, error } = await supabase.functions.invoke('send-instagram', {
+      body: {
+        recipientId: message.instagramSenderId,
+        leadName: message.leadName,
+        leadId: message.leadId,
+        messageBody: message.messageBody,
+      },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
     return data;
   }, []);
 
