@@ -66,12 +66,13 @@ async function getTokenCandidates(supabase: ReturnType<typeof createClient>): Pr
 
   const candidates: TokenCandidate[] = [];
 
-  if (envToken) {
-    candidates.push({ source: "env", token: envToken });
+  // Prioritize DB token (updated from Settings UI) over env secret
+  if (dbToken) {
+    candidates.push({ source: "db", token: dbToken });
   }
 
-  if (dbToken && !candidates.some((candidate) => candidate.token === dbToken)) {
-    candidates.push({ source: "db", token: dbToken });
+  if (envToken && !candidates.some((candidate) => candidate.token === envToken)) {
+    candidates.push({ source: "env", token: envToken });
   }
 
   return candidates;
