@@ -14,6 +14,7 @@ interface Props {
   onSendMessage: (text: string) => Promise<void>;
   onToggleStar: (messageId: string, currentStarred: boolean) => void;
   onToggleBot: (senderId: string, currentEnabled: boolean) => void;
+  onRetryMessage?: (message: InstagramMessage) => Promise<void>;
 }
 
 export function InstagramChatWindow({ contact, messages, loading, onSendMessage, onToggleStar, onToggleBot }: Props) {
