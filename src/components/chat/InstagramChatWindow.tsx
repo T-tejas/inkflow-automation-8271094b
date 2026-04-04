@@ -17,7 +17,7 @@ interface Props {
   onRetryMessage?: (message: InstagramMessage) => Promise<void>;
 }
 
-export function InstagramChatWindow({ contact, messages, loading, onSendMessage, onToggleStar, onToggleBot }: Props) {
+export function InstagramChatWindow({ contact, messages, loading, onSendMessage, onToggleStar, onToggleBot, onRetryMessage }: Props) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
