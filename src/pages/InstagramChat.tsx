@@ -67,6 +67,14 @@ const InstagramChat = () => {
           onSendMessage={handleSendMessage}
           onToggleStar={toggleStar}
           onToggleBot={handleToggleBot}
+          onRetryMessage={async (msg) => {
+            try {
+              await retryMessage(msg);
+              toast({ title: 'Message resent' });
+            } catch {
+              toast({ title: 'Retry failed', variant: 'destructive' });
+            }
+          }}
         />
       </div>
     </div>
