@@ -195,6 +195,12 @@ Deno.serve(async (req) => {
 
           if (leadError) {
             console.error("[ig-webhook] Lead creation error:", leadError);
+            await supabase.from("system_logs").insert({
+              message: `Failed to create Instagram lead: ${senderName} (@${senderUsername})`,
+              log_type: "error",
+              category: "instagram",
+              details: { senderId, error: leadError.message },
+            });
           } else {
             lead = newLead;
             leadId = newLead?.id || null;
