@@ -19,6 +19,7 @@ import BotTemplates from "./pages/BotTemplates";
 import ConsentForm from "./pages/ConsentForm";
 import WalkInForm from "./pages/WalkInForm";
 import PriceCalculator from "./pages/PriceCalculator";
+import InstagramChat from "./pages/InstagramChat";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
