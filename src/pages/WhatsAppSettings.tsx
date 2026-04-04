@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Settings, Key, Phone, Calendar, Webhook, AppWindow,
   HelpCircle, ExternalLink, Shield, Eye, EyeOff, Bug, Unplug, RefreshCw,
-  CheckCircle2, XCircle, Info, Bot
+  CheckCircle2, XCircle, Info, Bot, Instagram
 } from 'lucide-react';
 import { ChatbotRulesManager } from '@/components/admin/ChatbotRulesManager';
 
