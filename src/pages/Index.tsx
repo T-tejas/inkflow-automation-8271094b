@@ -238,6 +238,10 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
               <MessageCircle className="h-4 w-4 text-success" />
               Chat
             </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/instagram')}>
+              <Instagram className="h-4 w-4 text-pink-500" />
+              Instagram
+            </Button>
             <Button
               variant={selectMode ? 'default' : 'outline'}
               size="sm"
