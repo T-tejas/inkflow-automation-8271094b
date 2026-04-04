@@ -15,7 +15,7 @@ interface Props {
 
 const FIELDS = [
   { key: 'instagram_page_id', label: 'Instagram Page ID', icon: Key, sensitive: false },
-  { key: 'instagram_page_access_token', label: 'Page Access Token', icon: Key, sensitive: true, multiline: true },
+  { key: 'instagram_page_access_token', label: 'Page Access Token', icon: Key, sensitive: false, multiline: true },
 ];
 
 const InstagramSettingsCard = ({ settings, showTokens, onUpdate, onToggle }: Props) => {
