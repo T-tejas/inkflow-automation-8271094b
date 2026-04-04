@@ -14,8 +14,10 @@ interface Props {
 }
 
 const FIELDS = [
-  { key: 'instagram_page_id', label: 'Instagram Page ID', icon: Key, sensitive: false },
-  { key: 'instagram_page_access_token', label: 'Page Access Token', icon: Key, sensitive: false, multiline: true },
+  { key: 'instagram_page_id', label: 'Instagram Page ID (Account 1)', icon: Key, sensitive: false },
+  { key: 'instagram_page_access_token', label: 'Page Access Token (Account 1)', icon: Key, sensitive: false, multiline: true },
+  { key: 'instagram_page_id_2', label: 'Instagram Page ID (Account 2)', icon: Key, sensitive: false },
+  { key: 'instagram_page_access_token_2', label: 'Page Access Token (Account 2)', icon: Key, sensitive: false, multiline: true },
 ];
 
 const InstagramSettingsCard = ({ settings, showTokens, onUpdate, onToggle }: Props) => {
