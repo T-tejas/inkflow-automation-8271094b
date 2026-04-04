@@ -146,13 +146,6 @@ export function useInstagramChat() {
 
   const fetchMessages = useCallback(async (senderId: string) => {
     setMessagesLoading(true);
-    const { data } = await supabase
-      .from('instagram_messages')
-      .select('*')
-      .or(`instagram_sender_id.eq.${senderId},and(direction.eq.outgoing,instagram_sender_id.eq.${senderId})`)
-      .order('created_at', { ascending: true });
-
-    // Actually get all messages for this conversation
     const { data: allMsgs } = await supabase
       .from('instagram_messages')
       .select('*')

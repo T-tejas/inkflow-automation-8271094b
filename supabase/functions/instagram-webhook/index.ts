@@ -359,12 +359,12 @@ Deno.serve(async (req) => {
         if (replyText) {
           const metaMsgId = await sendInstagramMessage(pageAccessToken, senderId, replyText);
 
-          // Log outgoing message
+          // Log outgoing message — use senderId so it groups with the conversation
           await supabase.from("instagram_messages").insert({
             lead_id: leadId,
             lead_name: "F19 Bot",
-            instagram_username: "f19tattoostudio",
-            instagram_sender_id: recipientId || "page",
+            instagram_username: senderUsername || senderId,
+            instagram_sender_id: senderId,
             message_body: replyText,
             message_type: "text",
             direction: "outgoing",
@@ -372,6 +372,17 @@ Deno.serve(async (req) => {
             meta_message_id: metaMsgId,
             error_message: metaMsgId ? null : "Failed to send via Instagram API",
           });
+
+          // Log errors to system_logs
+          if (!metaMsgId) {
+            await supabase.from("system_logs").insert({
+              message: `Instagram bot reply failed for ${senderName} (@${senderUsername})`,
+              log_type: "error",
+              category: "instagram",
+              lead_id: leadId,
+              details: { senderId, step: nextStep, replyText: replyText.slice(0, 200) },
+            });
+          }
         }
 
         // Update bot state
