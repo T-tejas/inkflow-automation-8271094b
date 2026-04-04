@@ -242,10 +242,6 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
               <Instagram className="h-4 w-4 text-pink-500" />
               Instagram
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              Settings
-            </Button>
             <Button
               variant={selectMode ? 'default' : 'outline'}
               size="sm"
