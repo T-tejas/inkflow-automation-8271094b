@@ -17,7 +17,7 @@ import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
 import { WalkInDialog } from '@/components/crm/WalkInDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar, Instagram } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar, Instagram, Globe, Settings } from 'lucide-react';
 import { Lead, LeadStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
