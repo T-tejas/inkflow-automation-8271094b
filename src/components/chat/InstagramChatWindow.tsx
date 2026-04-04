@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Instagram, Send, Bot, UserRound, Star, AlertCircle } from 'lucide-react';
+import { Instagram, Send, Bot, UserRound, Star, AlertCircle, RotateCcw, CheckCheck } from 'lucide-react';
 import { InstagramContact, InstagramMessage } from '@/hooks/useInstagramChat';
 import { format } from 'date-fns';
 
