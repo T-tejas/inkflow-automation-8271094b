@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 
 const InstagramChat = () => {
   const navigate = useNavigate();
+  const {
     contacts, messages, selectedSenderId, loading, messagesLoading,
     selectContact, sendMessage, toggleBotEnabled, toggleStar,
   } = useInstagramChat();
