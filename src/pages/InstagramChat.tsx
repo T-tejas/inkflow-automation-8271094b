@@ -43,6 +43,15 @@ const InstagramChat = () => {
   return (
     <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#dddbd1' }}>
       <div className="fixed top-0 left-0 right-0 h-[128px] z-0" style={{ background: 'linear-gradient(135deg, #833AB4, #E1306C, #F77737)' }} />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate('/')}
+        className="fixed top-3 left-6 z-20 text-white hover:bg-white/20 gap-1.5"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Button>
       <div className="relative z-10 flex w-full max-w-[1600px] h-[calc(100vh-36px)] my-[18px] mx-4 shadow-xl rounded-sm overflow-hidden" style={{ backgroundColor: '#ffffff' }}>
         <div className="w-[420px] flex-shrink-0 border-r" style={{ borderColor: '#e9edef' }}>
           <InstagramContactList
