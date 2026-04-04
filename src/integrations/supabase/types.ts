@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           duration_minutes: number
           followup_sent: boolean
+          google_event_id: string | null
           id: string
           lead_id: string | null
           lead_name: string
@@ -37,6 +38,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           followup_sent?: boolean
+          google_event_id?: string | null
           id?: string
           lead_id?: string | null
           lead_name: string
@@ -54,6 +56,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           followup_sent?: boolean
+          google_event_id?: string | null
           id?: string
           lead_id?: string | null
           lead_name?: string
