@@ -8,7 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const InstagramChat = () => {
-  const {
+  const navigate = useNavigate();
     contacts, messages, selectedSenderId, loading, messagesLoading,
     selectContact, sendMessage, toggleBotEnabled, toggleStar,
   } = useInstagramChat();
