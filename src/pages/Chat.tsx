@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChat } from '@/hooks/useChat';
 import { useAppointments } from '@/hooks/useAppointments';
 import { ContactList } from '@/components/chat/ContactList';
