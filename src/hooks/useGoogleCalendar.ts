@@ -34,8 +34,19 @@ export function useGoogleCalendar() {
         toast.error('Failed to get auth URL');
         return;
       }
-      const targetWindow = window.top || window.parent || window;
-      targetWindow.open(data.url, '_blank');
+      // Open in new tab - use window.open directly to avoid cross-origin iframe issues
+      try {
+        const popup = window.open(data.url, '_blank');
+        if (!popup) {
+          // If popup blocked, copy URL to clipboard as fallback
+          await navigator.clipboard.writeText(data.url);
+          toast.info('Popup blocked! URL copied to clipboard. Paste it in a new tab to connect.');
+        }
+      } catch {
+        // Fallback: use location.href approach
+        window.location.href = data.url;
+        return;
+      }
       const interval = setInterval(async () => {
         await checkStatus();
       }, 3000);
