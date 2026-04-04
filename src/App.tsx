@@ -50,6 +50,7 @@ function AuthenticatedApp() {
     <Routes>
       <Route path="/" element={<Index signOut={signOut} isAdmin={isAdmin} userRole={role} />} />
       <Route path="/chat" element={<Chat />} />
+      <Route path="/instagram" element={<InstagramChat />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/designs" element={<DesignTracker />} />
