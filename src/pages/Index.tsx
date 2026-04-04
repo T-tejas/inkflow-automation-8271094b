@@ -5,6 +5,7 @@ import { useDesignTasks } from '@/hooks/useDesignTasks';
 
 import { useCrmNotifications } from '@/hooks/useCrmNotifications';
 import { StatsCards } from '@/components/crm/StatsCards';
+import { SmartNotificationBell } from '@/components/crm/SmartNotificationBell';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
 import { PipelineBoard } from '@/components/crm/PipelineBoard';
 import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
