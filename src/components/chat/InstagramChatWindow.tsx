@@ -114,7 +114,23 @@ export function InstagramChatWindow({ contact, messages, loading, onSendMessage,
                     </p>
 
                     <div className="flex items-center justify-end gap-1 mt-0.5">
-                      {isFailed && <AlertCircle className="h-3 w-3 text-red-500" />}
+                      {isFailed && (
+                        <span className="flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-red-500" />
+                          <span className="text-[10px] text-red-500">Failed</span>
+                          {onRetryMessage && (
+                            <button
+                              onClick={() => onRetryMessage(msg)}
+                              className="text-[10px] text-blue-500 hover:underline flex items-center gap-0.5 ml-1"
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" /> Retry
+                            </button>
+                          )}
+                        </span>
+                      )}
+                      {isOutgoing && !isFailed && (
+                        <CheckCheck className="h-3 w-3 text-blue-500" />
+                      )}
                       <span className="text-[11px]" style={{ color: '#667781' }}>
                         {format(new Date(msg.createdAt), 'HH:mm')}
                       </span>
