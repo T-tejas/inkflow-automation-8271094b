@@ -70,16 +70,24 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {lead.phone}</span>
               {lead.tattooStyle && <Badge variant="outline" className="text-[10px]">{lead.tattooStyle}</Badge>}
+              {isRepeatClient && <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/20 text-[10px]">🔁 Repeat Client</Badge>}
             </div>
-            {(lead as any).client_id_code && (
-              <p className="text-xs text-muted-foreground">Client ID: <span className="font-mono text-primary">{(lead as any).client_id_code}</span></p>
-            )}
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              {(lead as any).client_id_code && (
+                <span>ID: <span className="font-mono text-primary">{(lead as any).client_id_code}</span></span>
+              )}
+              {totalSpent > 0 && (
+                <span className="flex items-center gap-0.5"><IndianRupee className="h-3 w-3" />{formatINR(totalSpent)} total</span>
+              )}
+              <span>{completions.length} tattoo{completions.length !== 1 ? 's' : ''}</span>
+            </div>
           </div>
 
           <Tabs defaultValue="gallery" className="mt-2">
-            <TabsList className="w-full grid grid-cols-3 h-8">
+            <TabsList className="w-full grid grid-cols-4 h-8">
               <TabsTrigger value="gallery" className="text-xs gap-1"><ImageIcon className="h-3 w-3" /> Gallery</TabsTrigger>
               <TabsTrigger value="history" className="text-xs gap-1"><History className="h-3 w-3" /> History</TabsTrigger>
+              <TabsTrigger value="appointments" className="text-xs gap-1"><Calendar className="h-3 w-3" /> Appts</TabsTrigger>
               <TabsTrigger value="consent" className="text-xs gap-1"><FileSignature className="h-3 w-3" /> Consent</TabsTrigger>
             </TabsList>
 
