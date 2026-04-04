@@ -12,20 +12,87 @@ const json = (payload: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+type TokenCandidate = {
+  source: "env" | "db";
+  token: string;
+};
+
+type SendResult = {
+  ok: boolean;
+  messageId: string | null;
+  error: string | null;
+  details: any;
+  tokenSource: TokenCandidate["source"] | null;
+};
+
+function normalizeAccessToken(value: string | null | undefined) {
+  if (!value) return "";
+
+  let token = value.trim();
+
+  if (
+    (token.startsWith('"') && token.endsWith('"')) ||
+    (token.startsWith("'") && token.endsWith("'"))
+  ) {
+    token = token.slice(1, -1).trim();
+  }
+
+  token = token.replace(/^Bearer\s+/i, "").trim();
+  token = token.replace(/[\r\n\t\s]+/g, "");
+
+  return token;
+}
+
+async function getTokenCandidates(supabase: ReturnType<typeof createClient>): Promise<TokenCandidate[]> {
+  const envTokenRaw = Deno.env.get("INSTAGRAM_PAGE_ACCESS_TOKEN") || "";
+  const envToken = normalizeAccessToken(envTokenRaw);
+
+  const { data: tokenSetting } = await supabase
+    .from("whatsapp_settings")
+    .select("setting_value")
+    .eq("setting_key", "instagram_page_access_token")
+    .maybeSingle();
+
+  const dbTokenRaw = tokenSetting?.setting_value || "";
+  const dbToken = normalizeAccessToken(dbTokenRaw);
+
+  if (envTokenRaw && envToken !== envTokenRaw.trim()) {
+    console.log("[send-instagram] Normalized Instagram token from runtime secret");
+  }
+
+  if (dbTokenRaw && dbToken !== dbTokenRaw.trim()) {
+    console.log("[send-instagram] Normalized Instagram token from saved settings");
+  }
+
+  const candidates: TokenCandidate[] = [];
+
+  if (envToken) {
+    candidates.push({ source: "env", token: envToken });
+  }
+
+  if (dbToken && !candidates.some((candidate) => candidate.token === dbToken)) {
+    candidates.push({ source: "db", token: dbToken });
+  }
+
+  return candidates;
+}
+
 async function sendWithRetry(
-  pageAccessToken: string,
+  tokenCandidate: TokenCandidate,
   recipientId: string,
   messageBody: string,
   maxRetries = 2
-): Promise<{ ok: boolean; messageId: string | null; error: string | null; details: any }> {
+): Promise<SendResult> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`[send-instagram] Attempt ${attempt + 1} sending to ${recipientId}`);
+      console.log(
+        `[send-instagram] Attempt ${attempt + 1} sending to ${recipientId} using ${tokenCandidate.source} token`
+      );
 
       const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${pageAccessToken}`,
+          Authorization: `Bearer ${tokenCandidate.token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -38,23 +105,44 @@ async function sendWithRetry(
 
       if (response.ok) {
         console.log(`[send-instagram] Sent successfully: ${result?.message_id}`);
-        return { ok: true, messageId: result?.message_id || null, error: null, details: result };
+        return {
+          ok: true,
+          messageId: result?.message_id || null,
+          error: null,
+          details: result,
+          tokenSource: tokenCandidate.source,
+        };
       }
 
       const errorMsg = result?.error?.message || "Unknown API error";
       const errorCode = result?.error?.code;
       const errorSubcode = result?.error?.error_subcode;
 
-      console.error(`[send-instagram] API error (attempt ${attempt + 1}):`, JSON.stringify(result?.error));
+      console.error(
+        `[send-instagram] API error (attempt ${attempt + 1}, ${tokenCandidate.source} token):`,
+        JSON.stringify(result?.error)
+      );
 
       // Don't retry on permission/auth errors — they won't resolve
       if (errorCode === 10 || errorCode === 200 || errorCode === 190) {
-        return { ok: false, messageId: null, error: `Permission error: ${errorMsg}`, details: result };
+        return {
+          ok: false,
+          messageId: null,
+          error: `Permission error: ${errorMsg}`,
+          details: result,
+          tokenSource: tokenCandidate.source,
+        };
       }
 
       // Don't retry on invalid recipient
       if (errorCode === 100) {
-        return { ok: false, messageId: null, error: `Invalid recipient: ${errorMsg}`, details: result };
+        return {
+          ok: false,
+          messageId: null,
+          error: `Invalid recipient: ${errorMsg}`,
+          details: result,
+          tokenSource: tokenCandidate.source,
+        };
       }
 
       // Retry on rate limit or transient errors
@@ -65,19 +153,80 @@ async function sendWithRetry(
         continue;
       }
 
-      return { ok: false, messageId: null, error: errorMsg, details: result };
+      return {
+        ok: false,
+        messageId: null,
+        error: errorMsg,
+        details: result,
+        tokenSource: tokenCandidate.source,
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Network error";
-      console.error(`[send-instagram] Fetch error (attempt ${attempt + 1}):`, msg);
+      console.error(
+        `[send-instagram] Fetch error (attempt ${attempt + 1}, ${tokenCandidate.source} token):`,
+        msg
+      );
       if (attempt < maxRetries) {
         await new Promise(r => setTimeout(r, 3000));
         continue;
       }
-      return { ok: false, messageId: null, error: msg, details: null };
+      return {
+        ok: false,
+        messageId: null,
+        error: msg,
+        details: null,
+        tokenSource: tokenCandidate.source,
+      };
     }
   }
 
-  return { ok: false, messageId: null, error: "Max retries exceeded", details: null };
+  return {
+    ok: false,
+    messageId: null,
+    error: "Max retries exceeded",
+    details: null,
+    tokenSource: tokenCandidate.source,
+  };
+}
+
+async function sendWithTokenFallback(
+  tokenCandidates: TokenCandidate[],
+  recipientId: string,
+  messageBody: string
+): Promise<SendResult> {
+  let lastResult: SendResult = {
+    ok: false,
+    messageId: null,
+    error: "Instagram access token not configured",
+    details: null,
+    tokenSource: null,
+  };
+
+  for (let index = 0; index < tokenCandidates.length; index++) {
+    const candidate = tokenCandidates[index];
+    const result = await sendWithRetry(candidate, recipientId, messageBody);
+
+    if (result.ok) {
+      return result;
+    }
+
+    lastResult = result;
+
+    const errorCode = result.details?.error?.code;
+    const hasNextToken = index < tokenCandidates.length - 1;
+    const shouldTryNextToken = hasNextToken && (errorCode === 190 || errorCode === 10 || errorCode === 200);
+
+    if (shouldTryNextToken) {
+      console.warn(
+        `[send-instagram] ${candidate.source} token failed with code ${errorCode}; trying fallback token`
+      );
+      continue;
+    }
+
+    return result;
+  }
+
+  return lastResult;
 }
 
 Deno.serve(async (req) => {
@@ -91,20 +240,17 @@ Deno.serve(async (req) => {
   );
 
   try {
-    // Resolve access token: env first, then DB settings
-    let pageAccessToken = Deno.env.get("INSTAGRAM_PAGE_ACCESS_TOKEN") || "";
+    const body = await req.json();
+    const { recipientId, leadName, leadId, messageBody, instagramUsername } = body;
 
-    if (!pageAccessToken) {
-      const { data: tokenSetting } = await supabase
-        .from("whatsapp_settings")
-        .select("setting_value")
-        .eq("setting_key", "instagram_page_access_token")
-        .single();
-      pageAccessToken = tokenSetting?.setting_value || "";
+    if (!recipientId || !messageBody) {
+      return json({ error: "Missing required fields: recipientId, messageBody" }, 400);
     }
 
-    if (!pageAccessToken) {
-      console.error("[send-instagram] No access token found in env or DB");
+    const tokenCandidates = await getTokenCandidates(supabase);
+
+    if (!tokenCandidates.length) {
+      console.error("[send-instagram] No access token found in secrets or saved settings");
       await supabase.from("system_logs").insert({
         message: "Instagram send failed: No access token configured",
         log_type: "error",
@@ -114,17 +260,10 @@ Deno.serve(async (req) => {
       return json({ error: "Instagram access token not configured. Add it in Settings." }, 500);
     }
 
-    const body = await req.json();
-    const { recipientId, leadName, leadId, messageBody, instagramUsername } = body;
-
-    if (!recipientId || !messageBody) {
-      return json({ error: "Missing required fields: recipientId, messageBody" }, 400);
-    }
-
     console.log(`[send-instagram] Sending to ${recipientId} (${leadName}): ${messageBody.slice(0, 100)}`);
 
-    // Send with retry
-    const result = await sendWithRetry(pageAccessToken, recipientId, messageBody);
+    // Send with retry and fallback between configured token sources
+    const result = await sendWithTokenFallback(tokenCandidates, recipientId, messageBody);
 
     // Log the outgoing message
     const { error: insertError } = await supabase.from("instagram_messages").insert({
@@ -152,15 +291,16 @@ Deno.serve(async (req) => {
         category: "instagram",
         lead_id: leadId || null,
         details: {
+          tokenSource: result.tokenSource,
           recipientId,
           error: result.error,
           apiResponse: result.details,
         },
       });
-      return json({ error: result.error, details: result.details }, 502);
+      return json({ error: result.error, details: result.details, tokenSource: result.tokenSource }, 502);
     }
 
-    return json({ success: true, messageId: result.messageId });
+    return json({ success: true, messageId: result.messageId, tokenSource: result.tokenSource });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[send-instagram] Unhandled error:", message);
