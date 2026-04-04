@@ -20,6 +20,8 @@ import ConsentForm from "./pages/ConsentForm";
 import WalkInForm from "./pages/WalkInForm";
 import PriceCalculator from "./pages/PriceCalculator";
 import InstagramChat from "./pages/InstagramChat";
+import UniversalInbox from "./pages/UniversalInbox";
+import Settings from "./pages/Settings";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -51,6 +53,8 @@ function AuthenticatedApp() {
       <Route path="/" element={<Index signOut={signOut} isAdmin={isAdmin} userRole={role} />} />
       <Route path="/chat" element={<Chat />} />
       <Route path="/instagram" element={<InstagramChat />} />
+      <Route path="/inbox" element={<UniversalInbox />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/designs" element={<DesignTracker />} />
