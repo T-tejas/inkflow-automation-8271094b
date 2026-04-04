@@ -5,10 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
-import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil } from 'lucide-react';
+import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil, IndianRupee, Clock } from 'lucide-react';
 import type { TattooCompletion } from '@/hooks/useTattooCompletions';
 import type { ConsentForm } from '@/hooks/useConsentForms';
 import { ConsentFormEditDialog } from './ConsentFormEditDialog';
+import { formatINR } from '@/lib/currency';
+
+interface AppointmentRecord {
+  id: string;
+  appointment_date: string;
+  time_slot: string;
+  status: string;
+  tattoo_style: string | null;
+}
 
 interface ClientProfileDialogProps {
   lead: Lead | null;

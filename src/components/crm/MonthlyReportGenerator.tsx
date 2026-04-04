@@ -174,4 +174,4 @@ export function MonthlyReportGenerator() {
   );
 }
 
-import { Trophy } from 'lucide-react';
+
