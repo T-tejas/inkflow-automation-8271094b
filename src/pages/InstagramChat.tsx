@@ -11,7 +11,7 @@ const InstagramChat = () => {
   const navigate = useNavigate();
   const {
     contacts, messages, selectedSenderId, loading, messagesLoading,
-    selectContact, sendMessage, toggleBotEnabled, toggleStar,
+    selectContact, sendMessage, retryMessage, toggleBotEnabled, toggleStar,
   } = useInstagramChat();
 
   const selectedContact = contacts.find(c => c.instagramSenderId === selectedSenderId) || null;
