@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, isToday, isTomorrow, isPast, startOfDay } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { useAppointments } from '@/hooks/useAppointments';
 import { BookingDialog } from '@/components/appointments/BookingDialog';
 import { Button } from '@/components/ui/button';
@@ -22,13 +22,13 @@ function formatTimeSlot(slot: string): string {
   return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; icon: any }> = {
-  pending: { bg: 'bg-warning/10', text: 'text-warning', icon: ClockIcon },
-  confirmed: { bg: 'bg-success/10', text: 'text-success', icon: CheckCircle2 },
-  completed: { bg: 'bg-info/10', text: 'text-info', icon: CheckCircle2 },
-  cancelled: { bg: 'bg-destructive/10', text: 'text-destructive', icon: XCircle },
-  rejected: { bg: 'bg-destructive/10', text: 'text-destructive', icon: XCircle },
-  no_show: { bg: 'bg-warning/10', text: 'text-warning', icon: AlertCircle },
+const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: any; label: string }> = {
+  pending: { bg: 'bg-amber-500/15', text: 'text-amber-400', icon: ClockIcon, label: 'Pending' },
+  confirmed: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', icon: CheckCircle2, label: 'Confirmed' },
+  completed: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', icon: CheckCircle2, label: 'Completed' },
+  cancelled: { bg: 'bg-red-500/15', text: 'text-red-400', icon: XCircle, label: 'Cancelled' },
+  rejected: { bg: 'bg-red-500/15', text: 'text-red-400', icon: XCircle, label: 'Rejected' },
+  no_show: { bg: 'bg-amber-500/15', text: 'text-amber-400', icon: AlertCircle, label: 'No Show' },
 };
 
 async function sendWhatsAppMessage(phone: string, leadName: string, messageBody: string) {
@@ -81,68 +81,77 @@ export default function Appointments() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <RefreshCw className="h-8 w-8 animate-spin text-emerald-400" />
       </div>
     );
   }
 
   const renderAppointmentCard = (appt: any) => {
-    const statusStyle = STATUS_STYLES[appt.status] || STATUS_STYLES.confirmed;
-    const StatusIcon = statusStyle.icon;
+    const config = STATUS_CONFIG[appt.status] || STATUS_CONFIG.confirmed;
+    const StatusIcon = config.icon;
     const dateObj = parseISO(appt.appointmentDate);
     const dateLabel = isToday(dateObj) ? 'Today' : isTomorrow(dateObj) ? 'Tomorrow' : format(dateObj, 'EEE, dd MMM yyyy');
+    const isOverdue = isPast(dateObj) && appt.status === 'pending';
 
     return (
-      <Card key={appt.id} className="glass-card hover:border-border transition-colors">
-        <CardContent className="py-3 px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-center min-w-[60px]">
-                <p className="text-lg font-bold text-foreground">{format(dateObj, 'dd')}</p>
-                <p className="text-[10px] text-muted-foreground uppercase">{format(dateObj, 'MMM')}</p>
+      <div
+        key={appt.id}
+        className={`group rounded-xl border transition-all duration-200 hover:border-slate-500 hover:shadow-lg hover:shadow-black/20 ${
+          isOverdue ? 'border-red-500/40 bg-red-500/5' : 'border-[#334155] bg-[#1e293b]'
+        }`}
+      >
+        <div className="p-4">
+          {/* Mobile layout */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+              <div className={`text-center min-w-[52px] rounded-lg py-2 px-2 ${isOverdue ? 'bg-red-500/10' : 'bg-[#0f172a]'}`}>
+                <p className={`text-lg font-bold ${isOverdue ? 'text-red-400' : 'text-white'}`}>{format(dateObj, 'dd')}</p>
+                <p className="text-[10px] text-slate-400 uppercase">{format(dateObj, 'MMM')}</p>
               </div>
-              <div className="h-10 w-px bg-border" />
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{appt.leadName}</p>
-                  <Badge className={`${statusStyle.bg} ${statusStyle.text} border-0 text-[10px]`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-white">{appt.leadName}</p>
+                  <Badge className={`${config.bg} ${config.text} border-0 text-[10px] font-medium`}>
                     <StatusIcon className="h-2.5 w-2.5 mr-0.5" />
-                    {appt.status}
+                    {config.label}
                   </Badge>
+                  {isOverdue && (
+                    <Badge className="bg-red-500/15 text-red-400 border-0 text-[10px]">⚠️ Overdue</Badge>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                  <span className="text-xs text-slate-400 flex items-center gap-1">
                     <Clock className="h-3 w-3" /> {appt.timeSlot}
                   </span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="text-xs text-slate-400 flex items-center gap-1">
                     <Phone className="h-3 w-3" /> {appt.leadPhone}
                   </span>
                   {appt.tattooStyle && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-slate-400 flex items-center gap-1">
                       <Palette className="h-3 w-3" /> {appt.tattooStyle}
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">{dateLabel}</span>
+                  <span className="text-xs text-slate-500">{dateLabel}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 sm:flex-shrink-0 ml-auto sm:ml-0">
               {appt.status === 'pending' && (
                 <>
                   <Button
-                    variant="outline"
                     size="sm"
-                    className="text-xs text-success hover:bg-success/10 gap-1"
+                    className="text-xs bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-0 gap-1 h-8"
+                    variant="outline"
                     onClick={() => handleApprove(appt)}
                   >
                     <ThumbsUp className="h-3 w-3" /> Approve
                   </Button>
                   <Button
-                    variant="outline"
                     size="sm"
-                    className="text-xs text-destructive hover:bg-destructive/10 gap-1"
+                    className="text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 border-0 gap-1 h-8"
+                    variant="outline"
                     onClick={() => handleReject(appt)}
                   >
                     <ThumbsDown className="h-3 w-3" /> Reject
@@ -152,9 +161,9 @@ export default function Appointments() {
               {appt.status === 'confirmed' && (
                 <>
                   <Button
-                    variant="outline"
                     size="sm"
-                    className="text-xs text-success hover:bg-success/10"
+                    className="text-xs bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border-0 h-8"
+                    variant="outline"
                     onClick={() => {
                       updateAppointmentStatus(appt.id, 'completed');
                       toast.success('Marked as completed');
@@ -163,9 +172,9 @@ export default function Appointments() {
                     Complete
                   </Button>
                   <Button
-                    variant="outline"
                     size="sm"
-                    className="text-xs text-destructive hover:bg-destructive/10"
+                    className="text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 border-0 h-8"
+                    variant="outline"
                     onClick={() => {
                       cancelAppointment(appt);
                       toast.success('Appointment cancelled');
@@ -177,86 +186,78 @@ export default function Appointments() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   };
 
+  const statCards = [
+    { label: 'Pending', value: pending.length, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { label: 'Today', value: todayAppts.length, color: 'text-white', bg: 'bg-slate-700/50' },
+    { label: 'Upcoming', value: upcoming.length, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Cancelled', value: appointments.filter(a => a.status === 'cancelled' || a.status === 'rejected').length, color: 'text-red-400', bg: 'bg-red-500/10' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 px-6 py-3">
+    <div className="min-h-screen bg-[#0f172a]">
+      {/* Header */}
+      <header className="border-b border-[#334155] px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between max-w-[1200px] mx-auto">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5" onClick={() => navigate('/')}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-white hover:bg-slate-800 gap-1.5"
+              onClick={() => navigate('/')}
+            >
               <ArrowLeft className="h-4 w-4" /> CRM
             </Button>
-            <div className="h-5 w-px bg-border" />
+            <div className="h-5 w-px bg-[#334155]" />
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-success/10 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-success" />
+              <div className="h-7 w-7 rounded-md bg-emerald-500/15 flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-emerald-400" />
               </div>
-              <h1 className="text-sm font-semibold text-foreground">Appointments</h1>
+              <h1 className="text-sm font-semibold text-white">Appointments</h1>
             </div>
           </div>
-          <Button onClick={() => setBookingOpen(true)} className="gap-2" size="sm">
+          <Button
+            onClick={() => setBookingOpen(true)}
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+            size="sm"
+          >
             <CalendarPlus className="h-4 w-4" /> New Booking
           </Button>
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 py-6">
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          <Card className="glass-card">
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-muted-foreground">Pending</p>
-              <p className="text-2xl font-bold text-warning">{pending.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-muted-foreground">Today</p>
-              <p className="text-2xl font-bold text-foreground">{todayAppts.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-muted-foreground">Upcoming</p>
-              <p className="text-2xl font-bold text-success">{upcoming.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-muted-foreground">Completed</p>
-              <p className="text-2xl font-bold text-info">
-                {appointments.filter(a => a.status === 'completed').length}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className="text-xs text-muted-foreground">Cancelled</p>
-              <p className="text-2xl font-bold text-destructive">
-                {appointments.filter(a => a.status === 'cancelled' || a.status === 'rejected').length}
-              </p>
-            </CardContent>
-          </Card>
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+          {statCards.map(s => (
+            <div key={s.label} className={`rounded-xl border border-[#334155] ${s.bg} p-4`}>
+              <p className="text-[11px] text-slate-400 uppercase tracking-wider">{s.label}</p>
+              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+            </div>
+          ))}
         </div>
 
+        {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
-            <TabsTrigger value="pending">
-              Pending {pending.length > 0 && <Badge className="ml-1.5 bg-warning/20 text-warning border-0 text-[10px]">{pending.length}</Badge>}
+          <TabsList className="bg-[#1e293b] border border-[#334155]">
+            <TabsTrigger value="pending" className="data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 text-slate-400">
+              Pending {pending.length > 0 && <Badge className="ml-1.5 bg-amber-500/20 text-amber-400 border-0 text-[10px]">{pending.length}</Badge>}
             </TabsTrigger>
-            <TabsTrigger value="upcoming">
+            <TabsTrigger value="upcoming" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 text-slate-400">
               Upcoming ({upcoming.length})
             </TabsTrigger>
-            <TabsTrigger value="today">
+            <TabsTrigger value="today" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               Today ({todayAppts.length})
             </TabsTrigger>
-            <TabsTrigger value="past">
+            <TabsTrigger value="past" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               Past ({past.length})
             </TabsTrigger>
-            <TabsTrigger value="all">
+            <TabsTrigger value="all" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               All ({appointments.length})
             </TabsTrigger>
           </TabsList>
@@ -269,12 +270,12 @@ export default function Appointments() {
             { key: 'all', list: appointments },
           ].map(({ key, list }) => (
             <TabsContent key={key} value={key}>
-              <ScrollArea className="h-[calc(100vh-280px)]">
-                <div className="space-y-2">
+              <ScrollArea className="h-[calc(100vh-320px)]">
+                <div className="space-y-2 pt-2">
                   {list.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <Calendar className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                      <p>{key === 'pending' ? 'No pending requests' : 'No appointments'}</p>
+                    <div className="text-center py-16">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 text-slate-600" />
+                      <p className="text-slate-500 text-sm">{key === 'pending' ? 'No pending requests' : 'No appointments'}</p>
                     </div>
                   )}
                   {list.map(renderAppointmentCard)}
