@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const Chat = () => {
+  const navigate = useNavigate();
   const {
     contacts, messages, selectedPhone, loading, messagesLoading,
     selectContact, sendTemplate, sendMessage, sendAttachment,
