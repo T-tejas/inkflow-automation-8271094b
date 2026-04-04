@@ -96,6 +96,10 @@ export default function AdminDashboard() {
               artistRevenue={artistRevenue}
               completionPriceMap={completionPriceMap}
             />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ArtistLeaderboard />
+              <MonthlyReportGenerator />
+            </div>
             <CompletedTable leads={completed} />
             <SystemLogsPanel />
           </>
