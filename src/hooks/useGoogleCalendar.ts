@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logSystemError, logSystemInfo } from '@/lib/systemLogger';
 
 export function useGoogleCalendar() {
   const [connected, setConnected] = useState(false);
@@ -33,19 +34,49 @@ export function useGoogleCalendar() {
         toast.error('Failed to get auth URL');
         return;
       }
-      // Use top-level window to avoid iframe blocking
       const targetWindow = window.top || window.parent || window;
       targetWindow.open(data.url, '_blank');
-      // Poll for connection status after user completes OAuth
       const interval = setInterval(async () => {
         await checkStatus();
       }, 3000);
-      // Stop polling after 5 minutes
       setTimeout(() => clearInterval(interval), 300000);
     } catch {
       toast.error('Failed to connect Google Calendar');
     }
   }, [checkStatus]);
+
+  const createAppointmentEvent = useCallback(async (eventData: {
+    client_name: string;
+    client_phone: string;
+    appointment_date: string;
+    time_slot: string;
+    duration_minutes?: number;
+    tattoo_style?: string;
+    notes?: string;
+    artist_email?: string;
+    appointment_id: string;
+  }) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-calendar-event', {
+        body: {
+          action: 'create',
+          appointment_id: eventData.appointment_id,
+          event_data: { ...eventData, _type: 'appointment' },
+        },
+      });
+      if (error || !data?.success) {
+        console.error('Calendar appointment event error:', error || data);
+        await logSystemError('general', `Failed to create calendar event for ${eventData.client_name}`, { error: error?.message || data });
+        return null;
+      }
+      await logSystemInfo('general', `Calendar event created for appointment: ${eventData.client_name}`);
+      return data.event_id;
+    } catch (err) {
+      console.error('Calendar appointment event failed:', err);
+      await logSystemError('general', `Calendar event exception for ${eventData.client_name}`, { error: String(err) });
+      return null;
+    }
+  }, []);
 
   const createEvent = useCallback(async (eventData: {
     client_name: string;
@@ -88,5 +119,16 @@ export function useGoogleCalendar() {
     }
   }, []);
 
-  return { connected, checking, connect, checkStatus, createEvent, updateEvent };
+  const deleteEvent = useCallback(async (eventId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-calendar-event', {
+        body: { action: 'delete', event_id: eventId },
+      });
+      return !error && data?.success;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  return { connected, checking, connect, checkStatus, createEvent, createAppointmentEvent, updateEvent, deleteEvent };
 }

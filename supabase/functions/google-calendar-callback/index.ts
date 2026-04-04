@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
     const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!;
     const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const redirectUri = `${SUPABASE_URL}/functions/v1/google-calendar-callback`;
 
@@ -45,18 +46,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get user from JWT state
-    const supabaseAnon = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    // Get user from JWT state using getUser
+    const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${state}` } },
     });
-    const { data: claims, error: claimsErr } = await supabaseAnon.auth.getClaims(state);
-    if (claimsErr || !claims?.claims?.sub) {
+    const { data: { user }, error: userErr } = await supabaseAnon.auth.getUser();
+    if (userErr || !user) {
       return new Response(htmlPage('❌ Invalid session', 'Please log in and try again.'), {
         status: 401, headers: { 'Content-Type': 'text/html' },
       });
     }
 
-    const userId = claims.claims.sub as string;
+    const userId = user.id;
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000)).toISOString();
 
     // Use service role to upsert tokens

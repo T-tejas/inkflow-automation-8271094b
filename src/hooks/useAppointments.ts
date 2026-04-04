@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logSystemError } from '@/lib/systemLogger';
 
 export interface Appointment {
   id: string;
@@ -16,6 +17,7 @@ export interface Appointment {
   reminder2hSent: boolean;
   followupSent: boolean;
   createdAt: string;
+  googleEventId: string | null;
 }
 
 export interface StudioAvailability {
@@ -43,6 +45,7 @@ function mapAppointment(row: any): Appointment {
     reminder2hSent: row.reminder_2h_sent,
     followupSent: row.followup_sent,
     createdAt: row.created_at,
+    googleEventId: row.google_event_id || null,
   };
 }
 
@@ -112,25 +115,21 @@ export function useAppointments() {
 
   const getAvailableSlots = useCallback((date: Date): string[] => {
     const dayOfWeek = date.getDay();
-    // Use local date formatting to avoid UTC timezone shift issues
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
 
-    // Check if specific date is blocked
     const blockedDate = availability.find(
       a => a.specificDate === dateStr && !a.isAvailable
     );
     if (blockedDate) return [];
 
-    // Get day-of-week availability
     const dayAvail = availability.find(a => a.dayOfWeek === dayOfWeek);
     if (!dayAvail || !dayAvail.isAvailable) return [];
 
     const allSlots = generateTimeSlots(dayAvail.startTime, dayAvail.endTime);
 
-    // Filter out already booked slots
     const bookedSlots = appointments
       .filter(a => a.appointmentDate === dateStr && a.status !== 'cancelled')
       .map(a => a.timeSlot);
@@ -150,6 +149,41 @@ export function useAppointments() {
     return !!dayAvail?.isAvailable;
   }, [availability]);
 
+  const syncCalendarEvent = useCallback(async (
+    action: 'create' | 'update' | 'delete',
+    appointmentData: any,
+    googleEventId?: string | null
+  ) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-calendar-event', {
+        body: {
+          action,
+          appointment_id: appointmentData?.id,
+          event_id: googleEventId,
+          event_data: action !== 'delete' ? {
+            _type: 'appointment',
+            client_name: appointmentData.leadName || appointmentData.lead_name,
+            client_phone: appointmentData.leadPhone || appointmentData.lead_phone,
+            appointment_date: appointmentData.appointmentDate || appointmentData.appointment_date,
+            time_slot: appointmentData.timeSlot || appointmentData.time_slot,
+            duration_minutes: appointmentData.durationMinutes || appointmentData.duration_minutes || 120,
+            tattoo_style: appointmentData.tattooStyle || appointmentData.tattoo_style,
+            notes: appointmentData.notes,
+          } : undefined,
+        },
+      });
+      if (error || !data?.success) {
+        console.error('Calendar sync failed:', error || data);
+        return null;
+      }
+      return data?.event_id || true;
+    } catch (err) {
+      console.error('Calendar sync error:', err);
+      await logSystemError('general', `Google Calendar sync failed: ${action}`, { error: String(err) });
+      return null;
+    }
+  }, []);
+
   const createAppointment = useCallback(async (data: {
     leadId: string | null;
     leadName: string;
@@ -160,7 +194,7 @@ export function useAppointments() {
     tattooStyle?: string;
     notes?: string;
   }) => {
-    const { error } = await supabase.from('appointments').insert({
+    const { data: insertedRows, error } = await supabase.from('appointments').insert({
       lead_id: data.leadId,
       lead_name: data.leadName,
       lead_phone: data.leadPhone,
@@ -169,7 +203,7 @@ export function useAppointments() {
       duration_minutes: data.durationMinutes || 60,
       tattoo_style: data.tattooStyle || null,
       notes: data.notes || null,
-    } as any);
+    } as any).select();
     if (error) throw error;
 
     // Update lead preferred_date
@@ -180,12 +214,26 @@ export function useAppointments() {
         updated_at: new Date().toISOString(),
       }).eq('id', data.leadId);
 
-      // Log interaction
       await supabase.from('lead_interactions').insert({
         lead_id: data.leadId,
         action_type: 'appointment_booked',
         new_value: `${data.appointmentDate} at ${data.timeSlot}`,
       });
+    }
+
+    // Sync to Google Calendar (non-blocking)
+    if (insertedRows && insertedRows[0]) {
+      syncCalendarEvent('create', {
+        id: insertedRows[0].id,
+        ...data,
+        leadName: data.leadName,
+        leadPhone: data.leadPhone,
+        appointmentDate: data.appointmentDate,
+        timeSlot: data.timeSlot,
+        durationMinutes: data.durationMinutes || 60,
+        tattooStyle: data.tattooStyle,
+        notes: data.notes,
+      }).catch(() => {});
     }
 
     // Send WhatsApp booking confirmation
@@ -203,20 +251,28 @@ export function useAppointments() {
     }
 
     await fetchAppointments();
-  }, [fetchAppointments]);
+  }, [fetchAppointments, syncCalendarEvent]);
 
   const updateAppointmentStatus = useCallback(async (id: string, status: string) => {
+    // Get current appointment to check for google_event_id
+    const appointment = appointments.find(a => a.id === id);
+    
     await supabase
       .from('appointments')
       .update({ status, updated_at: new Date().toISOString() } as any)
       .eq('id', id);
+
+    // If cancelled, delete from Google Calendar
+    if (status === 'cancelled' && appointment?.googleEventId) {
+      syncCalendarEvent('delete', appointment, appointment.googleEventId).catch(() => {});
+    }
+
     await fetchAppointments();
-  }, [fetchAppointments]);
+  }, [fetchAppointments, appointments, syncCalendarEvent]);
 
   const cancelAppointment = useCallback(async (appointment: Appointment) => {
     await updateAppointmentStatus(appointment.id, 'cancelled');
 
-    // Notify client
     try {
       await supabase.functions.invoke('send-whatsapp', {
         body: {
@@ -229,6 +285,35 @@ export function useAppointments() {
     } catch { /* ignore */ }
   }, [updateAppointmentStatus]);
 
+  const rescheduleAppointment = useCallback(async (
+    id: string,
+    newDate: string,
+    newTimeSlot: string
+  ) => {
+    const appointment = appointments.find(a => a.id === id);
+    if (!appointment) return;
+
+    await supabase
+      .from('appointments')
+      .update({
+        appointment_date: newDate,
+        time_slot: newTimeSlot,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', id);
+
+    // Update Google Calendar event
+    if (appointment.googleEventId) {
+      syncCalendarEvent('update', {
+        ...appointment,
+        appointmentDate: newDate,
+        timeSlot: newTimeSlot,
+      }, appointment.googleEventId).catch(() => {});
+    }
+
+    await fetchAppointments();
+  }, [fetchAppointments, appointments, syncCalendarEvent]);
+
   return {
     appointments,
     availability,
@@ -238,6 +323,7 @@ export function useAppointments() {
     createAppointment,
     updateAppointmentStatus,
     cancelAppointment,
+    rescheduleAppointment,
     fetchAppointments,
     fetchAvailability,
   };
