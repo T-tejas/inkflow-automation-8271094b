@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Settings, Key, Phone, Calendar, Webhook, AppWindow,
   HelpCircle, ExternalLink, Shield, Eye, EyeOff, Bug, Unplug, RefreshCw,
-  CheckCircle2, XCircle, Info, Bot
+  CheckCircle2, XCircle, Info, Bot, Instagram
 } from 'lucide-react';
 import { ChatbotRulesManager } from '@/components/admin/ChatbotRulesManager';
 
@@ -349,6 +349,54 @@ export default function WhatsAppSettings() {
 
           {/* Google Calendar Integration */}
           <GoogleCalendarCard />
+
+          {/* Instagram Integration */}
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                    <Instagram className="h-5 w-5 text-pink-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Instagram Integration</CardTitle>
+                    <CardDescription className="text-zinc-500">Instagram Page ID & Access Token for DM replies</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured('instagram_page_id') && isConfigured('instagram_page_access_token')} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SecretField label="Instagram Page ID" settingKey="instagram_page_id" placeholder="Enter your Instagram Page ID" />
+              <SecretField label="Page Access Token" settingKey="instagram_page_access_token" placeholder="EAABs..." />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-1.5 w-full"
+                onClick={async () => {
+                  const pageId = settings['instagram_page_id'] || editValues['instagram_page_id'];
+                  const token = settings['instagram_page_access_token'] || editValues['instagram_page_access_token'];
+                  if (!pageId || !token) { toast.error('Save Instagram Page ID & Token first'); return; }
+                  try {
+                    const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name,id&access_token=${encodeURIComponent(token)}`);
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error.message);
+                    toast.success(`✅ Connected! Page: ${data.name} (${data.id})`);
+                  } catch (e: any) {
+                    toast.error(`❌ Test failed: ${e.message}`);
+                  }
+                }}
+              >
+                <Instagram className="h-3.5 w-3.5" /> Test Instagram Connection
+              </Button>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-pink-500/5 border border-pink-500/10">
+                <Info className="h-4 w-4 text-pink-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-pink-300/80">
+                  Use a <strong>Page Access Token</strong> with <code>instagram_manage_messages</code> and <code>pages_messaging</code> permissions for sending DM replies.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Webhook Settings */}
           <Card className="bg-zinc-900 border-zinc-800">
