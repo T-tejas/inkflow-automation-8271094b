@@ -16,7 +16,7 @@ import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
 import { WalkInDialog } from '@/components/crm/WalkInDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X } from 'lucide-react';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar } from 'lucide-react';
 import { Lead, LeadStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
@@ -220,6 +220,10 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
                 Admin
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/appointments')}>
+              <Calendar className="h-4 w-4 text-success" />
+              Appointments
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/designs')}>
               <Palette className="h-4 w-4 text-purple-500" />
               Designs
