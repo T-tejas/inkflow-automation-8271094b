@@ -5,10 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
-import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil } from 'lucide-react';
+import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil, IndianRupee, Clock } from 'lucide-react';
 import type { TattooCompletion } from '@/hooks/useTattooCompletions';
 import type { ConsentForm } from '@/hooks/useConsentForms';
 import { ConsentFormEditDialog } from './ConsentFormEditDialog';
+import { formatINR } from '@/lib/currency';
+
+interface AppointmentRecord {
+  id: string;
+  appointment_date: string;
+  time_slot: string;
+  status: string;
+  tattoo_style: string | null;
+}
 
 interface ClientProfileDialogProps {
   lead: Lead | null;
@@ -19,6 +28,7 @@ interface ClientProfileDialogProps {
 export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileDialogProps) {
   const [completions, setCompletions] = useState<TattooCompletion[]>([]);
   const [consentForms, setConsentForms] = useState<ConsentForm[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<ConsentForm | null>(null);
@@ -29,15 +39,19 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
     Promise.all([
       supabase.from('tattoo_completions').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false }),
       supabase.from('consent_forms').select('*').eq('lead_id', lead.id).order('created_at', { ascending: false }),
-    ]).then(([compRes, consentRes]) => {
+      supabase.from('appointments').select('id, appointment_date, time_slot, status, tattoo_style').eq('lead_id', lead.id).order('appointment_date', { ascending: false }),
+    ]).then(([compRes, consentRes, apptRes]) => {
       setCompletions((compRes.data as TattooCompletion[]) || []);
       setConsentForms((consentRes.data as ConsentForm[]) || []);
+      setAppointments((apptRes.data as AppointmentRecord[]) || []);
       setLoading(false);
     });
   }, [lead, open]);
 
   if (!lead) return null;
 
+  const isRepeatClient = completions.length > 1;
+  const totalSpent = completions.reduce((s, c) => s + Number(c.tattoo_price || 0), 0);
   const allPhotos = completions.flatMap(c => (c.photo_urls || []).map(url => ({ url, artist: c.artist_name, date: c.created_at, price: c.tattoo_price })));
 
   return (
@@ -56,16 +70,24 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {lead.phone}</span>
               {lead.tattooStyle && <Badge variant="outline" className="text-[10px]">{lead.tattooStyle}</Badge>}
+              {isRepeatClient && <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/20 text-[10px]">🔁 Repeat Client</Badge>}
             </div>
-            {(lead as any).client_id_code && (
-              <p className="text-xs text-muted-foreground">Client ID: <span className="font-mono text-primary">{(lead as any).client_id_code}</span></p>
-            )}
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              {(lead as any).client_id_code && (
+                <span>ID: <span className="font-mono text-primary">{(lead as any).client_id_code}</span></span>
+              )}
+              {totalSpent > 0 && (
+                <span className="flex items-center gap-0.5"><IndianRupee className="h-3 w-3" />{formatINR(totalSpent)} total</span>
+              )}
+              <span>{completions.length} tattoo{completions.length !== 1 ? 's' : ''}</span>
+            </div>
           </div>
 
           <Tabs defaultValue="gallery" className="mt-2">
-            <TabsList className="w-full grid grid-cols-3 h-8">
+            <TabsList className="w-full grid grid-cols-4 h-8">
               <TabsTrigger value="gallery" className="text-xs gap-1"><ImageIcon className="h-3 w-3" /> Gallery</TabsTrigger>
               <TabsTrigger value="history" className="text-xs gap-1"><History className="h-3 w-3" /> History</TabsTrigger>
+              <TabsTrigger value="appointments" className="text-xs gap-1"><Calendar className="h-3 w-3" /> Appts</TabsTrigger>
               <TabsTrigger value="consent" className="text-xs gap-1"><FileSignature className="h-3 w-3" /> Consent</TabsTrigger>
             </TabsList>
 
@@ -129,7 +151,28 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
                   )}
                 </TabsContent>
 
-                {/* Consent Forms */}
+                {/* Appointments */}
+                <TabsContent value="appointments" className="mt-3 space-y-2">
+                  {appointments.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">No appointments</p>
+                  ) : (
+                    appointments.map(a => (
+                      <div key={a.id} className="border border-border rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                            <Calendar className="h-3 w-3" /> {a.appointment_date} at {a.time_slot}
+                          </p>
+                          {a.tattoo_style && <p className="text-[10px] text-muted-foreground">{a.tattoo_style}</p>}
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] ${
+                          a.status === 'confirmed' ? 'text-emerald-500 border-emerald-500/30' :
+                          a.status === 'cancelled' ? 'text-red-500 border-red-500/30' :
+                          'text-amber-500 border-amber-500/30'
+                        }`}>{a.status}</Badge>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
                 <TabsContent value="consent" className="mt-3 space-y-2">
                   {consentForms.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-6">No consent forms</p>

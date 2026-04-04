@@ -7,6 +7,8 @@ import { RevenueFilters } from '@/components/admin/RevenueFilters';
 import { RevenueCharts } from '@/components/admin/RevenueCharts';
 import { CompletedTable } from '@/components/admin/CompletedTable';
 import { SystemLogsPanel } from '@/components/admin/SystemLogsPanel';
+import { ArtistLeaderboard } from '@/components/crm/ArtistLeaderboard';
+import { MonthlyReportGenerator } from '@/components/crm/MonthlyReportGenerator';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, LogOut, Settings, Send, Bot, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
@@ -94,6 +96,10 @@ export default function AdminDashboard() {
               artistRevenue={artistRevenue}
               completionPriceMap={completionPriceMap}
             />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ArtistLeaderboard />
+              <MonthlyReportGenerator />
+            </div>
             <CompletedTable leads={completed} />
             <SystemLogsPanel />
           </>

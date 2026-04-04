@@ -1,0 +1,177 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileText, Download, Loader2, Trophy } from 'lucide-react';
+import { formatINR } from '@/lib/currency';
+import { toast } from 'sonner';
+
+interface ReportData {
+  month: string;
+  totalRevenue: number;
+  totalClients: number;
+  totalCompletedTattoos: number;
+  topArtist: { name: string; revenue: number } | null;
+  pendingPayments: number;
+  pendingDesigns: number;
+  sourceBreakdown: Record<string, number>;
+}
+
+export function MonthlyReportGenerator() {
+  const [loading, setLoading] = useState(false);
+  const [report, setReport] = useState<ReportData | null>(null);
+
+  const generateReport = async () => {
+    setLoading(true);
+    try {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+      const [completionsRes, leadsRes, designsRes] = await Promise.all([
+        supabase.from('tattoo_completions').select('*').gte('created_at', monthStart).lte('created_at', monthEnd),
+        supabase.from('leads').select('*').gte('created_at', monthStart).lte('created_at', monthEnd),
+        supabase.from('design_tasks').select('*').eq('fee_status', 'pending').gte('design_fee', 1),
+      ]);
+
+      const completions = completionsRes.data || [];
+      const leads = leadsRes.data || [];
+      const pendingDesigns = designsRes.data || [];
+
+      // Artist revenue
+      const artistMap = new Map<string, number>();
+      completions.forEach(c => {
+        const name = c.artist_name || 'Unknown';
+        artistMap.set(name, (artistMap.get(name) || 0) + Number(c.tattoo_price || 0));
+      });
+      const topArtistEntry = Array.from(artistMap.entries()).sort((a, b) => b[1] - a[1])[0];
+
+      // Source breakdown
+      const sourceBreakdown: Record<string, number> = {};
+      leads.forEach(l => {
+        sourceBreakdown[l.source] = (sourceBreakdown[l.source] || 0) + 1;
+      });
+
+      const pendingPaymentTotal = pendingDesigns.reduce((s, d) => s + Number(d.design_fee || 0), 0);
+
+      const data: ReportData = {
+        month: monthLabel,
+        totalRevenue: completions.reduce((s, c) => s + Number(c.tattoo_price || 0), 0),
+        totalClients: leads.length,
+        totalCompletedTattoos: completions.length,
+        topArtist: topArtistEntry ? { name: topArtistEntry[0], revenue: topArtistEntry[1] } : null,
+        pendingPayments: pendingPaymentTotal,
+        pendingDesigns: pendingDesigns.length,
+        sourceBreakdown,
+      };
+
+      setReport(data);
+    } catch (e) {
+      toast.error('Failed to generate report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportPDF = () => {
+    if (!report) return;
+    // Generate printable HTML and use browser print
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>F19 Monthly Report - ${report.month}</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; max-width: 700px; margin: 40px auto; color: #1a1a1a; }
+    h1 { color: #c8a45a; border-bottom: 2px solid #c8a45a; padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .card { background: #f9f9f9; border-radius: 8px; padding: 16px; }
+    .card h3 { font-size: 12px; color: #888; margin: 0 0 4px; text-transform: uppercase; }
+    .card p { font-size: 24px; font-weight: bold; margin: 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { font-size: 12px; color: #888; text-transform: uppercase; }
+    .footer { margin-top: 40px; text-align: center; color: #aaa; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>F19 Tattoo Studio — Monthly Report</h1>
+  <p style="color:#888">${report.month}</p>
+  <div class="grid">
+    <div class="card"><h3>Total Revenue</h3><p>₹${report.totalRevenue.toLocaleString('en-IN')}</p></div>
+    <div class="card"><h3>Total Clients</h3><p>${report.totalClients}</p></div>
+    <div class="card"><h3>Completed Tattoos</h3><p>${report.totalCompletedTattoos}</p></div>
+    <div class="card"><h3>Pending Payments</h3><p>₹${report.pendingPayments.toLocaleString('en-IN')}</p></div>
+  </div>
+  ${report.topArtist ? `<h2>🏆 Top Artist: ${report.topArtist.name}</h2><p>Revenue: ₹${report.topArtist.revenue.toLocaleString('en-IN')}</p>` : ''}
+  <h2>Lead Sources</h2>
+  <table>
+    <tr><th>Source</th><th>Count</th></tr>
+    ${Object.entries(report.sourceBreakdown).map(([s, c]) => `<tr><td>${s}</td><td>${c}</td></tr>`).join('')}
+  </table>
+  <div class="footer">Generated by F19 CRM • ${new Date().toLocaleString('en-IN')}</div>
+</body>
+</html>`;
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 500);
+    }
+  };
+
+  return (
+    <Card className="border-border">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Monthly Report
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={generateReport} disabled={loading} className="text-xs h-7 gap-1">
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+              Generate
+            </Button>
+            {report && (
+              <Button size="sm" variant="outline" onClick={exportPDF} className="text-xs h-7 gap-1">
+                <Download className="h-3 w-3" /> Export PDF
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      {report && (
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase">Revenue</p>
+              <p className="text-lg font-bold text-foreground">{formatINR(report.totalRevenue)}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase">Clients</p>
+              <p className="text-lg font-bold text-foreground">{report.totalClients}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase">Tattoos Done</p>
+              <p className="text-lg font-bold text-foreground">{report.totalCompletedTattoos}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <p className="text-[10px] text-muted-foreground uppercase">Pending</p>
+              <p className="text-lg font-bold text-foreground">{formatINR(report.pendingPayments)}</p>
+            </div>
+          </div>
+          {report.topArtist && (
+            <div className="mt-3 flex items-center gap-2 bg-amber-500/10 rounded-lg px-3 py-2">
+              <Trophy className="h-4 w-4 text-amber-500" />
+              <span className="text-xs text-foreground">Top Artist: <strong>{report.topArtist.name}</strong> — {formatINR(report.topArtist.revenue)}</span>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+

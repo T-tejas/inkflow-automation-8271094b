@@ -5,6 +5,7 @@ import { useDesignTasks } from '@/hooks/useDesignTasks';
 
 import { useCrmNotifications } from '@/hooks/useCrmNotifications';
 import { StatsCards } from '@/components/crm/StatsCards';
+import { SmartNotificationBell } from '@/components/crm/SmartNotificationBell';
 import { DashboardCharts } from '@/components/crm/DashboardCharts';
 import { PipelineBoard } from '@/components/crm/PipelineBoard';
 import { LeadFormDialog } from '@/components/crm/LeadFormDialog';
@@ -207,6 +208,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
                 <Search className="h-4 w-4" />
               </Button>
             )}
+            <SmartNotificationBell />
             <HotLeadNotifications
               notifications={notifications}
               unreadCount={unreadCount}

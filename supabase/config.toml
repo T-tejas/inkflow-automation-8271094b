@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.google-calendar-event]
 verify_jwt = false
+
+[functions.scheduled-reminders]
+verify_jwt = false
