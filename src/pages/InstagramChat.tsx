@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useInstagramChat } from '@/hooks/useInstagramChat';
 import { InstagramContactList } from '@/components/chat/InstagramContactList';
 import { InstagramChatWindow } from '@/components/chat/InstagramChatWindow';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const InstagramChat = () => {
