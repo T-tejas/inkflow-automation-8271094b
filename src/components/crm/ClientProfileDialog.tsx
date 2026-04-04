@@ -151,7 +151,28 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
                   )}
                 </TabsContent>
 
-                {/* Consent Forms */}
+                {/* Appointments */}
+                <TabsContent value="appointments" className="mt-3 space-y-2">
+                  {appointments.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">No appointments</p>
+                  ) : (
+                    appointments.map(a => (
+                      <div key={a.id} className="border border-border rounded-lg p-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                            <Calendar className="h-3 w-3" /> {a.appointment_date} at {a.time_slot}
+                          </p>
+                          {a.tattoo_style && <p className="text-[10px] text-muted-foreground">{a.tattoo_style}</p>}
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] ${
+                          a.status === 'confirmed' ? 'text-emerald-500 border-emerald-500/30' :
+                          a.status === 'cancelled' ? 'text-red-500 border-red-500/30' :
+                          'text-amber-500 border-amber-500/30'
+                        }`}>{a.status}</Badge>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
                 <TabsContent value="consent" className="mt-3 space-y-2">
                   {consentForms.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-6">No consent forms</p>

@@ -208,6 +208,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
                 <Search className="h-4 w-4" />
               </Button>
             )}
+            <SmartNotificationBell />
             <HotLeadNotifications
               notifications={notifications}
               unreadCount={unreadCount}
