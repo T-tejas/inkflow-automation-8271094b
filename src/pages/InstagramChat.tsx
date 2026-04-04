@@ -11,7 +11,7 @@ const InstagramChat = () => {
   const navigate = useNavigate();
   const {
     contacts, messages, selectedSenderId, loading, messagesLoading,
-    selectContact, sendMessage, toggleBotEnabled, toggleStar,
+    selectContact, sendMessage, retryMessage, toggleBotEnabled, toggleStar,
   } = useInstagramChat();
 
   const selectedContact = contacts.find(c => c.instagramSenderId === selectedSenderId) || null;
@@ -67,6 +67,14 @@ const InstagramChat = () => {
           onSendMessage={handleSendMessage}
           onToggleStar={toggleStar}
           onToggleBot={handleToggleBot}
+          onRetryMessage={async (msg) => {
+            try {
+              await retryMessage(msg);
+              toast({ title: 'Message resent' });
+            } catch {
+              toast({ title: 'Retry failed', variant: 'destructive' });
+            }
+          }}
         />
       </div>
     </div>
