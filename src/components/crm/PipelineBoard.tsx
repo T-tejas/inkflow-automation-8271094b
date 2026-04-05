@@ -29,6 +29,7 @@ const STATUS_DOT_COLORS: Record<string, string> = {
   'No Response': 'bg-pipeline-no-response',
   'Cancelled': 'bg-pipeline-cancelled',
   'Out of City': 'bg-sky-500',
+  'Student Inquiry': 'bg-violet-500',
 };
 
 const COLUMN_LABELS: Record<string, string> = {
