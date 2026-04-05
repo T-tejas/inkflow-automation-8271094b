@@ -83,6 +83,7 @@ export const KANBAN_STATUSES: LeadStatus[] = [
   'No Response', // "No Response / Cancelled" column
   'Out of City',
   'Student Inquiry',
+  'Low Budget',
 ];
 
 export const LEAD_SOURCES: LeadSource[] = ['Instagram', 'WhatsApp', 'Walk-in', 'Referral', 'Website', 'Facebook'];
