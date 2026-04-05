@@ -11,7 +11,8 @@ export type LeadStatus =
   | 'No Response'
   | 'Cancelled'
   | 'Out of City'
-  | 'Student Inquiry';
+  | 'Student Inquiry'
+  | 'Low Budget';
 
 export type AutomationTag =
   | 'whatsapp_inquiry'
@@ -67,6 +68,7 @@ export const LEAD_STATUSES: LeadStatus[] = [
   'Cancelled',
   'Out of City',
   'Student Inquiry',
+  'Low Budget',
 ];
 
 // Display statuses for Kanban columns (No Response + Cancelled share a column)
@@ -110,6 +112,7 @@ export const STATUS_COLORS: Record<LeadStatus, string> = {
   'Cancelled': 'bg-pipeline-cancelled',
   'Out of City': 'bg-sky-500',
   'Student Inquiry': 'bg-violet-500',
+  'Low Budget': 'bg-amber-500',
 };
 
 export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
@@ -124,6 +127,7 @@ export const STATUS_TEXT_COLORS: Record<LeadStatus, string> = {
   'Cancelled': 'text-pipeline-cancelled',
   'Out of City': 'text-sky-500',
   'Student Inquiry': 'text-violet-500',
+  'Low Budget': 'text-amber-500',
 };
 
 export function parseBudget(budget: string): number {
