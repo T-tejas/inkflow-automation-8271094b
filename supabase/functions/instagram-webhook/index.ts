@@ -27,8 +27,6 @@ const STEP_QUESTIONS: Record<string, string> = {
 
 const COMPLETION_MESSAGE = "Thanks! 🎉 Our team will contact you shortly to discuss your tattoo and schedule a consultation. Stay tuned! ✨";
 
-const FOLLOWUP_MESSAGE = "Hey, just checking 😊 Are you still interested in getting a tattoo?";
-
 function calculateLeadScore(data: Record<string, string>): string {
   const budget = (data.budget || "").toLowerCase();
   const hasHighBudget = budget.includes("25k") || budget.includes("25,000") || budget.includes("10k") || budget.includes("10,000");
@@ -76,8 +74,53 @@ async function getUserProfile(pageAccessToken: string, userId: string): Promise<
   }
 }
 
+// Check incoming message against FAQ questions
+async function matchFAQ(supabase: any, messageText: string): Promise<string | null> {
+  if (!messageText.trim()) return null;
+
+  const { data: faqs } = await supabase
+    .from("instagram_faq")
+    .select("question, answer")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+
+  if (!faqs || faqs.length === 0) return null;
+
+  const normalizedInput = messageText.trim().toLowerCase();
+
+  // Exact match first
+  for (const faq of faqs) {
+    if (faq.question.trim().toLowerCase() === normalizedInput && faq.answer) {
+      return faq.answer;
+    }
+  }
+
+  // Fuzzy match: check if input contains the question or vice versa
+  for (const faq of faqs) {
+    const q = faq.question.trim().toLowerCase();
+    if ((normalizedInput.includes(q) || q.includes(normalizedInput)) && faq.answer && normalizedInput.length >= 3) {
+      return faq.answer;
+    }
+  }
+
+  return null;
+}
+
+// Build FAQ menu text to append to greeting
+async function buildFAQMenu(supabase: any): Promise<string> {
+  const { data: faqs } = await supabase
+    .from("instagram_faq")
+    .select("question")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+
+  if (!faqs || faqs.length === 0) return "";
+
+  const lines = faqs.map((f: any, i: number) => `${i + 1}. ${f.question}`);
+  return "\n\n📋 Quick Questions:\n" + lines.join("\n") + "\n\nJust type the question number or ask directly!";
+}
+
 Deno.serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -94,7 +137,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Read verify token from DB or use env
     const { data: vtData } = await supabase
       .from("whatsapp_settings")
       .select("setting_value")
@@ -132,7 +174,6 @@ Deno.serve(async (req) => {
 
     console.log("[ig-webhook] Payload:", JSON.stringify(payload).slice(0, 1000));
 
-    // Process Instagram messaging events
     const entries = payload?.entry || [];
     for (const entry of entries) {
       const messagingEvents = entry?.messaging || [];
@@ -140,11 +181,8 @@ Deno.serve(async (req) => {
         const senderId = event?.sender?.id;
         const recipientId = event?.recipient?.id;
         const message = event?.message;
-        const timestamp = event?.timestamp;
 
         if (!senderId || !message || senderId === recipientId) continue;
-
-        // Ignore echo messages (messages sent by the page itself)
         if (message.is_echo) continue;
 
         const messageText = message?.text || "";
@@ -152,7 +190,6 @@ Deno.serve(async (req) => {
         const mediaUrl = message?.attachments?.[0]?.payload?.url || null;
         const metaMessageId = message?.mid || null;
 
-        // Get user profile
         const profile = await getUserProfile(pageAccessToken, senderId);
         const senderName = profile.name;
         const senderUsername = profile.username;
@@ -163,7 +200,6 @@ Deno.serve(async (req) => {
         let leadId: string | null = null;
         let lead: any = null;
 
-        // Try to find by instagram_username first
         if (senderUsername) {
           const { data: existingLead } = await supabase
             .from("leads")
@@ -177,7 +213,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // If not found, create new lead
         if (!leadId) {
           const { data: newLead, error: leadError } = await supabase
             .from("leads")
@@ -205,7 +240,6 @@ Deno.serve(async (req) => {
             lead = newLead;
             leadId = newLead?.id || null;
 
-            // Log interaction
             if (leadId) {
               await supabase.from("lead_interactions").insert({
                 lead_id: leadId,
@@ -232,7 +266,6 @@ Deno.serve(async (req) => {
         });
 
         // ─── Bot Logic ──────────────────────────────────────────────────
-        // Get or create bot state
         const { data: botState } = await supabase
           .from("instagram_bot_state")
           .select("*")
@@ -256,19 +289,37 @@ Deno.serve(async (req) => {
           currentState = newState;
         }
 
-        // Check if bot is disabled
         if (!currentState?.bot_enabled) {
           console.log(`[ig-webhook] Bot disabled for ${senderId}, skipping auto-reply`);
-          // Mark as escalated
           await supabase.from("instagram_messages")
             .update({ is_escalated: true })
             .eq("meta_message_id", metaMessageId);
           continue;
         }
 
-        // Check lead-level bot_enabled
         if (lead && lead.bot_enabled === false) {
           console.log(`[ig-webhook] Lead bot disabled for ${senderName}, skipping`);
+          continue;
+        }
+
+        // ─── FAQ Check (BEFORE qualification flow) ──────────────────────
+        const faqAnswer = await matchFAQ(supabase, messageText);
+        if (faqAnswer) {
+          console.log(`[ig-webhook] FAQ match for: ${messageText.slice(0, 50)}`);
+          const metaMsgId = await sendInstagramMessage(pageAccessToken, senderId, faqAnswer);
+          await supabase.from("instagram_messages").insert({
+            lead_id: leadId,
+            lead_name: "F19 Bot",
+            instagram_username: senderUsername || senderId,
+            instagram_sender_id: senderId,
+            message_body: faqAnswer,
+            message_type: "text",
+            direction: "outgoing",
+            status: metaMsgId ? "sent" : "failed",
+            meta_message_id: metaMsgId,
+            error_message: metaMsgId ? null : "Failed to send FAQ reply",
+          });
+          // Don't continue qualification flow for FAQ answers
           continue;
         }
 
@@ -279,14 +330,14 @@ Deno.serve(async (req) => {
         let nextStep = step;
 
         if (step === "greeting") {
-          replyText = GREETING_MESSAGE;
+          // Build greeting with FAQ menu appended
+          const faqMenu = await buildFAQMenu(supabase);
+          replyText = GREETING_MESSAGE + faqMenu;
           nextStep = "tattoo_idea";
         } else if (QUALIFICATION_STEPS.includes(step as any)) {
-          // Save the user's answer to the current step
           if (messageText.trim()) {
             collectedData[step] = messageText.trim();
 
-            // Update lead with collected data
             const updateData: Record<string, string> = {};
             if (step === "tattoo_idea") updateData.tattoo_style = messageText.trim();
             if (step === "placement") updateData.placement = messageText.trim();
@@ -301,7 +352,6 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Find next unfilled step
           const currentIdx = QUALIFICATION_STEPS.indexOf(step as any);
           let foundNext = false;
           for (let i = currentIdx + 1; i < QUALIFICATION_STEPS.length; i++) {
@@ -315,11 +365,9 @@ Deno.serve(async (req) => {
           }
 
           if (!foundNext) {
-            // All data collected!
             replyText = COMPLETION_MESSAGE;
             nextStep = "completed";
 
-            // Update lead status and score
             if (leadId) {
               const score = calculateLeadScore(collectedData);
               const tags = ["instagram_inquiry"];
@@ -333,7 +381,6 @@ Deno.serve(async (req) => {
                 updated_at: new Date().toISOString(),
               } as any).eq("id", leadId);
 
-              // Create notification
               await supabase.from("crm_notifications").insert({
                 lead_id: leadId,
                 lead_name: senderName,
@@ -350,11 +397,9 @@ Deno.serve(async (req) => {
             }
           }
         } else if (step === "completed") {
-          // Lead already qualified, don't repeat bot flow
           replyText = "";
         }
 
-        // If there's a reply but we're between greeting and first question
         if (step === "greeting" || (step === "tattoo_idea" && !collectedData.tattoo_idea && !messageText.trim())) {
           // Already set replyText above
         } else if (step !== "greeting" && step !== "completed" && !replyText) {
@@ -365,7 +410,6 @@ Deno.serve(async (req) => {
         if (replyText) {
           const metaMsgId = await sendInstagramMessage(pageAccessToken, senderId, replyText);
 
-          // Log outgoing message — use senderId so it groups with the conversation
           await supabase.from("instagram_messages").insert({
             lead_id: leadId,
             lead_name: "F19 Bot",
@@ -379,7 +423,6 @@ Deno.serve(async (req) => {
             error_message: metaMsgId ? null : "Failed to send via Instagram API",
           });
 
-          // Log errors to system_logs
           if (!metaMsgId) {
             await supabase.from("system_logs").insert({
               message: `Instagram bot reply failed for ${senderName} (@${senderUsername})`,

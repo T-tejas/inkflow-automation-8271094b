@@ -16,6 +16,7 @@ import {
   CheckCircle2, XCircle, Info, Bot, Instagram
 } from 'lucide-react';
 import { ChatbotRulesManager } from '@/components/admin/ChatbotRulesManager';
+import { InstagramFAQManager } from '@/components/settings/InstagramFAQManager';
 
 type SettingsMap = Record<string, string>;
 
@@ -395,6 +396,11 @@ export default function WhatsAppSettings() {
                   Use a <strong>Page Access Token</strong> with <code>instagram_manage_messages</code> and <code>pages_messaging</code> permissions for sending DM replies.
                 </p>
               </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {/* Instagram FAQ Manager */}
+              <InstagramFAQManager />
             </CardContent>
           </Card>
 
