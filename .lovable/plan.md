@@ -1,76 +1,42 @@
 
 
-# WhatsApp Chat Module -- Functional Upgrade Plan
+## Instagram FAQ / Q&A Manager
 
-## Overview
-Make all chat UI elements fully functional: lead status badge with dropdown, emoji picker, file attachments, free-text messaging, template preview/edit, error banners, and auto-resize textarea.
+User wants to add a configurable FAQ system for Instagram DMs — similar to Meta's Chat Builder "Frequently Asked Questions" feature (shown in screenshot). When a customer sends a message matching an FAQ question, the bot auto-replies with the configured answer.
 
-## 1. Lead Status Badge + Dropdown in Chat Header
-**File: `ChatWindow.tsx`**
-- Add a colored badge next to contact name showing `contact.leadStatus`
-- Color map: New Lead (grey), Contacted (blue), Interested (purple), Negotiating (orange), Booked (green), Completed (dark green)
-- Wrap badge in a Popover/DropdownMenu with all status options
-- On status change: update via `supabase.from('leads').update({ status })` and log interaction, show toast
-- Remove the individual "Mark as Booked" / "Mark as Completed" icon buttons (replaced by dropdown)
+### Current State
+- Instagram webhook (`instagram-webhook/index.ts`) has a hardcoded qualification flow (tattoo_idea → placement → size → budget)
+- A `chatbot_rules` table + `ChatbotRulesManager` component already exists for WhatsApp keyword-based auto-replies
+- The Instagram bot currently only does the qualification flow, no FAQ/Q&A support
 
-## 2. Functional Emoji Picker
-**File: `ChatInput.tsx`**
-- Build a simple emoji grid popover (common emojis organized in categories) using Radix Popover
-- On emoji click: insert at cursor position in the textarea
-- No external library needed -- use a curated set of ~100 common emojis
+### Plan
 
-## 3. File Attachment Button
-**File: `ChatInput.tsx`, new component `ChatAttachmentPreview.tsx`**
-- Hidden file input triggered by Paperclip button, accept images + PDFs
-- Show preview overlay before sending (image thumbnail or PDF icon + filename)
-- Upload file to existing `f19` storage bucket via Supabase Storage
-- Save message record with `message_body` containing the public URL and a new field or convention (prefix `[file]` or store URL)
-- Display attachments in `MessageBubble.tsx` -- detect URL pattern and render image or PDF link
+**1. Create `instagram_faq` database table**
+- Columns: `id`, `question` (text, max 80 chars), `answer` (text, optional), `display_order` (int), `is_active` (bool), `created_at`, `updated_at`
+- RLS: allow all for authenticated users
 
-## 4. Free-Text Send + Template Preview
-**File: `ChatInput.tsx`**
-- Change input from disabled to always enabled in message mode
-- Send button: works for both note mode AND message mode (free text sends via `send-whatsapp` edge function as a text message, or stores as outgoing)
-- Template selector: when template selected, load template text into textarea for editing before sending
-- Enter key sends in both modes
-- Update `QuickReplyTemplates.tsx` to return template text to input instead of immediately sending
+**2. Build `InstagramFAQManager` component**
+- Add to the WhatsApp Settings page under Instagram section (or as a new tab)
+- UI similar to Meta's Chat Builder:
+  - Numbered questions (Question #1, #2, etc.) with character counter (max 80)
+  - Optional "Automated response" textarea per question
+  - Add/remove questions with X button
+  - Reorder support
+  - Save button
 
-**File: `send-whatsapp/index.ts`**
-- Add support for `type: "text"` messages (not just templates) for free-text sending via Meta API
+**3. Update Instagram webhook to support FAQ**
+- On first message (greeting step), send the greeting + FAQ quick-reply buttons
+- When incoming message text matches an FAQ question exactly, reply with the configured answer
+- If no answer configured, escalate or continue normal qualification flow
+- FAQ check happens BEFORE the qualification flow
 
-## 5. Auto-Resize Textarea
-**File: `ChatInput.tsx`**
-- Replace `<input>` with `<textarea>` that auto-resizes (max 5 rows)
-- Use `onInput` to adjust height based on `scrollHeight`
+**4. Send FAQ as "Ice Breakers" or inline buttons**
+- Use Instagram's Ice Breaker API (`/me/ice_breakers`) to set persistent FAQ questions on the page
+- OR send FAQ questions as text options in the greeting message so users can tap to ask
 
-## 6. Error Banner System
-**File: `ChatWindow.tsx`**
-- Check for recent failed messages with specific error patterns
-- Token expired: red banner at top "WhatsApp token expired -- update in settings"
-- Number not allowed: yellow warning in message bubble (already partially done)
-- API failure: add retry button on failed message bubbles in `MessageBubble.tsx`
-
-## 7. Retry Failed Messages
-**File: `MessageBubble.tsx`**
-- For `status === 'failed'` messages, show a "Retry" button
-- On click: re-invoke `send-whatsapp` with same parameters, update the message record
-
-## 8. Contact Status Refresh
-**File: `useChat.ts`**
-- After status change in chat header, call `fetchContacts()` to refresh sidebar
-- Pass `fetchContacts` or a status update callback to ChatWindow
-
-## Files to Create/Edit
-| File | Action |
-|------|--------|
-| `src/components/chat/ChatWindow.tsx` | Status badge, dropdown, error banner, remove old buttons |
-| `src/components/chat/ChatInput.tsx` | Emoji picker, attachment, auto-resize textarea, free-text send |
-| `src/components/chat/MessageBubble.tsx` | Retry button, file/image rendering |
-| `src/components/chat/QuickReplyTemplates.tsx` | Return text to input instead of direct send |
-| `src/components/chat/EmojiPicker.tsx` | New: simple emoji grid popover |
-| `src/hooks/useChat.ts` | Add updateLeadStatus, retryMessage functions |
-| `supabase/functions/send-whatsapp/index.ts` | Add text message support |
-| `src/pages/Chat.tsx` | Wire new callbacks |
-
-No database migrations needed -- existing schema supports all changes.
+### Files to Create/Edit
+- **New migration**: Create `instagram_faq` table
+- **New**: `src/components/settings/InstagramFAQManager.tsx` — FAQ CRUD UI
+- **Edit**: `src/pages/WhatsAppSettings.tsx` — Add FAQ manager section
+- **Edit**: `supabase/functions/instagram-webhook/index.ts` — Fetch FAQ from DB, match incoming messages, auto-reply
 
