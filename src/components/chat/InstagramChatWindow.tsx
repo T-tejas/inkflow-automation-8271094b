@@ -54,11 +54,11 @@ export function InstagramChatWindow({ contact, messages, loading, onSendMessage,
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5" style={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #e9edef' }}>
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400 flex items-center justify-center text-white font-semibold">
-          {contact.leadName.charAt(0).toUpperCase()}
+          {(contact.leadName || contact.instagramUsername || 'I').charAt(0).toUpperCase()}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium" style={{ color: '#111b21' }}>{contact.leadName}</span>
+            <span className="font-medium" style={{ color: '#111b21' }}>{contact.leadName && contact.leadName !== 'Instagram User' ? contact.leadName : (contact.instagramUsername ? `@${contact.instagramUsername}` : 'Instagram User')}</span>
             <Badge className="bg-pink-500/10 text-pink-600 text-[10px]">@{contact.instagramUsername}</Badge>
           </div>
           <span className="text-xs" style={{ color: '#667781' }}>{contact.leadStatus}</span>

@@ -36,29 +36,49 @@ function calculateLeadScore(data: Record<string, string>): string {
   return "COLD";
 }
 
-async function sendInstagramMessage(pageAccessToken: string, recipientId: string, text: string): Promise<string | null> {
-  try {
-    const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${pageAccessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text },
-      }),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      console.error("[ig-webhook] Send message failed:", JSON.stringify(result));
-      return null;
+// ─── Resolve display name: name → username → fallback ───────────────
+function resolveDisplayName(name?: string, username?: string): string {
+  if (name && name.trim() && name !== "Instagram User") return name.trim();
+  if (username && username.trim()) return `@${username.trim()}`;
+  return "Instagram User";
+}
+
+async function sendInstagramMessage(pageAccessToken: string, recipientId: string, text: string, retries = 2): Promise<string | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${pageAccessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text },
+        }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        return result?.message_id || null;
+      }
+      const errorCode = result?.error?.code;
+      // Don't retry auth/permission errors
+      if (errorCode === 190 || errorCode === 10 || errorCode === 200) {
+        console.error("[ig-webhook] Auth error, not retrying:", JSON.stringify(result?.error));
+        return null;
+      }
+      console.error(`[ig-webhook] Send failed attempt ${attempt + 1}:`, JSON.stringify(result?.error));
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, (attempt + 1) * 2000));
+      }
+    } catch (err) {
+      console.error(`[ig-webhook] Send error attempt ${attempt + 1}:`, err);
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, (attempt + 1) * 2000));
+      }
     }
-    return result?.message_id || null;
-  } catch (err) {
-    console.error("[ig-webhook] Send message error:", err);
-    return null;
   }
+  return null;
 }
 
 async function getUserProfile(pageAccessToken: string, userId: string): Promise<{ name: string; username: string }> {
@@ -66,58 +86,80 @@ async function getUserProfile(pageAccessToken: string, userId: string): Promise<
     const response = await fetch(`https://graph.facebook.com/v21.0/${userId}?fields=name,username`, {
       headers: { Authorization: `Bearer ${pageAccessToken}` },
     });
-    if (!response.ok) return { name: "Instagram User", username: "" };
+    if (!response.ok) {
+      const body = await response.text();
+      console.warn(`[ig-webhook] Profile fetch failed for ${userId}: ${body.slice(0, 200)}`);
+      return { name: "", username: "" };
+    }
     const data = await response.json();
-    return { name: data.name || "Instagram User", username: data.username || "" };
+    return { name: data.name || "", username: data.username || "" };
   } catch {
-    return { name: "Instagram User", username: "" };
+    return { name: "", username: "" };
   }
 }
 
-// Check incoming message against FAQ questions
 async function matchFAQ(supabase: any, messageText: string): Promise<string | null> {
   if (!messageText.trim()) return null;
-
   const { data: faqs } = await supabase
     .from("instagram_faq")
     .select("question, answer")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
-
   if (!faqs || faqs.length === 0) return null;
-
   const normalizedInput = messageText.trim().toLowerCase();
-
-  // Exact match first
   for (const faq of faqs) {
-    if (faq.question.trim().toLowerCase() === normalizedInput && faq.answer) {
-      return faq.answer;
-    }
+    if (faq.question.trim().toLowerCase() === normalizedInput && faq.answer) return faq.answer;
   }
-
-  // Fuzzy match: check if input contains the question or vice versa
   for (const faq of faqs) {
     const q = faq.question.trim().toLowerCase();
-    if ((normalizedInput.includes(q) || q.includes(normalizedInput)) && faq.answer && normalizedInput.length >= 3) {
-      return faq.answer;
-    }
+    if ((normalizedInput.includes(q) || q.includes(normalizedInput)) && faq.answer && normalizedInput.length >= 3) return faq.answer;
   }
-
   return null;
 }
 
-// Build FAQ menu text to append to greeting
 async function buildFAQMenu(supabase: any): Promise<string> {
   const { data: faqs } = await supabase
     .from("instagram_faq")
     .select("question")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
-
   if (!faqs || faqs.length === 0) return "";
-
   const lines = faqs.map((f: any, i: number) => `${i + 1}. ${f.question}`);
   return "\n\n📋 Quick Questions:\n" + lines.join("\n") + "\n\nJust type the question number or ask directly!";
+}
+
+// ─── Check if message was already processed (dedup by meta_message_id) ──
+async function isMessageAlreadyProcessed(supabase: any, metaMessageId: string | null): Promise<boolean> {
+  if (!metaMessageId) return false;
+  const { data } = await supabase
+    .from("instagram_messages")
+    .select("id")
+    .eq("meta_message_id", metaMessageId)
+    .limit(1);
+  return !!(data && data.length > 0);
+}
+
+// ─── Find existing lead by instagram_sender_id or username ──────────
+async function findExistingLead(supabase: any, senderId: string, username: string): Promise<any | null> {
+  // First try phone field (ig_<senderId>) — most reliable unique identifier
+  const { data: bySenderId } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("phone", `ig_${senderId}`)
+    .limit(1);
+  if (bySenderId && bySenderId.length > 0) return bySenderId[0];
+
+  // Fallback: try by instagram_username
+  if (username) {
+    const { data: byUsername } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("instagram_username", username)
+      .limit(1);
+    if (byUsername && byUsername.length > 0) return byUsername[0];
+  }
+
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -172,7 +214,14 @@ Deno.serve(async (req) => {
       return new Response("OK", { status: 200, headers: corsHeaders });
     }
 
-    console.log("[ig-webhook] Payload:", JSON.stringify(payload).slice(0, 1000));
+    // Log all incoming webhook events
+    console.log("[ig-webhook] Payload:", JSON.stringify(payload).slice(0, 1500));
+    await supabase.from("system_logs").insert({
+      message: "Instagram webhook event received",
+      log_type: "info",
+      category: "general",
+      details: { payload_summary: JSON.stringify(payload).slice(0, 500) },
+    });
 
     const entries = payload?.entry || [];
     for (const entry of entries) {
@@ -190,30 +239,43 @@ Deno.serve(async (req) => {
         const mediaUrl = message?.attachments?.[0]?.payload?.url || null;
         const metaMessageId = message?.mid || null;
 
+        // ─── DEDUP: Skip if this message was already processed ──────
+        const alreadyProcessed = await isMessageAlreadyProcessed(supabase, metaMessageId);
+        if (alreadyProcessed) {
+          console.log(`[ig-webhook] Skipping duplicate message: ${metaMessageId}`);
+          await supabase.from("system_logs").insert({
+            message: `Duplicate Instagram message skipped: ${metaMessageId}`,
+            log_type: "info",
+            category: "general",
+            details: { meta_message_id: metaMessageId, sender_id: senderId },
+          });
+          continue;
+        }
+
+        // ─── Get user profile with name fallback ────────────────────
         const profile = await getUserProfile(pageAccessToken, senderId);
-        const senderName = profile.name;
-        const senderUsername = profile.username;
+        const senderName = resolveDisplayName(profile.name, profile.username);
+        const senderUsername = profile.username || "";
 
         console.log(`[ig-webhook] Message from ${senderName} (@${senderUsername}): ${messageText.slice(0, 100)}`);
 
-        // ─── Find or Create Lead ────────────────────────────────────────
-        let leadId: string | null = null;
-        let lead: any = null;
+        // ─── Find or Create Lead (DEDUP by senderId + username) ─────
+        let lead = await findExistingLead(supabase, senderId, senderUsername);
+        let leadId: string | null = lead?.id || null;
 
-        if (senderUsername) {
-          const { data: existingLead } = await supabase
-            .from("leads")
-            .select("*")
-            .eq("instagram_username", senderUsername)
-            .limit(1)
-            .single();
-          if (existingLead) {
-            lead = existingLead;
-            leadId = existingLead.id;
+        if (lead) {
+          // Update existing lead if name was missing or is generic
+          const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+          if ((!lead.full_name || lead.full_name === "Instagram User" || lead.full_name.startsWith("@")) && profile.name && profile.name.trim()) {
+            updates.full_name = profile.name.trim();
           }
-        }
-
-        if (!leadId) {
+          if (senderUsername && (!lead.instagram_username || lead.instagram_username === senderId)) {
+            updates.instagram_username = senderUsername;
+          }
+          await supabase.from("leads").update(updates).eq("id", leadId);
+          console.log(`[ig-webhook] Existing lead found: ${leadId} (${lead.full_name})`);
+        } else {
+          // Create new lead
           const { data: newLead, error: leadError } = await supabase
             .from("leads")
             .insert({
@@ -233,7 +295,7 @@ Deno.serve(async (req) => {
             await supabase.from("system_logs").insert({
               message: `Failed to create Instagram lead: ${senderName} (@${senderUsername})`,
               log_type: "error",
-              category: "instagram",
+              category: "general",
               details: { senderId, error: leadError.message },
             });
           } else {
@@ -245,13 +307,14 @@ Deno.serve(async (req) => {
                 lead_id: leadId,
                 action_type: "lead_created",
                 new_value: "Instagram DM",
-                note: `Auto-created from Instagram DM. Username: @${senderUsername}`,
+                note: `Auto-created from Instagram DM. Username: @${senderUsername || senderId}`,
               });
+              console.log(`[ig-webhook] New lead created: ${leadId}`);
             }
           }
         }
 
-        // ─── Store Incoming Message ─────────────────────────────────────
+        // ─── Store Incoming Message ─────────────────────────────────
         await supabase.from("instagram_messages").insert({
           lead_id: leadId,
           lead_name: senderName,
@@ -265,7 +328,7 @@ Deno.serve(async (req) => {
           meta_message_id: metaMessageId,
         });
 
-        // ─── Bot Logic ──────────────────────────────────────────────────
+        // ─── Bot Logic ──────────────────────────────────────────────
         const { data: botState } = await supabase
           .from("instagram_bot_state")
           .select("*")
@@ -302,7 +365,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // ─── FAQ Check (BEFORE qualification flow) ──────────────────────
+        // ─── FAQ Check (BEFORE qualification flow) ──────────────────
         const faqAnswer = await matchFAQ(supabase, messageText);
         if (faqAnswer) {
           console.log(`[ig-webhook] FAQ match for: ${messageText.slice(0, 50)}`);
@@ -319,25 +382,22 @@ Deno.serve(async (req) => {
             meta_message_id: metaMsgId,
             error_message: metaMsgId ? null : "Failed to send FAQ reply",
           });
-          // Don't continue qualification flow for FAQ answers
           continue;
         }
 
-        // ─── Process Bot Steps ──────────────────────────────────────────
+        // ─── Process Bot Steps ──────────────────────────────────────
         const step = currentState?.current_step || "greeting";
         const collectedData: Record<string, string> = (currentState?.collected_data as Record<string, string>) || {};
         let replyText = "";
         let nextStep = step;
 
         if (step === "greeting") {
-          // Build greeting with FAQ menu appended
           const faqMenu = await buildFAQMenu(supabase);
           replyText = GREETING_MESSAGE + faqMenu;
           nextStep = "tattoo_idea";
         } else if (QUALIFICATION_STEPS.includes(step as any)) {
           if (messageText.trim()) {
             collectedData[step] = messageText.trim();
-
             const updateData: Record<string, string> = {};
             if (step === "tattoo_idea") updateData.tattoo_style = messageText.trim();
             if (step === "placement") updateData.placement = messageText.trim();
@@ -406,7 +466,7 @@ Deno.serve(async (req) => {
           replyText = STEP_QUESTIONS[step] || "";
         }
 
-        // Send auto-reply
+        // Send auto-reply with retry
         if (replyText) {
           const metaMsgId = await sendInstagramMessage(pageAccessToken, senderId, replyText);
 
@@ -427,7 +487,7 @@ Deno.serve(async (req) => {
             await supabase.from("system_logs").insert({
               message: `Instagram bot reply failed for ${senderName} (@${senderUsername})`,
               log_type: "error",
-              category: "instagram",
+              category: "general",
               lead_id: leadId,
               details: { senderId, step: nextStep, replyText: replyText.slice(0, 200) },
             });
