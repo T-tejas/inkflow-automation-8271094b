@@ -64,12 +64,12 @@ export function InstagramContactList({ contacts, selectedSenderId, onSelect }: P
               }}
             >
               <div className="w-[49px] h-[49px] rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400 flex items-center justify-center text-white text-lg font-semibold flex-shrink-0">
-                {contact.leadName.charAt(0).toUpperCase()}
+                {(contact.leadName || contact.instagramUsername || 'I').charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <span className="text-base font-medium truncate" style={{ color: '#111b21' }}>
-                    {contact.leadName}
+                    {contact.leadName && contact.leadName !== 'Instagram User' ? contact.leadName : (contact.instagramUsername ? `@${contact.instagramUsername}` : 'Instagram User')}
                   </span>
                   {contact.lastMessageTime && (
                     <span className="text-[11px] flex-shrink-0" style={{ color: contact.unreadCount > 0 ? '#00a884' : '#667781' }}>
