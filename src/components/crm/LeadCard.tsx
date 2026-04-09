@@ -100,7 +100,7 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </Badge>
         </div>
 
-        {/* Date + Source */}
+        {/* Date + Source + Follow-up */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
@@ -108,6 +108,21 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </span>
           <span>{lead.source}</span>
         </div>
+
+        {/* Follow-up Indicator */}
+        {followupStatus !== 'none' && (
+          <div className={`flex items-center justify-between gap-1 text-[10px] font-medium px-2 py-1 rounded-md ${
+            followupStatus === 'overdue' ? 'bg-destructive/10 text-destructive' :
+            followupStatus === 'today' ? 'bg-warning/10 text-warning' :
+            'bg-emerald-500/10 text-emerald-600'
+          }`}>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {followupStatus === 'overdue' ? '⚠ Overdue' : followupStatus === 'today' ? '📞 Follow-up Today' : '📅 Upcoming'}
+            </span>
+            <span>{lead.nextFollowupDate ? new Date(lead.nextFollowupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</span>
+          </div>
+        )}
 
         {/* Tags */}
         {lead.tags.length > 0 && (
