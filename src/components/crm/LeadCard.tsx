@@ -1,6 +1,6 @@
-import { Lead, LeadStatus, LEAD_STATUSES, parseBudget } from '@/types/lead';
+import { Lead, LeadStatus, LEAD_STATUSES, parseBudget, getFollowupStatus } from '@/types/lead';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft, Palette, Eye } from 'lucide-react';
+import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft, Palette, Eye, Clock, PhoneCall, CalendarClock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,8 @@ interface LeadCardProps {
   isSelected?: boolean;
   onToggleSelect?: (leadId: string) => void;
   selectMode?: boolean;
+  onMarkContacted?: (leadId: string) => void;
+  onRescheduleFollowup?: (lead: Lead) => void;
 }
 
 function getBorderColor(lead: Lead): string {
@@ -34,8 +36,9 @@ function isHotLead(lead: Lead): boolean {
   return lead.status === 'Artist Consultation';
 }
 
-export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign, isSelected, onToggleSelect, selectMode }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign, isSelected, onToggleSelect, selectMode, onMarkContacted, onRescheduleFollowup }: LeadCardProps) {
   const [stageOpen, setStageOpen] = useState(false);
+  const followupStatus = getFollowupStatus(lead.nextFollowupDate);
 
   const handleQuickAction = (e: React.MouseEvent, action: () => void) => {
     e.stopPropagation();
@@ -51,7 +54,7 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         exit={{ opacity: 0, y: -8 }}
         whileHover={{ scale: 1.01 }}
         onClick={() => onClick(lead)}
-        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''} ${followupStatus === 'overdue' ? 'ring-1 ring-destructive/40 bg-destructive/5' : followupStatus === 'today' ? 'ring-1 ring-warning/40 bg-warning/5' : ''}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">

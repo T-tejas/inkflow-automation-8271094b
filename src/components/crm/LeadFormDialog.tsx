@@ -151,6 +151,10 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadF
               <Input type="date" value={form.preferredDate} onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))} className="bg-muted/50 border-border" disabled={isSubmitting} />
             </div>
             <div>
+              <Label className="text-xs text-muted-foreground">Next Follow-up Date</Label>
+              <Input type="date" value={form.nextFollowupDate || ''} onChange={e => setForm(f => ({ ...f, nextFollowupDate: e.target.value || null }))} className="bg-muted/50 border-border" disabled={isSubmitting} />
+            </div>
+            <div>
               <Label className="text-xs text-muted-foreground">Status</Label>
               <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as LeadStatus }))} disabled={isSubmitting}>
                 <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
