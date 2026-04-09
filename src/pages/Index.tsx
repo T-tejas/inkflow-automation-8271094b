@@ -17,8 +17,8 @@ import { BulkActionBar } from '@/components/crm/BulkActionBar';
 import { TattooCompletionDialog } from '@/components/crm/TattooCompletionDialog';
 import { WalkInDialog } from '@/components/crm/WalkInDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar, Instagram, Globe, Settings } from 'lucide-react';
-import { Lead, LeadStatus } from '@/types/lead';
+import { Plus, MessageCircle, RefreshCw, AlertTriangle, Shield, Package, LogOut, Palette, CheckSquare, UserPlus, Search, X, Calendar, Instagram, Globe, Settings, Clock } from 'lucide-react';
+import { Lead, LeadStatus, FollowupFilter, getFollowupStatus } from '@/types/lead';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppRole } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -51,6 +51,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [followupFilter, setFollowupFilter] = useState<FollowupFilter>('all');
 
   // Set of lead IDs that have designs assigned
   const designLeadIds = useMemo(() => new Set(designTasks.filter(t => t.lead_id).map(t => t.lead_id!)), [designTasks]);
@@ -115,14 +116,44 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
 
   const filteredLeads = tagFilter ? leads.filter(l => l.tags.includes(tagFilter as any)) : leads;
 
+  // Apply follow-up filter
+  const followupFilteredLeads = followupFilter === 'all' ? filteredLeads : filteredLeads.filter(l => {
+    const status = getFollowupStatus(l.nextFollowupDate);
+    return status === followupFilter;
+  });
+
   const displayLeads = searchQuery.trim()
-    ? filteredLeads.filter(l =>
+    ? followupFilteredLeads.filter(l =>
         l.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         l.phone.includes(searchQuery) ||
         (l.tattooStyle && l.tattooStyle.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (l.notes && l.notes.toLowerCase().includes(searchQuery.toLowerCase()))
       )
-    : filteredLeads;
+    : followupFilteredLeads;
+
+  // Follow-up stats
+  const followupStats = {
+    today: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'today').length,
+    overdue: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'overdue').length,
+    upcoming: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'upcoming').length,
+  };
+
+  const handleMarkContacted = async (leadId: string) => {
+    await updateLead(leadId, { lastContactedAt: new Date().toISOString() });
+    toast.success('Marked as contacted');
+  };
+
+  const handleRescheduleFollowup = async (leadId: string, date: string) => {
+    await updateLead(leadId, { nextFollowupDate: date });
+    toast.success('Follow-up scheduled');
+  };
+
+  const handleRescheduleFromCard = (lead: Lead) => {
+    // Quick reschedule: set to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    handleRescheduleFollowup(lead.id, tomorrow.toISOString().split('T')[0]);
+  };
 
   const handleToggleSelect = (leadId: string) => {
     setSelectedIds(prev => {
@@ -284,6 +315,29 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
           </div>
         )}
 
+        {/* Follow-up Filter Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Follow-ups:</span>
+          {([
+            { key: 'all', label: 'All', count: leads.length, color: '' },
+            { key: 'today', label: '📞 Today', count: followupStats.today, color: 'bg-warning/10 text-warning border-warning/30' },
+            { key: 'overdue', label: '⚠ Overdue', count: followupStats.overdue, color: 'bg-destructive/10 text-destructive border-destructive/30' },
+            { key: 'upcoming', label: '📅 Upcoming', count: followupStats.upcoming, color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' },
+          ] as const).map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFollowupFilter(f.key as FollowupFilter)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                followupFilter === f.key
+                  ? (f.color || 'bg-primary/10 text-primary border-primary/30')
+                  : 'bg-muted/50 border-border text-muted-foreground hover:border-primary/30'
+              }`}
+            >
+              {f.label} {f.count > 0 && <span className="ml-1 font-semibold">{f.count}</span>}
+            </button>
+          ))}
+        </div>
+
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Pipeline</h2>
           <PipelineBoard
@@ -299,6 +353,8 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             selectMode={selectMode}
+            onMarkContacted={handleMarkContacted}
+            onRescheduleFollowup={handleRescheduleFromCard}
           />
         </div>
       </main>
