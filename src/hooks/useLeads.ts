@@ -459,6 +459,8 @@ export function useLeads() {
       ? Math.round((leads.filter(l => l.status === 'Completed').length / leads.length) * 100)
       : 0,
     pipelineValue,
+    followupToday: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'today').length,
+    followupOverdue: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'overdue').length,
   };
 
   return { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads: fetchLeads };
