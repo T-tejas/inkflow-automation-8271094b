@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Lead, LeadStatus, AutomationTag, parseBudget } from '@/types/lead';
+import { Lead, LeadStatus, AutomationTag, parseBudget, getFollowupStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendMetaConversion } from '@/lib/metaConversions';
