@@ -374,6 +374,8 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         onDelete={deleteLead}
         onAssignDesign={handleAssignDesign}
         onMarkCompleted={(lead) => { setCompletionLead(lead); setCompletionOpen(true); }}
+        onMarkContacted={handleMarkContacted}
+        onRescheduleFollowup={handleRescheduleFollowup}
       />
       <WhatsAppLogDialog open={whatsappLogOpen} onOpenChange={setWhatsappLogOpen} />
       <DesignAssignDialog
