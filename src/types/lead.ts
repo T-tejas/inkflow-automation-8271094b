@@ -54,6 +54,22 @@ export interface Lead {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  nextFollowupDate: string | null;
+  lastContactedAt: string | null;
+}
+
+export type FollowupFilter = 'all' | 'today' | 'overdue' | 'upcoming';
+
+export function getFollowupStatus(date: string | null): 'none' | 'today' | 'overdue' | 'upcoming' {
+  if (!date) return 'none';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const followup = new Date(date);
+  followup.setHours(0, 0, 0, 0);
+  const diff = followup.getTime() - today.getTime();
+  if (diff === 0) return 'today';
+  if (diff < 0) return 'overdue';
+  return 'upcoming';
 }
 
 export const LEAD_STATUSES: LeadStatus[] = [
