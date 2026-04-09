@@ -16,6 +16,8 @@ interface PipelineBoardProps {
   selectedIds?: Set<string>;
   onToggleSelect?: (leadId: string) => void;
   selectMode?: boolean;
+  onMarkContacted?: (leadId: string) => void;
+  onRescheduleFollowup?: (lead: Lead) => void;
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
@@ -38,7 +40,7 @@ const COLUMN_LABELS: Record<string, string> = {
   'Out of City': 'Out of City / External',
 };
 
-export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds, selectedIds, onToggleSelect, selectMode }: PipelineBoardProps) {
+export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds, selectedIds, onToggleSelect, selectMode, onMarkContacted, onRescheduleFollowup }: PipelineBoardProps) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:snap-none" style={{ height: 'calc(100vh - 320px)', minHeight: '400px' }}>
       {KANBAN_STATUSES.map(status => {
@@ -119,6 +121,8 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
                         isSelected={selectedIds?.has(lead.id)}
                         onToggleSelect={onToggleSelect}
                         selectMode={selectMode}
+                        onMarkContacted={onMarkContacted}
+                        onRescheduleFollowup={onRescheduleFollowup}
                       />
                     </div>
                   ))}

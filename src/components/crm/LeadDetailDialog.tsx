@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getFollowupStatus } from '@/types/lead';
 import { useNavigate } from 'react-router-dom';
 import { Lead, LEAD_STATUSES } from '@/types/lead';
 import {
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature, User } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature, User, PhoneCall, CalendarClock, Clock } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,16 +27,19 @@ interface LeadDetailDialogProps {
   onDelete: (id: string) => void;
   onAssignDesign?: (lead: Lead) => void;
   onMarkCompleted?: (lead: Lead) => void;
+  onMarkContacted?: (leadId: string) => void;
+  onRescheduleFollowup?: (leadId: string, date: string) => void;
 }
 
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
 
-export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign, onMarkCompleted }: LeadDetailDialogProps) {
+export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign, onMarkCompleted, onMarkContacted, onRescheduleFollowup }: LeadDetailDialogProps) {
   const navigate = useNavigate();
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
   const { createConsentForm } = useConsentForms();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [followupDate, setFollowupDate] = useState('');
 
   const handleConsentForm = async () => {
     if (!lead) return;
@@ -115,6 +119,66 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
             <InfoRow icon={Calendar} label="Preferred Date" value={lead.preferredDate ? new Date(lead.preferredDate).toLocaleDateString('en-IN') : '—'} />
             <InfoRow icon={MapPin} label="Placement" value={lead.placement || '—'} />
             <InfoRow icon={DollarSign} label="Budget" value={lead.budget || '—'} />
+          </div>
+
+          {/* Follow-up Section */}
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Clock className="h-3.5 w-3.5 text-primary" />
+              Follow-up Management
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-muted-foreground">Next Follow-up:</span>
+                <p className={`font-medium ${
+                  getFollowupStatus(lead.nextFollowupDate) === 'overdue' ? 'text-destructive' :
+                  getFollowupStatus(lead.nextFollowupDate) === 'today' ? 'text-warning' :
+                  getFollowupStatus(lead.nextFollowupDate) === 'upcoming' ? 'text-emerald-600' : 'text-muted-foreground'
+                }`}>
+                  {lead.nextFollowupDate ? new Date(lead.nextFollowupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not set'}
+                  {getFollowupStatus(lead.nextFollowupDate) === 'overdue' && ' ⚠ Overdue'}
+                  {getFollowupStatus(lead.nextFollowupDate) === 'today' && ' 📞 Today'}
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Last Contacted:</span>
+                <p className="font-medium text-foreground">
+                  {lead.lastContactedAt ? new Date(lead.lastContactedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="date"
+                value={followupDate}
+                onChange={e => setFollowupDate(e.target.value)}
+                className="flex-1 h-8 rounded-md border border-input bg-muted/50 px-2 text-xs"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                disabled={!followupDate}
+                onClick={() => {
+                  if (onRescheduleFollowup && followupDate) {
+                    onRescheduleFollowup(lead.id, followupDate);
+                    setFollowupDate('');
+                  }
+                }}
+              >
+                <CalendarClock className="h-3 w-3" /> Set Follow-up
+              </Button>
+              {onMarkContacted && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                  onClick={() => onMarkContacted(lead.id)}
+                >
+                  <PhoneCall className="h-3 w-3" /> Contacted
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-1.5">

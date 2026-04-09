@@ -749,7 +749,9 @@ export type Database = {
           full_name: string
           id: string
           instagram_username: string | null
+          last_contacted_at: string | null
           lead_score: string | null
+          next_followup_date: string | null
           notes: string | null
           phone: string
           placement: string | null
@@ -771,7 +773,9 @@ export type Database = {
           full_name: string
           id?: string
           instagram_username?: string | null
+          last_contacted_at?: string | null
           lead_score?: string | null
+          next_followup_date?: string | null
           notes?: string | null
           phone: string
           placement?: string | null
@@ -793,7 +797,9 @@ export type Database = {
           full_name?: string
           id?: string
           instagram_username?: string | null
+          last_contacted_at?: string | null
           lead_score?: string | null
+          next_followup_date?: string | null
           notes?: string | null
           phone?: string
           placement?: string | null

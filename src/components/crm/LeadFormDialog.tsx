@@ -36,6 +36,8 @@ const DEFAULT_FORM = {
   status: 'New Lead' as LeadStatus,
   tags: [] as AutomationTag[],
   notes: '',
+  nextFollowupDate: null as string | null,
+  lastContactedAt: null as string | null,
 };
 
 export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadFormDialogProps) {
@@ -60,6 +62,8 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadF
           status: editLead.status,
           tags: editLead.tags,
           notes: editLead.notes,
+          nextFollowupDate: editLead.nextFollowupDate,
+          lastContactedAt: editLead.lastContactedAt,
         });
       } else {
         setForm({ ...DEFAULT_FORM });
@@ -145,6 +149,10 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadF
             <div>
               <Label className="text-xs text-muted-foreground">Preferred Date</Label>
               <Input type="date" value={form.preferredDate} onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))} className="bg-muted/50 border-border" disabled={isSubmitting} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Next Follow-up Date</Label>
+              <Input type="date" value={form.nextFollowupDate || ''} onChange={e => setForm(f => ({ ...f, nextFollowupDate: e.target.value || null }))} className="bg-muted/50 border-border" disabled={isSubmitting} />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Status</Label>

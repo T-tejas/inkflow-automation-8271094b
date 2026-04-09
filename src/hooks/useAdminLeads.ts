@@ -19,6 +19,8 @@ interface DbLead {
   notes: string;
   created_at: string;
   updated_at: string;
+  next_followup_date: string | null;
+  last_contacted_at: string | null;
 }
 
 function dbToLead(row: DbLead): Lead {
@@ -38,6 +40,8 @@ function dbToLead(row: DbLead): Lead {
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    nextFollowupDate: row.next_followup_date,
+    lastContactedAt: row.last_contacted_at,
   };
 }
 

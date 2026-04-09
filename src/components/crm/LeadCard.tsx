@@ -1,6 +1,6 @@
-import { Lead, LeadStatus, LEAD_STATUSES, parseBudget } from '@/types/lead';
+import { Lead, LeadStatus, LEAD_STATUSES, parseBudget, getFollowupStatus } from '@/types/lead';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft, Palette, Eye } from 'lucide-react';
+import { Phone, Calendar, MessageCircle, IndianRupee, Pencil, StickyNote, ArrowRightLeft, Palette, Eye, Clock, PhoneCall, CalendarClock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,8 @@ interface LeadCardProps {
   isSelected?: boolean;
   onToggleSelect?: (leadId: string) => void;
   selectMode?: boolean;
+  onMarkContacted?: (leadId: string) => void;
+  onRescheduleFollowup?: (lead: Lead) => void;
 }
 
 function getBorderColor(lead: Lead): string {
@@ -34,8 +36,9 @@ function isHotLead(lead: Lead): boolean {
   return lead.status === 'Artist Consultation';
 }
 
-export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign, isSelected, onToggleSelect, selectMode }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, onAssignDesign, onViewDesign, hasDesign, isSelected, onToggleSelect, selectMode, onMarkContacted, onRescheduleFollowup }: LeadCardProps) {
   const [stageOpen, setStageOpen] = useState(false);
+  const followupStatus = getFollowupStatus(lead.nextFollowupDate);
 
   const handleQuickAction = (e: React.MouseEvent, action: () => void) => {
     e.stopPropagation();
@@ -51,7 +54,7 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         exit={{ opacity: 0, y: -8 }}
         whileHover={{ scale: 1.01 }}
         onClick={() => onClick(lead)}
-        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+        className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''} ${followupStatus === 'overdue' ? 'ring-1 ring-destructive/40 bg-destructive/5' : followupStatus === 'today' ? 'ring-1 ring-warning/40 bg-warning/5' : ''}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
@@ -97,7 +100,7 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </Badge>
         </div>
 
-        {/* Date + Source */}
+        {/* Date + Source + Follow-up */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
@@ -105,6 +108,21 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
           </span>
           <span>{lead.source}</span>
         </div>
+
+        {/* Follow-up Indicator */}
+        {followupStatus !== 'none' && (
+          <div className={`flex items-center justify-between gap-1 text-[10px] font-medium px-2 py-1 rounded-md ${
+            followupStatus === 'overdue' ? 'bg-destructive/10 text-destructive' :
+            followupStatus === 'today' ? 'bg-warning/10 text-warning' :
+            'bg-emerald-500/10 text-emerald-600'
+          }`}>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {followupStatus === 'overdue' ? '⚠ Overdue' : followupStatus === 'today' ? '📞 Follow-up Today' : '📅 Upcoming'}
+            </span>
+            <span>{lead.nextFollowupDate ? new Date(lead.nextFollowupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</span>
+          </div>
+        )}
 
         {/* Tags */}
         {lead.tags.length > 0 && (
@@ -140,6 +158,34 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
 
         {/* Quick Actions — visible on hover */}
         <div className="flex items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onMarkContacted && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onMarkContacted(lead.id))}
+                  className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-600 transition-colors"
+                  aria-label="Mark contacted"
+                >
+                  <PhoneCall className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Mark Contacted</TooltipContent>
+            </Tooltip>
+          )}
+          {onRescheduleFollowup && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onRescheduleFollowup(lead))}
+                  className="p-1.5 rounded-md hover:bg-warning/10 text-warning transition-colors"
+                  aria-label="Reschedule follow-up"
+                >
+                  <CalendarClock className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Reschedule Follow-up</TooltipContent>
+            </Tooltip>
+          )}
           {onEdit && (
             <Tooltip>
               <TooltipTrigger asChild>

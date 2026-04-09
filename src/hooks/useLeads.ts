@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Lead, LeadStatus, AutomationTag, parseBudget } from '@/types/lead';
+import { Lead, LeadStatus, AutomationTag, parseBudget, getFollowupStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sendMetaConversion } from '@/lib/metaConversions';
@@ -21,6 +21,8 @@ interface DbLead {
   notes: string;
   created_at: string;
   updated_at: string;
+  next_followup_date: string | null;
+  last_contacted_at: string | null;
 }
 
 function dbToLead(row: DbLead): Lead {
@@ -40,6 +42,8 @@ function dbToLead(row: DbLead): Lead {
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    nextFollowupDate: row.next_followup_date,
+    lastContactedAt: row.last_contacted_at,
   };
 }
 
@@ -57,6 +61,8 @@ function leadToDb(lead: Partial<Lead>): Record<string, unknown> {
   if (lead.status !== undefined) map.status = lead.status;
   if (lead.tags !== undefined) map.tags = lead.tags;
   if (lead.notes !== undefined) map.notes = lead.notes;
+  if (lead.nextFollowupDate !== undefined) map.next_followup_date = lead.nextFollowupDate;
+  if (lead.lastContactedAt !== undefined) map.last_contacted_at = lead.lastContactedAt;
   return map;
 }
 
@@ -297,6 +303,8 @@ export function useLeads() {
     if (updates.status !== undefined) updateData.status = updates.status;
     if (updates.tags !== undefined) updateData.tags = updates.tags;
     if (updates.notes !== undefined) updateData.notes = updates.notes;
+    if (updates.nextFollowupDate !== undefined) (updateData as any).next_followup_date = updates.nextFollowupDate;
+    if (updates.lastContactedAt !== undefined) (updateData as any).last_contacted_at = updates.lastContactedAt;
 
     setLeads(curr => curr.map(l => l.id === id ? { ...l, ...updates, updatedAt: now } : l));
 
@@ -451,6 +459,8 @@ export function useLeads() {
       ? Math.round((leads.filter(l => l.status === 'Completed').length / leads.length) * 100)
       : 0,
     pipelineValue,
+    followupToday: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'today').length,
+    followupOverdue: leads.filter(l => getFollowupStatus(l.nextFollowupDate) === 'overdue').length,
   };
 
   return { leads, loading, syncError, addLead, updateLead, updateLeadStatus, deleteLead, getLeadsByStatus, stats, refetchLeads: fetchLeads };

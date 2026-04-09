@@ -45,6 +45,8 @@ export function WalkInDialog({ open, onOpenChange, onSubmit }: WalkInDialogProps
       status: 'New Lead',
       tags: [],
       notes: `Walk-in client. Tattoo idea: ${tattooIdea}. Artist: ${artist}`,
+      nextFollowupDate: null,
+      lastContactedAt: null,
     });
     if (ok) {
       setName(''); setPhone(''); setTattooIdea(''); setPlacement(''); setBudget(''); setArtist(''); setAppointmentDate('');
