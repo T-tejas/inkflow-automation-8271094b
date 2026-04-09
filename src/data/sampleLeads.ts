@@ -17,6 +17,8 @@ export const sampleLeads: Lead[] = [
     notes: 'Wants a geometric mandala design',
     createdAt: '2026-02-28T10:30:00Z',
     updatedAt: '2026-02-28T10:30:00Z',
+    nextFollowupDate: null,
+    lastContactedAt: null,
   },
   {
     id: '2',
@@ -34,6 +36,8 @@ export const sampleLeads: Lead[] = [
     notes: 'Small infinity symbol with initials',
     createdAt: '2026-02-25T14:00:00Z',
     updatedAt: '2026-02-27T09:00:00Z',
+    nextFollowupDate: null,
+    lastContactedAt: null,
   },
   {
     id: '3',
@@ -51,6 +55,8 @@ export const sampleLeads: Lead[] = [
     notes: 'Portrait tattoo of his dog',
     createdAt: '2026-02-20T11:00:00Z',
     updatedAt: '2026-02-26T16:00:00Z',
+    nextFollowupDate: null,
+    lastContactedAt: null,
   },
   {
     id: '4',
@@ -68,6 +74,8 @@ export const sampleLeads: Lead[] = [
     notes: 'Referred by Rahul. Wants a watercolor phoenix',
     createdAt: '2026-02-27T08:00:00Z',
     updatedAt: '2026-02-28T12:00:00Z',
+    nextFollowupDate: null,
+    lastContactedAt: null,
   },
   {
     id: '5',
@@ -85,6 +93,8 @@ export const sampleLeads: Lead[] = [
     notes: 'Full sleeve koi fish completed. Very satisfied. Wants back piece next.',
     createdAt: '2026-01-10T09:00:00Z',
     updatedAt: '2026-02-15T17:00:00Z',
+    nextFollowupDate: null,
+    lastContactedAt: null,
   },
   {
     id: '6',
@@ -102,5 +112,7 @@ export const sampleLeads: Lead[] = [
     notes: 'Sent quote, no reply in 5 days',
     createdAt: '2026-02-22T13:00:00Z',
     updatedAt: '2026-02-22T13:00:00Z',
+    nextFollowupDate: null,
+    lastContactedAt: null,
   },
 ];

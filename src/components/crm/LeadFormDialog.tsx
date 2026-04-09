@@ -36,6 +36,8 @@ const DEFAULT_FORM = {
   status: 'New Lead' as LeadStatus,
   tags: [] as AutomationTag[],
   notes: '',
+  nextFollowupDate: null as string | null,
+  lastContactedAt: null as string | null,
 };
 
 export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadFormDialogProps) {
@@ -60,6 +62,8 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit, editLead }: LeadF
           status: editLead.status,
           tags: editLead.tags,
           notes: editLead.notes,
+          nextFollowupDate: editLead.nextFollowupDate,
+          lastContactedAt: editLead.lastContactedAt,
         });
       } else {
         setForm({ ...DEFAULT_FORM });
