@@ -158,6 +158,34 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
 
         {/* Quick Actions — visible on hover */}
         <div className="flex items-center gap-1 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onMarkContacted && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onMarkContacted(lead.id))}
+                  className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-600 transition-colors"
+                  aria-label="Mark contacted"
+                >
+                  <PhoneCall className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Mark Contacted</TooltipContent>
+            </Tooltip>
+          )}
+          {onRescheduleFollowup && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => handleQuickAction(e, () => onRescheduleFollowup(lead))}
+                  className="p-1.5 rounded-md hover:bg-warning/10 text-warning transition-colors"
+                  aria-label="Reschedule follow-up"
+                >
+                  <CalendarClock className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">Reschedule Follow-up</TooltipContent>
+            </Tooltip>
+          )}
           {onEdit && (
             <Tooltip>
               <TooltipTrigger asChild>

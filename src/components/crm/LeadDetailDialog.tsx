@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getFollowupStatus } from '@/types/lead';
 import { useNavigate } from 'react-router-dom';
 import { Lead, LEAD_STATUSES } from '@/types/lead';
 import {
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature, User } from 'lucide-react';
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, AlertCircle, Loader2, Palette, Award, FileSignature, User, PhoneCall, CalendarClock, Clock } from 'lucide-react';
 import type { LeadStatus } from '@/types/lead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,16 +27,19 @@ interface LeadDetailDialogProps {
   onDelete: (id: string) => void;
   onAssignDesign?: (lead: Lead) => void;
   onMarkCompleted?: (lead: Lead) => void;
+  onMarkContacted?: (leadId: string) => void;
+  onRescheduleFollowup?: (leadId: string, date: string) => void;
 }
 
 type TemplateType = 'confirmation' | 'reminder' | 'promo';
 
-export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign, onMarkCompleted }: LeadDetailDialogProps) {
+export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, onDelete, onAssignDesign, onMarkCompleted, onMarkContacted, onRescheduleFollowup }: LeadDetailDialogProps) {
   const navigate = useNavigate();
   const [sending, setSending] = useState<TemplateType | null>(null);
   const [lastSent, setLastSent] = useState<TemplateType | null>(null);
   const { createConsentForm } = useConsentForms();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [followupDate, setFollowupDate] = useState('');
 
   const handleConsentForm = async () => {
     if (!lead) return;
