@@ -84,9 +84,30 @@ export function InstagramChatWindow({ contact, messages, loading, onSendMessage,
           <div className="text-center py-8 text-sm" style={{ color: '#667781' }}>No messages yet</div>
         ) : (
           <div className="space-y-1">
-            {messages.map(msg => {
+            {(() => {
+              // Collapse consecutive identical failed outgoing messages (e.g. spammed follow-ups)
+              const collapsed: Array<InstagramMessage & { _dupCount?: number }> = [];
+              for (const m of messages) {
+                const prev = collapsed[collapsed.length - 1];
+                if (
+                  prev &&
+                  m.direction === 'outgoing' &&
+                  m.status === 'failed' &&
+                  prev.direction === 'outgoing' &&
+                  prev.status === 'failed' &&
+                  prev.messageBody === m.messageBody
+                ) {
+                  // Replace with newer one and bump dup count
+                  collapsed[collapsed.length - 1] = { ...m, _dupCount: (prev._dupCount || 1) + 1 };
+                } else {
+                  collapsed.push({ ...m });
+                }
+              }
+              return collapsed;
+            })().map(msg => {
               const isOutgoing = msg.direction === 'outgoing';
               const isFailed = msg.status === 'failed';
+              const dupCount = (msg as any)._dupCount as number | undefined;
 
               return (
                 <div key={msg.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
@@ -112,6 +133,11 @@ export function InstagramChatWindow({ contact, messages, loading, onSendMessage,
                     <p className="text-sm break-words whitespace-pre-wrap" style={{ color: '#111b21' }}>
                       {msg.messageBody}
                     </p>
+                    {dupCount && dupCount > 1 && (
+                      <p className="text-[10px] text-red-500 mt-0.5 italic">
+                        Repeated {dupCount}× (auto follow-up). Fix Instagram token in Settings to retry.
+                      </p>
+                    )}
 
                     <div className="flex items-center justify-end gap-1 mt-0.5">
                       {isFailed && (
