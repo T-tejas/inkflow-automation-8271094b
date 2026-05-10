@@ -133,6 +133,11 @@ export function InstagramChatWindow({ contact, messages, loading, onSendMessage,
                     <p className="text-sm break-words whitespace-pre-wrap" style={{ color: '#111b21' }}>
                       {msg.messageBody}
                     </p>
+                    {dupCount && dupCount > 1 && (
+                      <p className="text-[10px] text-red-500 mt-0.5 italic">
+                        Repeated {dupCount}× (auto follow-up). Fix Instagram token in Settings to retry.
+                      </p>
+                    )}
 
                     <div className="flex items-center justify-end gap-1 mt-0.5">
                       {isFailed && (
