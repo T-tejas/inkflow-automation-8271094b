@@ -20,6 +20,8 @@ import ConsentForm from "./pages/ConsentForm";
 import WalkInForm from "./pages/WalkInForm";
 import PriceCalculator from "./pages/PriceCalculator";
 import InstagramChat from "./pages/InstagramChat";
+import PublicReview from "./pages/PublicReview";
+import ReviewsDashboard from "./pages/ReviewsDashboard";
 
 import Settings from "./pages/Settings";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
@@ -43,6 +45,7 @@ function AuthenticatedApp() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/consent/:formId" element={<ConsentForm />} />
         <Route path="/walk-in-form" element={<WalkInForm />} />
+        <Route path="/review/:token" element={<PublicReview />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -61,7 +64,9 @@ function AuthenticatedApp() {
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/consent/:formId" element={<ConsentForm />} />
       <Route path="/walk-in-form" element={<WalkInForm />} />
+      <Route path="/review/:token" element={<PublicReview />} />
       <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
+      <Route path="/admin/reviews" element={<ProtectedAdminRoute><ReviewsDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="/admin/bulk-messaging" element={<ProtectedAdminRoute><BulkMessaging /></ProtectedAdminRoute>} />
       <Route path="/admin/bot-templates" element={<ProtectedAdminRoute><BotTemplates /></ProtectedAdminRoute>} />

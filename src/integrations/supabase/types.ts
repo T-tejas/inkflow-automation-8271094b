@@ -862,28 +862,67 @@ export type Database = {
       }
       reviews: {
         Row: {
+          admin_reply: string | null
+          artist_name: string | null
+          client_name: string | null
+          client_phone: string | null
           created_at: string
+          final_review_text: string | null
+          generated_reviews: Json
+          google_redirected_at: string | null
           id: string
-          lead_id: string
-          rating: number
+          lead_id: string | null
+          placement: string | null
+          posted_to_google: boolean
+          rating: number | null
           review_text: string | null
           source: string
+          status: string
+          tattoo_style: string | null
+          token: string | null
+          tone: string | null
         }
         Insert: {
+          admin_reply?: string | null
+          artist_name?: string | null
+          client_name?: string | null
+          client_phone?: string | null
           created_at?: string
+          final_review_text?: string | null
+          generated_reviews?: Json
+          google_redirected_at?: string | null
           id?: string
-          lead_id: string
-          rating: number
+          lead_id?: string | null
+          placement?: string | null
+          posted_to_google?: boolean
+          rating?: number | null
           review_text?: string | null
           source?: string
+          status?: string
+          tattoo_style?: string | null
+          token?: string | null
+          tone?: string | null
         }
         Update: {
+          admin_reply?: string | null
+          artist_name?: string | null
+          client_name?: string | null
+          client_phone?: string | null
           created_at?: string
+          final_review_text?: string | null
+          generated_reviews?: Json
+          google_redirected_at?: string | null
           id?: string
-          lead_id?: string
-          rating?: number
+          lead_id?: string | null
+          placement?: string | null
+          posted_to_google?: boolean
+          rating?: number | null
           review_text?: string | null
           source?: string
+          status?: string
+          tattoo_style?: string | null
+          token?: string | null
+          tone?: string | null
         }
         Relationships: [
           {

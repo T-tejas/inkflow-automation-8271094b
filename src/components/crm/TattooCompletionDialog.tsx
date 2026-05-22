@@ -196,7 +196,22 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   const sendReviewRequest = async () => {
     if (!lead.phone) return;
     try {
-      const reviewMsg = `🎨 *F19 TATTOO STUDIO*\n\nHi ${lead.fullName}! Thank you for your visit! 🙏\n\nWe'd love to hear your feedback!\n\nPlease rate your experience from 1 to 5 stars by replying with a number:\n\n⭐ 1 - Poor\n⭐⭐ 2 - Fair\n⭐⭐⭐ 3 - Good\n⭐⭐⭐⭐ 4 - Very Good\n⭐⭐⭐⭐⭐ 5 - Excellent\n\nJust reply with a number (1-5)!`;
+      // Create review row with unique token
+      const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+      await supabase.from('reviews').insert({
+        lead_id: lead.id,
+        source: 'whatsapp',
+        status: 'pending',
+        token,
+        client_name: lead.fullName,
+        client_phone: lead.phone,
+        artist_name: finalArtistName,
+        tattoo_style: lead.tattooStyle || null,
+        placement: lead.placement || null,
+      } as any);
+
+      const reviewUrl = `${window.location.origin}/review/${token}`;
+      const reviewMsg = `Thank you for choosing *F19 Tattoo Studio* ❤️\n\nHi ${lead.fullName}! We'd love to hear about your experience.\n\nPlease rate your experience here:\n${reviewUrl}\n\nIt takes just 30 seconds 🙏`;
 
       await supabase.functions.invoke('send-whatsapp', {
         body: {

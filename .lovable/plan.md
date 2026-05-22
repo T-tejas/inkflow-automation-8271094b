@@ -1,39 +1,75 @@
-## Problem found
+## Advanced AI Review & Reputation System
 
-The screenshot is showing repeated failed Instagram follow-up messages. Backend logs confirm the root cause:
+Extend the existing CRM with a complete AI-powered review collection, generation, and reputation tracking system. Dark premium UI, no breaking changes.
 
-- `instagram-followup` is sending the same auto follow-up to many users.
-- Meta is rejecting it with: `Invalid OAuth access token - Cannot parse access token`.
-- Because failed follow-ups are not marked as processed, every run can create more failed message rows.
+### 1. Database Changes
 
-## Plan
+Extend existing `reviews` table:
+- `client_name`, `client_phone`, `artist_name`, `tattoo_style`, `placement` (text)
+- `generated_reviews` (jsonb, 3 AI suggestions)
+- `final_review_text` (text, what client submitted)
+- `posted_to_google` (boolean), `google_redirected_at` (timestamptz)
+- `tone` (text: professional/friendly/short/detailed/emotional)
+- `admin_reply` (text, AI-suggested reply)
+- `status` (text: pending/submitted/posted/flagged)
+- `token` (text, unique — for public review link)
 
-1. **Fix Instagram follow-up token handling**
-   - Update `instagram-followup` to normalize the Instagram access token the same way `send-instagram` does.
-   - Prefer saved Settings token first, then fallback to runtime secret.
-   - Use configured Instagram Page ID endpoint when available instead of only `/me/messages`.
+Add settings to `whatsapp_settings`:
+- `google_review_url` — Google review page URL
 
-2. **Stop duplicate failed follow-up spam**
-   - Before inserting a follow-up message, check whether the exact same follow-up was already logged recently for that Instagram sender.
-   - If Meta returns an auth/token error, mark that bot state as follow-up attempted so the scheduler does not keep creating the same failed message repeatedly.
-   - Add clearer system logs for skipped duplicates and token failures.
+### 2. Edge Functions
 
-3. **Improve Instagram inbox display**
-   - Collapse repeated identical failed follow-up messages in the chat UI so the conversation is readable.
-   - Keep the latest failed message visible with its retry action.
-   - Keep normal incoming/outgoing message history intact.
+**`generate-review`** (new): Calls Lovable AI (google/gemini-3-flash-preview) to generate 3 review variations based on rating + artist + style + placement + tone. Also generates AI smart reply for admin.
 
-4. **Optional cleanup migration / data cleanup**
-   - Remove existing duplicate failed follow-up rows from `instagram_messages`, keeping only the latest per sender/message/status.
-   - This will clean the current inbox view immediately.
+**`send-whatsapp`** (existing): Reused to send review request after tattoo completion (already wired in TattooCompletionDialog).
 
-## Technical details
+### 3. Public Review Page (`/review/:token`)
 
-Files to update:
+RevMeAI-style premium dark card:
+- F19 logo + studio name
+- 5-star animated selector
+- After rating: 3 AI-generated review cards with Copy/Edit buttons + tone tabs (Professional / Friendly / Short / Detailed / Emotional)
+- Submit button
+- Rating 5 → "Post on Google" CTA opens `google_review_url`
+- Rating ≤ 4 → saves privately, shows thank-you
+- Rating ≤ 3 → recovery popup + admin alert via `sendAdminAlert`
 
-- `supabase/functions/instagram-followup/index.ts`
-- `src/components/chat/InstagramChatWindow.tsx`
+### 4. CRM Pages
 
-Possible database cleanup:
+**`/admin/reviews`** new page (ProtectedAdminRoute):
+- **Analytics cards**: Total Reviews, Average Rating, Top Rated Artist, Conversion Rate (posted/total), Negative Count (≤3)
+- **Reviews table**: Client, Artist, Rating, Review text, Posted-to-Google badge, Date, AI Reply button
+- AI Reply dialog: generates suggested admin reply, copy/send via WhatsApp
+- Filter by rating, artist, posted status
 
-- Delete duplicate failed rows in `instagram_messages` for the repeated follow-up text only, preserving one latest row per Instagram sender.
+Add nav link in Index header + AdminDashboard.
+
+### 5. Tattoo Completion Integration
+
+Update `TattooCompletionDialog.sendReviewRequest`:
+- Create review row with unique token + lead/artist/style/placement
+- Send WhatsApp with public review link: `{origin}/review/{token}`
+- Message: "Thank you for choosing F19 Tattoo Studio ❤️ Please rate your experience: {link}"
+
+### 6. UI Theme
+
+Premium dark cards (#0f172a bg, #1e293b cards, #22c55e accent), smooth motion on star fill + card transitions.
+
+### Files
+
+**New:**
+- `supabase/migrations/<ts>_reviews_advanced.sql`
+- `supabase/functions/generate-review/index.ts`
+- `src/pages/PublicReview.tsx` (public route)
+- `src/pages/ReviewsDashboard.tsx` (admin)
+- `src/hooks/useReviews.ts`
+- `src/components/reviews/StarRating.tsx`
+- `src/components/reviews/ReviewSuggestionCard.tsx`
+- `src/components/reviews/ReviewAnalytics.tsx`
+- `src/components/reviews/AIReplyDialog.tsx`
+
+**Edit:**
+- `src/App.tsx` — add `/review/:token` public route + `/admin/reviews`
+- `src/components/crm/TattooCompletionDialog.tsx` — use new flow
+- `src/pages/Index.tsx` / `AdminDashboard.tsx` — add Reviews nav link
+- `src/components/settings/WhatsAppSettingsCard.tsx` — add Google review URL field

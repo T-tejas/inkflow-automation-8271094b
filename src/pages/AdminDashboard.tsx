@@ -10,7 +10,7 @@ import { SystemLogsPanel } from '@/components/admin/SystemLogsPanel';
 import { ArtistLeaderboard } from '@/components/crm/ArtistLeaderboard';
 import { MonthlyReportGenerator } from '@/components/crm/MonthlyReportGenerator';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut, Settings, Send, Bot, Calculator } from 'lucide-react';
+import { ArrowLeft, LogOut, Settings, Send, Bot, Calculator, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -59,6 +59,9 @@ export default function AdminDashboard() {
             </motion.div>
           </div>
           <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/reviews')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
+              <Star className="h-3.5 w-3.5" /> Reviews
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/price-calculator')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
               <Calculator className="h-3.5 w-3.5" /> Price Calculator
             </Button>
