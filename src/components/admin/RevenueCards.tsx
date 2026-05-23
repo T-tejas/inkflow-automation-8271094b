@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, CheckCircle2, CalendarCheck, Clock, TrendingUp, Trophy } from 'lucide-react';
+import { IndianRupee, CheckCircle2, CalendarCheck, Clock, TrendingUp, Trophy, Layers } from 'lucide-react';
 
 interface Stats {
   todayRevenue: number;
@@ -57,6 +57,15 @@ export function RevenueCards({ stats }: { stats: Stats }) {
       isCount: false,
     },
     {
+      title: 'Pipeline Value',
+      value: stats.bookedValue + stats.pendingValue,
+      count: stats.bookedCount + stats.pendingCount,
+      countLabel: 'open leads',
+      icon: Layers,
+      color: 'hsl(var(--warning))',
+      isCount: false,
+    },
+    {
       title: 'Total Completed',
       value: stats.totalCompleted,
       count: stats.bookedCount,
@@ -68,7 +77,7 @@ export function RevenueCards({ stats }: { stats: Stats }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
       {cards.map(c => (
         <Card key={c.title} className="glass-card">
           <CardContent className="p-5">

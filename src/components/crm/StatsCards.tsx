@@ -23,7 +23,6 @@ const cards = [
   { key: 'booked', label: 'Booked', icon: CalendarCheck, color: 'text-pipeline-booked', format: 'number' },
   { key: 'followupToday', label: 'Follow-up Today', icon: Clock, color: 'text-warning', format: 'number' },
   { key: 'followupOverdue', label: 'Overdue ⚠', icon: Clock, color: 'text-destructive', format: 'number' },
-  { key: 'pipelineValue', label: 'Pipeline Value', icon: IndianRupee, color: 'text-warning', format: 'currency' },
 ] as const;
 
 function formatValue(val: number, format: string) {
@@ -35,7 +34,7 @@ function formatValue(val: number, format: string) {
 
 export function StatsCards({ stats }: StatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map(({ key, label, icon: Icon, color, format }, i) => (
         <motion.div
           key={key}
