@@ -57,17 +57,17 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         className={`glass-card rounded-lg p-3 cursor-pointer transition-colors hover:border-primary/30 space-y-2 border-l-[3px] ${getBorderColor(lead)} group ${isHotLead(lead) ? 'ring-1 ring-orange-500/40 bg-orange-500/5' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''} ${followupStatus === 'overdue' ? 'ring-1 ring-destructive/40 bg-destructive/5' : followupStatus === 'today' ? 'ring-1 ring-warning/40 bg-warning/5' : ''}`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {(selectMode || isSelected) && (
               <Checkbox
                 checked={isSelected}
                 onCheckedChange={() => onToggleSelect?.(lead.id)}
                 onClick={e => e.stopPropagation()}
-                className="h-3.5 w-3.5"
+                className="h-3.5 w-3.5 shrink-0"
               />
             )}
-            <h4 className="font-medium text-sm text-foreground truncate">{lead.fullName}</h4>
+            <h4 className="font-medium text-sm text-foreground truncate min-w-0 flex-1" title={lead.fullName}>{lead.fullName}</h4>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {lead.whatsappOptIn && (
