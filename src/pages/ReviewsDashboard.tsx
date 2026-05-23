@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Sparkles, ExternalLink, Search, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, ExternalLink, Search, Loader2, Settings as SettingsIcon } from 'lucide-react';
 
 export default function ReviewsDashboard() {
   const { reviews, loading, refetch } = useReviews();
@@ -41,6 +41,11 @@ export default function ReviewsDashboard() {
               <p className="text-sm text-slate-400">AI-powered review collection · {reviews.length} total</p>
             </div>
           </div>
+          <Link to="/admin/settings">
+            <Button variant="outline" size="sm" className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white gap-1.5">
+              <SettingsIcon className="h-3.5 w-3.5" /> Google Review Settings
+            </Button>
+          </Link>
         </div>
 
         <ReviewAnalytics reviews={reviews} />
