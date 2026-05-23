@@ -158,13 +158,28 @@ export default function ReviewsDashboard() {
                   <p className="text-xs text-slate-400 mt-2 pl-3 border-l-2 border-green-500/40">Reply: {r.admin_reply}</p>
                 )}
                 <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button
+                    size="sm"
+                    onClick={() => sendWhatsApp(r)}
+                    disabled={sendingId === r.id || !r.client_phone}
+                    className="bg-green-500 hover:bg-green-600 text-white gap-1.5"
+                  >
+                    {sendingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Send Review
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => copyLink(r)} className="border-slate-700 text-slate-200 gap-1.5">
+                    <Copy className="h-3.5 w-3.5" /> Copy Link
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => downloadQr(r)} className="border-slate-700 text-slate-200 gap-1.5">
+                    <QrCode className="h-3.5 w-3.5" /> QR
+                  </Button>
                   {r.token && (
                     <Button asChild variant="outline" size="sm" className="border-slate-700 text-slate-300">
                       <a href={`/review/${r.token}`} target="_blank" rel="noreferrer">Open link</a>
                     </Button>
                   )}
                   {(r.final_review_text || r.review_text) && (
-                    <Button size="sm" onClick={() => setReplyTarget(r)} className="bg-green-500 hover:bg-green-600 gap-1.5">
+                    <Button size="sm" onClick={() => setReplyTarget(r)} className="bg-blue-500 hover:bg-blue-600 gap-1.5">
                       <Sparkles className="h-3.5 w-3.5" /> AI Reply
                     </Button>
                   )}
