@@ -872,9 +872,16 @@ export type Database = {
           google_redirected_at: string | null
           id: string
           lead_id: string | null
+          opened_at: string | null
           placement: string | null
           posted_to_google: boolean
+          qr_code_url: string | null
+          qr_generated_at: string | null
           rating: number | null
+          reminder_24h_sent: boolean
+          reminder_72h_sent: boolean
+          review_link: string | null
+          review_sent_at: string | null
           review_text: string | null
           source: string
           status: string
@@ -893,9 +900,16 @@ export type Database = {
           google_redirected_at?: string | null
           id?: string
           lead_id?: string | null
+          opened_at?: string | null
           placement?: string | null
           posted_to_google?: boolean
+          qr_code_url?: string | null
+          qr_generated_at?: string | null
           rating?: number | null
+          reminder_24h_sent?: boolean
+          reminder_72h_sent?: boolean
+          review_link?: string | null
+          review_sent_at?: string | null
           review_text?: string | null
           source?: string
           status?: string
@@ -914,9 +928,16 @@ export type Database = {
           google_redirected_at?: string | null
           id?: string
           lead_id?: string | null
+          opened_at?: string | null
           placement?: string | null
           posted_to_google?: boolean
+          qr_code_url?: string | null
+          qr_generated_at?: string | null
           rating?: number | null
+          reminder_24h_sent?: boolean
+          reminder_72h_sent?: boolean
+          review_link?: string | null
+          review_sent_at?: string | null
           review_text?: string | null
           source?: string
           status?: string

@@ -9,6 +9,7 @@ export function ReviewAnalytics({ reviews }: { reviews: Review[] }) {
   const posted = reviews.filter(r => r.posted_to_google).length;
   const conversion = total ? Math.round((posted / total) * 100) : 0;
   const negative = reviews.filter(r => (r.rating || 0) <= 3 && r.rating).length;
+  const pending = reviews.filter(r => !r.rating).length;
 
   const artistScores: Record<string, { sum: number; count: number }> = {};
   rated.forEach(r => {
@@ -26,11 +27,12 @@ export function ReviewAnalytics({ reviews }: { reviews: Review[] }) {
     { label: 'Average Rating', value: `${avg}★`, icon: Star, color: 'text-yellow-400 bg-yellow-500/10' },
     { label: 'Top Artist', value: top?.name || '—', icon: Award, color: 'text-green-400 bg-green-500/10', sub: top ? `${top.avg.toFixed(1)}★ · ${top.count} reviews` : undefined },
     { label: 'Google Conversion', value: `${conversion}%`, icon: TrendingUp, color: 'text-emerald-400 bg-emerald-500/10', sub: `${posted}/${total} posted` },
+    { label: 'Pending Requests', value: pending, icon: MessageSquare, color: 'text-amber-400 bg-amber-500/10' },
     { label: 'Negative (≤3★)', value: negative, icon: AlertTriangle, color: 'text-red-400 bg-red-500/10' },
   ];
 
   return (
-    <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-3 grid-cols-2 lg:grid-cols-6">
       {cards.map(c => (
         <Card key={c.label} className="bg-slate-800/60 border-slate-700">
           <CardContent className="p-4">

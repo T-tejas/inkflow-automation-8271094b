@@ -11,12 +11,14 @@ import WhatsAppSettingsCard from '@/components/settings/WhatsAppSettingsCard';
 import InstagramSettingsCard from '@/components/settings/InstagramSettingsCard';
 import MetaSettingsCard from '@/components/settings/MetaSettingsCard';
 import GoogleCalendarSettingsCard from '@/components/settings/GoogleCalendarSettingsCard';
+import GoogleReviewSettingsCard from '@/components/settings/GoogleReviewSettingsCard';
 
 type SettingsMap = Record<string, string>;
 
 const SETTING_KEYS = [
   'whatsapp_access_token', 'whatsapp_phone_number_id', 'facebook_app_id', 'waba_id',
   'webhook_verify_token', 'admin_phone', 'google_review_url',
+  'google_business_name', 'google_place_id',
   'instagram_page_id', 'instagram_page_access_token',
   'instagram_page_id_2', 'instagram_page_access_token_2',
   'meta_app_id', 'meta_app_secret', 'meta_webhook_verify_token', 'meta_page_id',
@@ -102,6 +104,7 @@ const Settings = () => {
           </div>
 
           <WhatsAppSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
+          <GoogleReviewSettingsCard settings={settings} onUpdate={updateSetting} />
           <InstagramSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
           <MetaSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
           <GoogleCalendarSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} gcConnected={gcConnected} gcChecking={gcChecking} gcConnect={gcConnect} />

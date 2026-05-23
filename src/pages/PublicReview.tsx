@@ -40,6 +40,10 @@ export default function PublicReview() {
       const { data: s } = await supabase.from('whatsapp_settings').select('setting_value').eq('setting_key', 'google_review_url').maybeSingle();
       setGoogleUrl(s?.setting_value || 'https://g.page/r/');
       if (data?.status && data.status !== 'pending') setSubmitted(true);
+      // Track first open
+      if (data && !data.opened_at) {
+        await supabase.from('reviews').update({ opened_at: new Date().toISOString(), status: data.status === 'pending' ? 'opened' : data.status } as any).eq('token', token!);
+      }
       setLoading(false);
     })();
   }, [token]);

@@ -16,6 +16,8 @@ import { ArtistManagerDialog } from './ArtistManagerDialog';
 import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { logSystemError, logSystemInfo } from '@/lib/systemLogger';
 import { sendAdminAlert } from '@/lib/adminNotifications';
+import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
+
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
@@ -60,6 +62,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [clientIdCode] = useState(() => generateClientId());
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   if (!lead) return null;
 
@@ -184,47 +187,15 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
         message: `Tattoo completed for ${lead.fullName}.\nArtist: ${finalArtistName}\nPrice: ₹${tattooPrice}`,
       });
 
-      // Send review request via WhatsApp
-      await sendReviewRequest();
-
+      // Open review request dialog (user chooses WhatsApp / QR / Copy)
+      setReviewDialogOpen(true);
       onCompleted?.();
-      onOpenChange(false);
     }
     setSubmitting(false);
   };
 
-  const sendReviewRequest = async () => {
-    if (!lead.phone) return;
-    try {
-      // Create review row with unique token
-      const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-      await supabase.from('reviews').insert({
-        lead_id: lead.id,
-        source: 'whatsapp',
-        status: 'pending',
-        token,
-        client_name: lead.fullName,
-        client_phone: lead.phone,
-        artist_name: finalArtistName,
-        tattoo_style: lead.tattooStyle || null,
-        placement: lead.placement || null,
-      } as any);
 
-      const reviewUrl = `${window.location.origin}/review/${token}`;
-      const reviewMsg = `Thank you for choosing *F19 Tattoo Studio* ❤️\n\nHi ${lead.fullName}! We'd love to hear about your experience.\n\nPlease rate your experience here:\n${reviewUrl}\n\nIt takes just 30 seconds 🙏`;
 
-      await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          phone: lead.phone,
-          leadName: lead.fullName,
-          leadId: lead.id,
-          messageBody: reviewMsg,
-        },
-      });
-    } catch (err: any) {
-      await logSystemError('review', `Review request send failed: ${err.message}`, {}, lead.id);
-    }
-  };
 
   const handleInvoicePreview = () => {
     if (!tattooPrice) {
@@ -389,6 +360,16 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
       />
 
       <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
+
+      <ReviewRequestDialog
+        lead={lead}
+        artistName={finalArtistName}
+        open={reviewDialogOpen}
+        onOpenChange={(o) => {
+          setReviewDialogOpen(o);
+          if (!o) onOpenChange(false);
+        }}
+      />
     </>
   );
 }
