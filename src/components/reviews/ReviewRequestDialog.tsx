@@ -98,7 +98,7 @@ export function ReviewRequestDialog({ lead, open, onOpenChange, artistName, revi
     setSending(true);
     try {
       const link = googleUrl || reviewLink;
-      const msg = `Thank you for choosing *${businessName}* ❤️\n\nWe hope you loved your tattoo experience.\n\nPlease share your feedback here:\n${link}\n\nYour support means a lot to us 🙌`;
+      const msg = `Thank you for choosing *${businessName}* ❤️\n\nWe hope you loved your tattoo experience.\n\nPlease leave us a review here:\n${link}\n\nYour support means a lot 🙌`;
       const { error } = await supabase.functions.invoke('send-whatsapp', {
         body: { phone: lead.phone, leadName: lead.fullName, leadId: lead.id, messageBody: msg },
       });
