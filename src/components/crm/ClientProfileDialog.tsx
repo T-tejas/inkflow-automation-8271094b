@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
-import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil, IndianRupee, Clock } from 'lucide-react';
+import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil, IndianRupee, Clock, Star } from 'lucide-react';
 import type { TattooCompletion } from '@/hooks/useTattooCompletions';
 import type { ConsentForm } from '@/hooks/useConsentForms';
 import { ConsentFormEditDialog } from './ConsentFormEditDialog';
+import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
 import { formatINR } from '@/lib/currency';
 
 interface AppointmentRecord {
@@ -32,6 +33,7 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
   const [loading, setLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<ConsentForm | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!lead || !open) return;
