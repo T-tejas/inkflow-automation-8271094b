@@ -19,6 +19,53 @@ export default function ReviewsDashboard() {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [postedFilter, setPostedFilter] = useState('all');
   const [replyTarget, setReplyTarget] = useState<Review | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const sendWhatsApp = async (r: Review) => {
+    if (!r.client_phone) { toast.error('No phone number on this review'); return; }
+    const { data: settings } = await supabase.from('whatsapp_settings').select('setting_key,setting_value')
+      .in('setting_key', ['google_review_url', 'google_business_name']);
+    const map: Record<string, string> = {};
+    settings?.forEach((s: any) => { map[s.setting_key] = s.setting_value; });
+    const businessName = map.google_business_name || 'F19 Tattoo Studio';
+    const link = map.google_review_url || `${window.location.origin}/review/${r.token}`;
+    if (!map.google_review_url && !r.token) { toast.error('Set Google Review URL in Settings'); return; }
+    setSendingId(r.id);
+    try {
+      const msg = `Thank you for choosing *${businessName}* ❤️\n\nIf you enjoyed your experience, you can simply tap below and leave a quick review.\n\n⭐ *What you can mention:*\n• Tattoo quality & design\n• Artist experience\n• Studio hygiene\n• Overall experience\n\n👉 *Tap here to review:*\n${link}\n\nYour feedback helps us grow 🙌`;
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: { phone: r.client_phone, leadName: r.client_name || 'Client', leadId: r.lead_id, messageBody: msg },
+      });
+      if (error) throw error;
+      await supabase.from('reviews').update({ review_link: link, review_sent_at: new Date().toISOString(), status: 'sent' } as any).eq('id', r.id);
+      toast.success('Review request sent on WhatsApp');
+      refetch();
+    } catch (e: any) {
+      toast.error(`Failed: ${e.message}`);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
+  const copyLink = async (r: Review) => {
+    const { data: s } = await supabase.from('whatsapp_settings').select('setting_value').eq('setting_key', 'google_review_url').maybeSingle();
+    const link = (s?.setting_value as string) || (r.token ? `${window.location.origin}/review/${r.token}` : '');
+    if (!link) { toast.error('No link available'); return; }
+    await navigator.clipboard.writeText(link);
+    toast.success('Review link copied');
+  };
+
+  const downloadQr = async (r: Review) => {
+    const { data: s } = await supabase.from('whatsapp_settings').select('setting_value').eq('setting_key', 'google_review_url').maybeSingle();
+    const link = (s?.setting_value as string) || (r.token ? `${window.location.origin}/review/${r.token}` : '');
+    if (!link) { toast.error('No link available'); return; }
+    const dataUrl = await QRCode.toDataURL(link, { width: 320, margin: 2 });
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `review-qr-${r.client_name || r.id}.png`;
+    a.click();
+    toast.success('QR downloaded');
+  };
 
   const filtered = useMemo(() => {
     return reviews.filter(r => {
