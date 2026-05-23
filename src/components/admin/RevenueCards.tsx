@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, CheckCircle2, CalendarCheck, Clock, TrendingUp, Trophy } from 'lucide-react';
+import { IndianRupee, CheckCircle2, CalendarCheck, Clock, TrendingUp, Trophy, Layers } from 'lucide-react';
 
 interface Stats {
   todayRevenue: number;
