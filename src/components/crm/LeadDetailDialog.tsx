@@ -264,6 +264,11 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
                   <Award className="h-3.5 w-3.5" /> Mark Completed
                 </Button>
               )}
+              {lead.status === 'Completed' && (
+                <Button size="sm" className="gap-1 bg-green-500 hover:bg-green-600 text-white" onClick={() => setReviewOpen(true)}>
+                  <Star className="h-3.5 w-3.5" /> Send Review
+                </Button>
+              )}
             </div>
             <Button size="sm" onClick={() => { onEdit(lead); onOpenChange(false); }}>
               <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
