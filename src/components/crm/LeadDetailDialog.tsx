@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import { LeadNotesTimeline } from './LeadNotesTimeline';
 import { useConsentForms } from '@/hooks/useConsentForms';
 import { ClientProfileDialog } from './ClientProfileDialog';
+import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
+import { Star } from 'lucide-react';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -40,6 +42,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
   const { createConsentForm } = useConsentForms();
   const [profileOpen, setProfileOpen] = useState(false);
   const [followupDate, setFollowupDate] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const handleConsentForm = async () => {
     if (!lead) return;
@@ -261,6 +264,11 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
                   <Award className="h-3.5 w-3.5" /> Mark Completed
                 </Button>
               )}
+              {lead.status === 'Completed' && (
+                <Button size="sm" className="gap-1 bg-green-500 hover:bg-green-600 text-white" onClick={() => setReviewOpen(true)}>
+                  <Star className="h-3.5 w-3.5" /> Send Review
+                </Button>
+              )}
             </div>
             <Button size="sm" onClick={() => { onEdit(lead); onOpenChange(false); }}>
               <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
@@ -269,6 +277,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
         </div>
       </DialogContent>
       <ClientProfileDialog lead={lead} open={profileOpen} onOpenChange={setProfileOpen} />
+      <ReviewRequestDialog lead={lead} open={reviewOpen} onOpenChange={setReviewOpen} />
     </Dialog>
   );
 }
