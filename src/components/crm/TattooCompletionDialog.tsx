@@ -191,6 +191,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
       toast.success('Tattoo completion saved. Send the review request when ready.');
       onCompleted?.();
       onOpenChange(false);
+    }
     setSubmitting(false);
   };
 
