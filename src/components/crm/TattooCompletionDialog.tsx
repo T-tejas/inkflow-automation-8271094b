@@ -62,7 +62,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [clientIdCode] = useState(() => generateClientId());
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  
 
   if (!lead) return null;
 
