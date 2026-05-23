@@ -83,7 +83,18 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
               )}
               <span>{completions.length} tattoo{completions.length !== 1 ? 's' : ''}</span>
             </div>
+            {completions.length > 0 && (
+              <Button
+                size="sm"
+                className="w-full mt-2 h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => setReviewOpen(true)}
+              >
+                <Star className="h-3.5 w-3.5" /> Send Review Request
+              </Button>
+            )}
           </div>
+
+
 
           <Tabs defaultValue="gallery" className="mt-2">
             <TabsList className="w-full grid grid-cols-4 h-8">
