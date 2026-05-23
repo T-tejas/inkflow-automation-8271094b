@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Paperclip, Send, StickyNote, X, FileText } from 'lucide-react';
 import { QuickReplyTemplates } from './QuickReplyTemplates';
+import { ApprovedTemplatePicker } from './ApprovedTemplatePicker';
 import { EmojiPicker } from './EmojiPicker';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,9 +12,10 @@ interface Props {
   onSendMessage: (text: string) => void;
   onSendAttachment: (url: string, fileName: string, isImage: boolean) => void;
   disabled?: boolean;
+  windowClosed?: boolean;
 }
 
-export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAttachment, disabled }: Props) {
+export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAttachment, disabled, windowClosed }: Props) {
   const [text, setText] = useState('');
   const [noteMode, setNoteMode] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; preview: string; isImage: boolean } | null>(null);
@@ -137,11 +139,26 @@ export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAtt
         </div>
       )}
 
+      {/* 24-hour window closed banner */}
+      {windowClosed && !noteMode && !attachment && (
+        <div className="flex items-center gap-2 text-xs px-4 py-2 font-medium" style={{ backgroundColor: '#fff7ed', color: '#9a3412', borderTop: '1px solid #fed7aa' }}>
+          <span>⏰ 24-hour window closed.</span>
+          <span style={{ color: '#c2410c' }}>Free-text won't deliver — use an approved template →</span>
+        </div>
+      )}
+
       <div className="flex items-end gap-2 px-4 py-2.5">
+        <ApprovedTemplatePicker
+          onSelect={onSendTemplate}
+          disabled={disabled}
+          highlight={windowClosed}
+        />
+
         <QuickReplyTemplates
           onSelect={(t) => handleTemplateSelect(t.type, t.name, t.text)}
           disabled={disabled}
         />
+
 
         <button
           className={cn('p-2 rounded-full transition-colors', noteMode ? 'bg-amber-100' : 'hover:bg-black/5')}
