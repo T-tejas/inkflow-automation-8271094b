@@ -16,7 +16,7 @@ import { ArtistManagerDialog } from './ArtistManagerDialog';
 import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { logSystemError, logSystemInfo } from '@/lib/systemLogger';
 import { sendAdminAlert } from '@/lib/adminNotifications';
-import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
+
 
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -62,7 +62,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [clientIdCode] = useState(() => generateClientId());
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  
 
   if (!lead) return null;
 
@@ -187,9 +187,10 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
         message: `Tattoo completed for ${lead.fullName}.\nArtist: ${finalArtistName}\nPrice: ₹${tattooPrice}`,
       });
 
-      // Open review request dialog (user chooses WhatsApp / QR / Copy)
-      setReviewDialogOpen(true);
+      // Manual review flow — admin sends review request from Client Profile / Completed Table / Dashboard
+      toast.success('Tattoo completion saved. Send the review request when ready.');
       onCompleted?.();
+      onOpenChange(false);
     }
     setSubmitting(false);
   };
@@ -361,15 +362,6 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
 
       <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
 
-      <ReviewRequestDialog
-        lead={lead}
-        artistName={finalArtistName}
-        open={reviewDialogOpen}
-        onOpenChange={(o) => {
-          setReviewDialogOpen(o);
-          if (!o) onOpenChange(false);
-        }}
-      />
     </>
   );
 }
