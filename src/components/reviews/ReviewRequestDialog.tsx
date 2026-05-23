@@ -188,11 +188,31 @@ export function ReviewRequestDialog({ lead, open, onOpenChange, artistName, revi
             <p className="text-xs text-slate-400">We'll notify you when the client responds.</p>
             <Button onClick={() => onOpenChange(false)} className="bg-green-500 hover:bg-green-600 mt-2">Done</Button>
           </div>
+        ) : confirmOpen ? (
+          <div className="space-y-3 pt-2 animate-fade-in">
+            <p className="text-sm text-white font-medium">Are you sure you want to send review request?</p>
+            <p className="text-xs text-slate-400">
+              A WhatsApp message will be sent to <span className="text-white">{lead.fullName}</span> ({lead.phone}).
+            </p>
+            <div className="flex gap-2 pt-1">
+              <Button
+                onClick={async () => { setConfirmOpen(false); await sendWhatsApp(); }}
+                disabled={sending}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                Send
+              </Button>
+              <Button onClick={() => setConfirmOpen(false)} variant="outline" className="flex-1 border-slate-700 text-slate-100 hover:bg-slate-800">
+                Cancel
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2 pt-2">
-            <Button onClick={sendWhatsApp} disabled={sending || !lead.phone} className="w-full h-11 bg-green-500 hover:bg-green-600 text-white justify-start gap-3">
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Send WhatsApp Link
+            <Button onClick={() => setConfirmOpen(true)} disabled={sending || !lead.phone} className="w-full h-11 bg-green-500 hover:bg-green-600 text-white justify-start gap-3">
+              <Send className="h-4 w-4" />
+              Send WhatsApp Review Link
             </Button>
             <Button onClick={generateQr} variant="outline" className="w-full h-11 border-slate-700 text-slate-100 hover:bg-slate-800 justify-start gap-3">
               <QrCode className="h-4 w-4 text-yellow-400" /> Generate QR Code
@@ -201,7 +221,7 @@ export function ReviewRequestDialog({ lead, open, onOpenChange, artistName, revi
               <Copy className="h-4 w-4 text-blue-400" /> Copy Review Link
             </Button>
             <Button onClick={() => onOpenChange(false)} variant="ghost" className="w-full text-slate-400 hover:text-white hover:bg-slate-800">
-              Skip for now
+              Close
             </Button>
           </div>
         )}
