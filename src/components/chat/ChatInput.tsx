@@ -15,7 +15,7 @@ interface Props {
   windowClosed?: boolean;
 }
 
-export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAttachment, disabled }: Props) {
+export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAttachment, disabled, windowClosed }: Props) {
   const [text, setText] = useState('');
   const [noteMode, setNoteMode] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; preview: string; isImage: boolean } | null>(null);
