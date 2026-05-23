@@ -277,7 +277,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
         </div>
       </DialogContent>
       <ClientProfileDialog lead={lead} open={profileOpen} onOpenChange={setProfileOpen} />
-      <ReviewRequestDialog lead={lead} open={reviewOpen} onOpenChange={setReviewOpen} artistName={lead.assignedArtist} />
+      <ReviewRequestDialog lead={lead} open={reviewOpen} onOpenChange={setReviewOpen} />
     </Dialog>
   );
 }
