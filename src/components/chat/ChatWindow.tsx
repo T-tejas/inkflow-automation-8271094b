@@ -323,6 +323,7 @@ export function ChatWindow({ contact, messages, loading, onSendTemplate, onSendN
         onSendMessage={onSendMessage}
         onSendAttachment={onSendAttachment}
         disabled={false}
+        windowClosed={!lastIncomingAt || (Date.now() - new Date(lastIncomingAt).getTime()) > 24 * 60 * 60 * 1000}
       />
     </div>
   );
