@@ -27,6 +27,7 @@ export function ReviewRequestDialog({ lead, open, onOpenChange, artistName, revi
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
