@@ -16,7 +16,7 @@ import { ArtistManagerDialog } from './ArtistManagerDialog';
 import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { logSystemError, logSystemInfo } from '@/lib/systemLogger';
 import { sendAdminAlert } from '@/lib/adminNotifications';
-import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
+
 
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
