@@ -187,14 +187,13 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
         message: `Tattoo completed for ${lead.fullName}.\nArtist: ${finalArtistName}\nPrice: ₹${tattooPrice}`,
       });
 
-      // Send review request via WhatsApp
-      await sendReviewRequest();
-
+      // Open review request dialog (user chooses WhatsApp / QR / Copy)
+      setReviewDialogOpen(true);
       onCompleted?.();
-      onOpenChange(false);
     }
     setSubmitting(false);
   };
+
 
   const sendReviewRequest = async () => {
     if (!lead.phone) return;
