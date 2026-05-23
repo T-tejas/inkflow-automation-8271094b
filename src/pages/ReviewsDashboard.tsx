@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Sparkles, ExternalLink, Search, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, ExternalLink, Search, Loader2, Settings as SettingsIcon } from 'lucide-react';
 
 export default function ReviewsDashboard() {
   const { reviews, loading, refetch } = useReviews();
