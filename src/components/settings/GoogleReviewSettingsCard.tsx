@@ -11,9 +11,9 @@ interface Props {
 }
 
 const FIELDS = [
-  { key: 'google_business_name', label: 'Google Business Name' },
-  { key: 'google_review_url', label: 'Google Review Link' },
-  { key: 'google_place_id', label: 'Google Place ID' },
+  { key: 'google_business_name', label: 'Google Business Name', placeholder: 'F19 Tattoo Studio' },
+  { key: 'google_review_url', label: 'Google Review Link', placeholder: 'https://g.page/r/XXXXXXXX/review' },
+  { key: 'google_place_id', label: 'Google Place ID', placeholder: 'ChIJXXXXXXXX' },
 ];
 
 const GoogleReviewSettingsCard = ({ settings, onUpdate }: Props) => {
@@ -55,6 +55,7 @@ const GoogleReviewSettingsCard = ({ settings, onUpdate }: Props) => {
             showToken
             onToggleShow={() => {}}
             onChange={v => onUpdate(f.key, v)}
+            placeholder={f.placeholder}
           />
         ))}
         <div className="flex items-center justify-between pt-2 border-t">

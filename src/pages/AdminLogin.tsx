@@ -14,14 +14,20 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/admin` },
+        });
         if (error) throw error;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
@@ -35,7 +41,7 @@ export default function AdminLogin() {
             return;
           }
         }
-        toast.error('Admin slot already taken. Contact the owner.');
+        throw new Error('Admin slot already taken. Contact the owner.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -47,15 +53,17 @@ export default function AdminLogin() {
           });
           if (isAdmin) {
             toast.success('Welcome back, Admin');
-            navigate('/admin');
+            navigate('/admin', { replace: true });
             return;
           }
         }
         await supabase.auth.signOut();
-        toast.error('Access denied. Not an admin account.');
+        throw new Error('Access denied. This account is not an admin.');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Authentication failed');
+      const msg = err.message || 'Authentication failed';
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -106,8 +114,27 @@ export default function AdminLogin() {
                 />
               </div>
             </div>
+            {errorMsg && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive space-y-2">
+                <p className="font-medium">{errorMsg}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => { setErrorMsg(null); }}
+                >
+                  Retry Login
+                </Button>
+              </div>
+            )}
             <Button type="submit" disabled={loading} className="w-full font-semibold">
-              {loading ? 'Please wait...' : isSignUp ? 'Create Admin Account' : 'Sign In'}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : isSignUp ? 'Create Admin Account' : 'Sign In'}
             </Button>
           </form>
           <div className="mt-4 text-center">

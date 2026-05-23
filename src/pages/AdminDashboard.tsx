@@ -10,7 +10,7 @@ import { SystemLogsPanel } from '@/components/admin/SystemLogsPanel';
 import { ArtistLeaderboard } from '@/components/crm/ArtistLeaderboard';
 import { MonthlyReportGenerator } from '@/components/crm/MonthlyReportGenerator';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut, Settings, Send, Bot, Calculator, Star } from 'lucide-react';
+import { ArrowLeft, LogOut, Settings, Send, Bot, Calculator, Star, CalendarPlus, FileText, CalendarDays, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -90,6 +90,28 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
+            {/* Quick Actions */}
+            <div className="rounded-lg border border-border/50 bg-card/30 p-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Quick Actions</p>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => navigate('/appointments')}>
+                  <CalendarPlus className="h-4 w-4 text-blue-500" /> Add Appointment
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => navigate('/admin/reviews')}>
+                  <Star className="h-4 w-4 text-yellow-500" /> Send Review
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => navigate('/admin/price-calculator')}>
+                  <FileText className="h-4 w-4 text-emerald-500" /> Generate Invoice
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => navigate('/appointments')}>
+                  <CalendarDays className="h-4 w-4 text-purple-500" /> Open Calendar
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={() => navigate('/?walkin=1')}>
+                  <UserPlus className="h-4 w-4 text-pink-500" /> Add Walk-in
+                </Button>
+              </div>
+            </div>
+
             <RevenueFilters filters={filters} onChange={setFilters} />
             <RevenueCards stats={stats} />
             <RevenueCharts

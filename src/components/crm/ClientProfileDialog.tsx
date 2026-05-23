@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Lead } from '@/types/lead';
-import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil, IndianRupee, Clock } from 'lucide-react';
+import { Phone, User, Calendar, FileSignature, Image as ImageIcon, History, Loader2, Download, ExternalLink, Pencil, IndianRupee, Clock, Star } from 'lucide-react';
 import type { TattooCompletion } from '@/hooks/useTattooCompletions';
 import type { ConsentForm } from '@/hooks/useConsentForms';
 import { ConsentFormEditDialog } from './ConsentFormEditDialog';
+import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
 import { formatINR } from '@/lib/currency';
 
 interface AppointmentRecord {
@@ -32,6 +33,7 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
   const [loading, setLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<ConsentForm | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!lead || !open) return;
@@ -81,7 +83,18 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
               )}
               <span>{completions.length} tattoo{completions.length !== 1 ? 's' : ''}</span>
             </div>
+            {completions.length > 0 && (
+              <Button
+                size="sm"
+                className="w-full mt-2 h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => setReviewOpen(true)}
+              >
+                <Star className="h-3.5 w-3.5" /> Send Review Request
+              </Button>
+            )}
           </div>
+
+
 
           <Tabs defaultValue="gallery" className="mt-2">
             <TabsList className="w-full grid grid-cols-4 h-8">
@@ -226,6 +239,13 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
               .then(({ data }) => setConsentForms((data as ConsentForm[]) || []));
           }
         }}
+      />
+
+      <ReviewRequestDialog
+        lead={lead}
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        artistName={completions[0]?.artist_name}
       />
     </>
   );
