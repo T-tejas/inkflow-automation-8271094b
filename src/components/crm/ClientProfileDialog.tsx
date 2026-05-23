@@ -240,6 +240,13 @@ export function ClientProfileDialog({ lead, open, onOpenChange }: ClientProfileD
           }
         }}
       />
+
+      <ReviewRequestDialog
+        lead={lead}
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        artistName={completions[0]?.artist_name}
+      />
     </>
   );
 }
