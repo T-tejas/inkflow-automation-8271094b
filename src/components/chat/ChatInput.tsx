@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Paperclip, Send, StickyNote, X, FileText } from 'lucide-react';
 import { QuickReplyTemplates } from './QuickReplyTemplates';
+import { ApprovedTemplatePicker } from './ApprovedTemplatePicker';
 import { EmojiPicker } from './EmojiPicker';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +12,7 @@ interface Props {
   onSendMessage: (text: string) => void;
   onSendAttachment: (url: string, fileName: string, isImage: boolean) => void;
   disabled?: boolean;
+  windowClosed?: boolean;
 }
 
 export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAttachment, disabled }: Props) {
