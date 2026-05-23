@@ -139,11 +139,26 @@ export function ChatInput({ onSendTemplate, onSendNote, onSendMessage, onSendAtt
         </div>
       )}
 
+      {/* 24-hour window closed banner */}
+      {windowClosed && !noteMode && !attachment && (
+        <div className="flex items-center gap-2 text-xs px-4 py-2 font-medium" style={{ backgroundColor: '#fff7ed', color: '#9a3412', borderTop: '1px solid #fed7aa' }}>
+          <span>⏰ 24-hour window closed.</span>
+          <span style={{ color: '#c2410c' }}>Free-text won't deliver — use an approved template →</span>
+        </div>
+      )}
+
       <div className="flex items-end gap-2 px-4 py-2.5">
+        <ApprovedTemplatePicker
+          onSelect={onSendTemplate}
+          disabled={disabled}
+          highlight={windowClosed}
+        />
+
         <QuickReplyTemplates
           onSelect={(t) => handleTemplateSelect(t.type, t.name, t.text)}
           disabled={disabled}
         />
+
 
         <button
           className={cn('p-2 rounded-full transition-colors', noteMode ? 'bg-amber-100' : 'hover:bg-black/5')}
