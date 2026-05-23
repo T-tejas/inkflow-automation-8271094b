@@ -16,6 +16,8 @@ import { ArtistManagerDialog } from './ArtistManagerDialog';
 import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { logSystemError, logSystemInfo } from '@/lib/systemLogger';
 import { sendAdminAlert } from '@/lib/adminNotifications';
+import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
+
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
@@ -60,6 +62,7 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [clientIdCode] = useState(() => generateClientId());
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   if (!lead) return null;
 
