@@ -187,10 +187,10 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
         message: `Tattoo completed for ${lead.fullName}.\nArtist: ${finalArtistName}\nPrice: ₹${tattooPrice}`,
       });
 
-      // Open review request dialog (user chooses WhatsApp / QR / Copy)
-      setReviewDialogOpen(true);
+      // Manual review flow — admin sends review request from Client Profile / Completed Table / Dashboard
+      toast.success('Tattoo completion saved. Send the review request when ready.');
       onCompleted?.();
-    }
+      onOpenChange(false);
     setSubmitting(false);
   };
 
