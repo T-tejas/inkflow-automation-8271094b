@@ -20,6 +20,13 @@ export interface Review {
   admin_reply: string | null;
   status: string;
   token: string | null;
+  review_link: string | null;
+  qr_code_url: string | null;
+  review_sent_at: string | null;
+  qr_generated_at: string | null;
+  opened_at: string | null;
+  reminder_24h_sent: boolean;
+  reminder_72h_sent: boolean;
   created_at: string;
 }
 
