@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import { LeadNotesTimeline } from './LeadNotesTimeline';
 import { useConsentForms } from '@/hooks/useConsentForms';
 import { ClientProfileDialog } from './ClientProfileDialog';
+import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
+import { Star } from 'lucide-react';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
