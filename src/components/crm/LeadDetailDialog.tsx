@@ -42,6 +42,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
   const { createConsentForm } = useConsentForms();
   const [profileOpen, setProfileOpen] = useState(false);
   const [followupDate, setFollowupDate] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const handleConsentForm = async () => {
     if (!lead) return;
