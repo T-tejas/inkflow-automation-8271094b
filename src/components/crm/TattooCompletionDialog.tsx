@@ -360,6 +360,16 @@ export function TattooCompletionDialog({ lead, open, onOpenChange, onCompleted }
       />
 
       <ArtistManagerDialog open={manageArtistsOpen} onOpenChange={setManageArtistsOpen} />
+
+      <ReviewRequestDialog
+        lead={lead}
+        artistName={finalArtistName}
+        open={reviewDialogOpen}
+        onOpenChange={(o) => {
+          setReviewDialogOpen(o);
+          if (!o) onOpenChange(false);
+        }}
+      />
     </>
   );
 }
