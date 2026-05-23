@@ -23,7 +23,6 @@ const cards = [
   { key: 'booked', label: 'Booked', icon: CalendarCheck, color: 'text-pipeline-booked', format: 'number' },
   { key: 'followupToday', label: 'Follow-up Today', icon: Clock, color: 'text-warning', format: 'number' },
   { key: 'followupOverdue', label: 'Overdue ⚠', icon: Clock, color: 'text-destructive', format: 'number' },
-  { key: 'pipelineValue', label: 'Pipeline Value', icon: IndianRupee, color: 'text-warning', format: 'currency' },
 ] as const;
 
 function formatValue(val: number, format: string) {
