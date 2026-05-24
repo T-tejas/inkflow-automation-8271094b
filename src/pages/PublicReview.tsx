@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { StarRating } from '@/components/reviews/StarRating';
 import { ReviewSuggestionCard } from '@/components/reviews/ReviewSuggestionCard';
+import { SeoTemplates } from '@/components/reviews/SeoTemplates';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -182,14 +183,23 @@ export default function PublicReview() {
                 </TabsList>
               </Tabs>
 
-              {/* Suggestions */}
-              <div className="space-y-3">
+              {/* Ready-made SEO templates (always available, instant) */}
+              <SeoTemplates
+                artist={review.artist_name}
+                style={review.tattoo_style}
+                placement={review.placement}
+                onSelect={(t) => { setSelectedIdx(-1); setFinalText(t); }}
+                selectedText={selectedIdx === -1 ? finalText : undefined}
+              />
+
+              {/* AI suggestions */}
+              <div className="space-y-3 pt-2 border-t border-slate-700/50">
                 <div className="flex items-center gap-2 text-sm text-slate-300">
                   <Sparkles className="h-4 w-4 text-green-400" />
-                  <span>AI-generated suggestions — tap to use</span>
+                  <span>AI-personalised suggestions</span>
                 </div>
                 {generating ? (
-                  <div className="flex items-center justify-center py-12 gap-2 text-slate-400">
+                  <div className="flex items-center justify-center py-8 gap-2 text-slate-400">
                     <Loader2 className="h-5 w-5 animate-spin" /> Crafting suggestions...
                   </div>
                 ) : (
@@ -208,17 +218,16 @@ export default function PublicReview() {
               </div>
 
               {/* Edit */}
-              {!generating && suggestions.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs text-slate-400">Your review (edit freely)</label>
-                  <Textarea
-                    value={finalText}
-                    onChange={e => setFinalText(e.target.value)}
-                    rows={4}
-                    className="bg-slate-900/60 border-slate-700 text-slate-100 text-sm resize-none focus-visible:ring-green-500"
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <label className="text-xs text-slate-400">Your review (edit freely)</label>
+                <Textarea
+                  value={finalText}
+                  onChange={e => setFinalText(e.target.value)}
+                  rows={5}
+                  placeholder="Pick a template above or write your own..."
+                  className="bg-slate-900/60 border-slate-700 text-slate-100 text-sm resize-none focus-visible:ring-green-500"
+                />
+              </div>
 
               {/* Submit */}
               {finalText && (
