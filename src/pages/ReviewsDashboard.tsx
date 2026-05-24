@@ -211,7 +211,12 @@ export default function ReviewsDashboard() {
                       <p className="text-xs text-slate-500 mt-1">{new Date(r.created_at).toLocaleString('en-IN')}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {r.rating ? <StarRating value={r.rating} readOnly size={16} /> : null}
+                      {r.rating ? (
+                        <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-2.5 py-1">
+                          <StarRating value={r.rating} readOnly size={16} />
+                          <span className="text-yellow-300 font-bold text-sm">{r.rating.toFixed(1)}</span>
+                        </div>
+                      ) : null}
                       <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-semibold border', pill.cls)}>{pill.label}</span>
                       {(r.rating || 0) > 0 && (r.rating || 0) <= 3 && <Badge variant="destructive">Low rating</Badge>}
                     </div>
