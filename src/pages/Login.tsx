@@ -34,7 +34,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="mx-auto h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
