@@ -1,75 +1,34 @@
-## Advanced AI Review & Reputation System
+## Problem
 
-Extend the existing CRM with a complete AI-powered review collection, generation, and reputation tracking system. Dark premium UI, no breaking changes.
+DB check karne par dono reviews ka `rating` column `NULL` hai — matlab client ne abhi tak rating actually "submit" nahi ki hai database mein. Card pe `r.rating ? <StarRating/> : null` likha hai, isliye kuch dikh nahi raha.
 
-### 1. Database Changes
+**Root cause** (`src/pages/PublicReview.tsx`): Jab client star pe click karta hai, rating sirf **local state** mein jaati hai (`setRating(r)`). DB mein rating tabhi save hoti hai jab client `finalText` likh ke "Submit Review" button dabaye. Agar client sirf stars tap karke chala gaya (bina review text submit kiye), to rating kabhi save nahi hoti — dashboard pe blank dikhega.
 
-Extend existing `reviews` table:
-- `client_name`, `client_phone`, `artist_name`, `tattoo_style`, `placement` (text)
-- `generated_reviews` (jsonb, 3 AI suggestions)
-- `final_review_text` (text, what client submitted)
-- `posted_to_google` (boolean), `google_redirected_at` (timestamptz)
-- `tone` (text: professional/friendly/short/detailed/emotional)
-- `admin_reply` (text, AI-suggested reply)
-- `status` (text: pending/submitted/posted/flagged)
-- `token` (text, unique — for public review link)
+## Fix Plan
 
-Add settings to `whatsapp_settings`:
-- `google_review_url` — Google review page URL
+**1. `src/pages/PublicReview.tsx` — `onRate` function**
+- Stars click hote hi turant `rating` ko DB mein save karo (background, non-blocking):
+  ```
+  await supabase.from('reviews').update({ rating: r, status: 'rated' }).eq('token', token!)
+  ```
+- Agar text submit hota hai to wahi rating overwrite ho jayegi (no harm).
+- Yeh ensure karega ki "drop-off" clients ki rating bhi capture ho.
 
-### 2. Edge Functions
+**2. `src/pages/ReviewsDashboard.tsx` — card display**
+- Rating ko zyada prominent banao: agar `r.rating` hai to bada star + numeric value (e.g., `4.0 ★`) header ke paas dikhao, even when `final_review_text` na ho.
+- Status pill mein "Rated (no text)" wali state add karo jab rating ho but text na ho — taa ki team ko pata chale client ne kya diya.
 
-**`generate-review`** (new): Calls Lovable AI (google/gemini-3-flash-preview) to generate 3 review variations based on rating + artist + style + placement + tone. Also generates AI smart reply for admin.
+**3. `statusPill` logic update**
+- Naya intermediate state: `rating && !final_review_text` → "Rated ★" (amber/yellow) — abhi yeh "Opened" mein gum ho jaata hai.
 
-**`send-whatsapp`** (existing): Reused to send review request after tattoo completion (already wired in TattooCompletionDialog).
+**4. (Optional) Reminder copy update**
+- 24h reminder mein agar client ne rate kiya but submit nahi ki, message: "Aap ne ⭐ diya — bas ek line likh dijiye ❤️" (yeh later — abhi sirf rating-capture aur display fix karenge).
 
-### 3. Public Review Page (`/review/:token`)
+## Files to edit
+- `src/pages/PublicReview.tsx` — `onRate` mein instant DB save add karna
+- `src/pages/ReviewsDashboard.tsx` — `statusPill` + card mein rating prominence
+- `src/hooks/useReviews.ts` — koi change nahi (realtime already rating updates pakad lega)
 
-RevMeAI-style premium dark card:
-- F19 logo + studio name
-- 5-star animated selector
-- After rating: 3 AI-generated review cards with Copy/Edit buttons + tone tabs (Professional / Friendly / Short / Detailed / Emotional)
-- Submit button
-- Rating 5 → "Post on Google" CTA opens `google_review_url`
-- Rating ≤ 4 → saves privately, shows thank-you
-- Rating ≤ 3 → recovery popup + admin alert via `sendAdminAlert`
-
-### 4. CRM Pages
-
-**`/admin/reviews`** new page (ProtectedAdminRoute):
-- **Analytics cards**: Total Reviews, Average Rating, Top Rated Artist, Conversion Rate (posted/total), Negative Count (≤3)
-- **Reviews table**: Client, Artist, Rating, Review text, Posted-to-Google badge, Date, AI Reply button
-- AI Reply dialog: generates suggested admin reply, copy/send via WhatsApp
-- Filter by rating, artist, posted status
-
-Add nav link in Index header + AdminDashboard.
-
-### 5. Tattoo Completion Integration
-
-Update `TattooCompletionDialog.sendReviewRequest`:
-- Create review row with unique token + lead/artist/style/placement
-- Send WhatsApp with public review link: `{origin}/review/{token}`
-- Message: "Thank you for choosing F19 Tattoo Studio ❤️ Please rate your experience: {link}"
-
-### 6. UI Theme
-
-Premium dark cards (#0f172a bg, #1e293b cards, #22c55e accent), smooth motion on star fill + card transitions.
-
-### Files
-
-**New:**
-- `supabase/migrations/<ts>_reviews_advanced.sql`
-- `supabase/functions/generate-review/index.ts`
-- `src/pages/PublicReview.tsx` (public route)
-- `src/pages/ReviewsDashboard.tsx` (admin)
-- `src/hooks/useReviews.ts`
-- `src/components/reviews/StarRating.tsx`
-- `src/components/reviews/ReviewSuggestionCard.tsx`
-- `src/components/reviews/ReviewAnalytics.tsx`
-- `src/components/reviews/AIReplyDialog.tsx`
-
-**Edit:**
-- `src/App.tsx` — add `/review/:token` public route + `/admin/reviews`
-- `src/components/crm/TattooCompletionDialog.tsx` — use new flow
-- `src/pages/Index.tsx` / `AdminDashboard.tsx` — add Reviews nav link
-- `src/components/settings/WhatsAppSettingsCard.tsx` — add Google review URL field
+## Result
+- Naye clients jaise hi star tap karenge, rating turant CRM card pe dikhne lagegi (realtime).
+- Purane 2 reviews jinka rating null hai, woh client se dobara link click karwa ke fix ho sakte hain — ya unko "—" dikhega jaisa abhi hai.

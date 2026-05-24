@@ -81,6 +81,8 @@ export default function PublicReview() {
   const onRate = (r: number) => {
     setRating(r);
     if (r <= 3) setShowRecovery(true);
+    // Save rating to DB immediately so CRM sees it even if client drops off before submitting text
+    supabase.from('reviews').update({ rating: r, status: 'rated' } as any).eq('token', token!).then(() => {});
     generate(r);
   };
 

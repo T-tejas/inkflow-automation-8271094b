@@ -18,7 +18,8 @@ import { cn } from '@/lib/utils';
 
 function statusPill(r: Review) {
   if (r.posted_to_google) return { label: 'Posted on Google', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' };
-  if (r.final_review_text || r.rating) return { label: 'Reviewed', cls: 'bg-green-500/15 text-green-300 border-green-500/40' };
+  if (r.final_review_text) return { label: 'Reviewed', cls: 'bg-green-500/15 text-green-300 border-green-500/40' };
+  if (r.rating) return { label: `Rated ${r.rating}★ (no text)`, cls: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40' };
   if (r.opened_at) return { label: 'Opened', cls: 'bg-blue-500/15 text-blue-300 border-blue-500/40' };
   if (r.review_sent_at) return { label: 'Sent', cls: 'bg-purple-500/15 text-purple-300 border-purple-500/40' };
   return { label: 'Pending', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' };
@@ -210,7 +211,12 @@ export default function ReviewsDashboard() {
                       <p className="text-xs text-slate-500 mt-1">{new Date(r.created_at).toLocaleString('en-IN')}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {r.rating ? <StarRating value={r.rating} readOnly size={16} /> : null}
+                      {r.rating ? (
+                        <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-2.5 py-1">
+                          <StarRating value={r.rating} readOnly size={16} />
+                          <span className="text-yellow-300 font-bold text-sm">{r.rating.toFixed(1)}</span>
+                        </div>
+                      ) : null}
                       <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-semibold border', pill.cls)}>{pill.label}</span>
                       {(r.rating || 0) > 0 && (r.rating || 0) <= 3 && <Badge variant="destructive">Low rating</Badge>}
                     </div>
