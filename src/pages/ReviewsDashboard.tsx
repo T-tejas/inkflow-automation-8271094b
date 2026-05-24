@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import QRCode from 'qrcode';
 
 export default function ReviewsDashboard() {
-  const { reviews, loading, refetch } = useReviews();
+  const { reviews, loading, refetch } = useReviews({ realtimeToast: true });
   const [search, setSearch] = useState('');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [postedFilter, setPostedFilter] = useState('all');
