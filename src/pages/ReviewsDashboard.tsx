@@ -254,6 +254,26 @@ export default function ReviewsDashboard() {
                     <Button size="sm" onClick={() => setReplyTarget(r)} className="bg-orange-500 hover:bg-orange-600 text-white gap-1.5 shadow-md shadow-orange-500/20 ml-auto">
                       <MessageSquareReply className="h-3.5 w-3.5" /> Reply
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" disabled={deletingId === r.id} className="border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200 gap-1.5">
+                          {deletingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-slate-900 border-slate-700 text-slate-100">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this review request?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-400">
+                            This will permanently delete the review record for <span className="text-white font-medium">{r.client_name || 'this client'}</span>. This helps avoid sending duplicate messages. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteReview(r)} className="bg-red-500 hover:bg-red-600 text-white">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               );
