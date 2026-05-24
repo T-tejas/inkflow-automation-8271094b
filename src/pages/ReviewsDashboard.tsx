@@ -18,7 +18,8 @@ import { cn } from '@/lib/utils';
 
 function statusPill(r: Review) {
   if (r.posted_to_google) return { label: 'Posted on Google', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' };
-  if (r.final_review_text || r.rating) return { label: 'Reviewed', cls: 'bg-green-500/15 text-green-300 border-green-500/40' };
+  if (r.final_review_text) return { label: 'Reviewed', cls: 'bg-green-500/15 text-green-300 border-green-500/40' };
+  if (r.rating) return { label: `Rated ${r.rating}★ (no text)`, cls: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40' };
   if (r.opened_at) return { label: 'Opened', cls: 'bg-blue-500/15 text-blue-300 border-blue-500/40' };
   if (r.review_sent_at) return { label: 'Sent', cls: 'bg-purple-500/15 text-purple-300 border-purple-500/40' };
   return { label: 'Pending', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' };
