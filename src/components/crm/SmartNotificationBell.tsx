@@ -126,7 +126,7 @@ export function SmartNotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="end">
+      <PopoverContent className="w-[calc(100vw-1.5rem)] sm:w-[360px] max-w-[360px] p-0" align="end" sideOffset={8} collisionPadding={8}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Bell className="h-4 w-4 text-primary" /> Smart Alerts

@@ -78,22 +78,22 @@ export default function ReviewsDashboard() {
   }, [reviews, search, ratingFilter, postedFilter]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 p-3 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link to="/admin">
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-slate-800"><ArrowLeft className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-slate-800 shrink-0"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold">Reviews & Reputation</h1>
-              <p className="text-sm text-slate-400">AI-powered review collection · {reviews.length} total</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold truncate">Reviews & Reputation</h1>
+              <p className="text-[11px] sm:text-sm text-slate-400 truncate">AI-powered review collection · {reviews.length} total</p>
             </div>
           </div>
-          <Link to="/settings">
+          <Link to="/settings" className="shrink-0">
             <Button variant="outline" size="sm" className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white gap-1.5">
-              <SettingsIcon className="h-3.5 w-3.5" /> Google Review Settings
+              <SettingsIcon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Google Review </span>Settings
             </Button>
           </Link>
         </div>

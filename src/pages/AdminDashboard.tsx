@@ -32,50 +32,50 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header - matches CRM header */}
-      <header className="border-b border-border/50 px-6 py-4">
-        <div className="flex items-center justify-between max-w-[1600px] mx-auto">
-          <div className="flex items-center gap-3">
+      <header className="border-b border-border/50 px-3 sm:px-6 py-3 sm:py-4 sticky top-0 bg-background/95 backdrop-blur z-40">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 max-w-[1600px] mx-auto">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground gap-1.5"
+              className="text-muted-foreground hover:text-foreground gap-1.5 shrink-0 px-2"
               onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
-              CRM
+              <span className="hidden sm:inline">CRM</span>
             </Button>
-            <div className="h-5 w-px bg-border" />
+            <div className="h-5 w-px bg-border shrink-0" />
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center gap-2.5"
+              className="flex items-center gap-2.5 min-w-0"
             >
-              <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
+              <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
                 <span className="text-primary-foreground font-bold text-sm">F19</span>
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-foreground">F19 Revenue Dashboard</h1>
-                <p className="text-[11px] text-muted-foreground">Owner Control Panel</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold text-foreground truncate">F19 Revenue</h1>
+                <p className="text-[11px] text-muted-foreground hidden sm:block">Owner Control Panel</p>
               </div>
             </motion.div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/reviews')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
+          <div className="flex items-center gap-1 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:justify-end scrollbar-thin">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/reviews')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
               <Star className="h-3.5 w-3.5" /> Reviews
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/price-calculator')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
-              <Calculator className="h-3.5 w-3.5" /> Price Calculator
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/price-calculator')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
+              <Calculator className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Price </span>Calculator
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bot-templates')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
-              <Bot className="h-3.5 w-3.5" /> AI Templates
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bot-templates')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
+              <Bot className="h-3.5 w-3.5" /> <span className="hidden sm:inline">AI </span>Templates
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bulk-messaging')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
-              <Send className="h-3.5 w-3.5" /> Bulk Messaging
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bulk-messaging')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
+              <Send className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Bulk </span>Messaging
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/settings/whatsapp')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/settings/whatsapp')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
               <Settings className="h-3.5 w-3.5" /> WhatsApp
             </Button>
-            <div className="h-4 w-px bg-border mx-1" />
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive gap-1.5 text-xs">
+            <div className="h-4 w-px bg-border mx-1 shrink-0" />
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive gap-1.5 text-xs shrink-0">
               <LogOut className="h-3.5 w-3.5" /> Logout
             </Button>
           </div>
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
       </header>
 
       {/* Main */}
-      <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
