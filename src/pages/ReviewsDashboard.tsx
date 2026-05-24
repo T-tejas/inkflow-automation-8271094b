@@ -34,6 +34,21 @@ export default function ReviewsDashboard() {
   const [dateFilter, setDateFilter] = useState('all');
   const [replyTarget, setReplyTarget] = useState<Review | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteReview = async (r: Review) => {
+    setDeletingId(r.id);
+    try {
+      const { error } = await supabase.from('reviews').delete().eq('id', r.id);
+      if (error) throw error;
+      toast.success('Review deleted');
+      refetch();
+    } catch (e: any) {
+      toast.error(`Failed to delete: ${e.message}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const artists = useMemo(() => Array.from(new Set(reviews.map(r => r.artist_name).filter(Boolean))) as string[], [reviews]);
   const styles = useMemo(() => Array.from(new Set(reviews.map(r => r.tattoo_style).filter(Boolean))) as string[], [reviews]);
