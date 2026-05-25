@@ -318,29 +318,7 @@ Deno.serve(async (req) => {
           error_message: null,
         }).eq("id", recip.id);
 
-        // Lookup lead so the message appears in CRM Chats
-        const cleanLookup = String(recip.phone).replace(/[\s\-\(\)]/g, "");
-        const { data: leadRow } = await supabase
-          .from("leads")
-          .select("id, full_name, phone")
-          .in("phone", [cleanLookup, cleanLookup.replace(/^\+/, ""), `+${cleanLookup.replace(/^\+/, "")}`])
-          .maybeSingle();
-
-        await supabase.from("whatsapp_messages").insert({
-          lead_phone: leadRow?.phone || recip.phone,
-          lead_name: leadRow?.full_name || recip.name,
-          lead_id: leadRow?.id || null,
-          template_name: campaign.campaign_type === "template" ? campaign.template_name : `campaign_${campaignId.slice(0, 8)}`,
-          template_type: campaign.campaign_type === "template" ? "utility" : "promo",
-          template_language: campaign.template_language || null,
-          template_variables: recip.template_variables || {},
-          status: "sent",
-          meta_message_id: result.messageId,
-          message_body: campaign.campaign_type === "template"
-            ? `[Template] ${campaign.template_name}`
-            : campaign.message_content,
-          message_type: campaign.campaign_type === "template" ? "template" : "text",
-        });
+        await logCampaignMessage(supabase, recip, campaign, campaignId, result, "sent");
         sent++;
       } else {
         await supabase.from("campaign_recipients").update({
@@ -350,17 +328,7 @@ Deno.serve(async (req) => {
           last_attempt_at: new Date().toISOString(),
         }).eq("id", recip.id);
 
-        await supabase.from("whatsapp_messages").insert({
-          lead_phone: recip.phone,
-          lead_name: recip.name,
-          template_name: campaign.template_name || `campaign_${campaignId.slice(0, 8)}`,
-          template_type: campaign.campaign_type === "template" ? "utility" : "promo",
-          template_language: campaign.template_language || null,
-          status: "failed",
-          error_message: result.error,
-          message_body: campaign.message_content,
-          message_type: campaign.campaign_type === "template" ? "template" : "text",
-        });
+        await logCampaignMessage(supabase, recip, campaign, campaignId, result, "failed");
         failed++;
         if ((recip.retry_count || 0) < 1) failedForRetry.push(recip);
       }
@@ -379,6 +347,7 @@ Deno.serve(async (req) => {
             retry_count: (recip.retry_count || 0) + 2,
             last_attempt_at: new Date().toISOString(),
           }).eq("id", recip.id);
+          await logCampaignMessage(supabase, recip, campaign, campaignId, r2, "sent");
           sent++;
           failed--;
         } else {
