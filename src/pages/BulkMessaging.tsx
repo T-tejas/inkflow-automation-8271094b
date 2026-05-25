@@ -568,10 +568,11 @@ export default function BulkMessaging() {
                 {recipients.length > 0 && (
                   <Card className="glass-card border-primary/30">
                     <CardContent className="py-4 space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Send Preview</p>
-                          <div className="flex items-center gap-4 mt-1">
+                          <div className="flex items-center gap-3 flex-wrap mt-1">
+
                             <div className="flex items-center gap-1">
                               <Users className="h-3.5 w-3.5 text-info" />
                               <span className="text-sm font-bold text-foreground">{recipients.length}</span>
