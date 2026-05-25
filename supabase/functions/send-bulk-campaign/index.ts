@@ -143,6 +143,7 @@ async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any):
       const appt = await findLatestAppointment(supabase, lead, recip.phone);
       if (appt?.appointment_date) base.appointment_date = String(appt.appointment_date);
       if (appt?.time_slot) base.appointment_time = String(appt.time_slot);
+      if (!base.appointment_date && lead?.preferred_date) base.appointment_date = String(lead.preferred_date);
 
       // Artist from design task or completion
       const { data: dt } = await supabase
