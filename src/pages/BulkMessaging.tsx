@@ -695,14 +695,19 @@ export default function BulkMessaging() {
               {campaigns.map(c => (
                 <Card key={c.id} className="glass-card">
                   <CardContent className="py-4 px-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-sm font-medium text-foreground">{c.campaign_name}</h3>
                           {getStatusBadge(c.status)}
+                          {(c as any).campaign_type === 'template' && (
+                            <Badge className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                              <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Template
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-[400px] truncate">{c.message_content}</p>
-                        <div className="flex items-center gap-3 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{(c as any).template_name || c.message_content}</p>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <p className="text-[10px] text-muted-foreground">
                             {c.sent_at ? new Date(c.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not sent'}
                           </p>
@@ -711,7 +716,8 @@ export default function BulkMessaging() {
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-5 text-center">
+                      <div className="grid grid-cols-5 gap-3 sm:gap-5 text-center shrink-0">
+
                         <div>
                           <p className="text-lg font-bold text-foreground">{c.messages_sent}</p>
                           <p className="text-[10px] text-muted-foreground">Sent</p>
