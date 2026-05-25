@@ -335,7 +335,7 @@ export default function BulkMessaging() {
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 py-6">
+      <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="create" className="gap-1.5">
