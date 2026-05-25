@@ -28,7 +28,7 @@ interface MetaTemplate {
   variableCount: number;
 }
 
-const VARIABLE_PRESETS = ['client_name', 'artist_name', 'appointment_date', 'amount', 'studio_name'];
+const VARIABLE_PRESETS = ['client_name', 'artist_name', 'appointment_date', 'appointment_time', 'amount', 'studio_name'];
 
 interface Campaign {
   id: string;
