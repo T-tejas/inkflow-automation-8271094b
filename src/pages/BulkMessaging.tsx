@@ -735,9 +735,10 @@ export default function BulkMessaging() {
                           <p className="text-[10px] text-muted-foreground">Replies</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-destructive">{c.total_recipients - c.messages_sent > 0 ? c.total_recipients - c.messages_sent : 0}</p>
+                          <p className="text-lg font-bold text-destructive">{(c as any).failed_count ?? Math.max(c.total_recipients - c.messages_sent, 0)}</p>
                           <p className="text-[10px] text-muted-foreground">Failed</p>
                         </div>
+
                       </div>
                     </div>
                   </CardContent>
