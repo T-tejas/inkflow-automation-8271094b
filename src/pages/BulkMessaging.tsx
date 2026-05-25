@@ -564,7 +564,33 @@ export default function BulkMessaging() {
                                       </SelectContent>
                                     </Select>
                                   </div>
+                            {templateVariables.length > 0 && (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs text-muted-foreground">Map Variables (in order) — edit freely</label>
+                                  <Button type="button" size="sm" variant="outline" onClick={saveVariableMapping} className="h-7 text-[10px] gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> Save Mapping
+                                  </Button>
+                                </div>
+                                <datalist id="var-presets-list">
+                                  {VARIABLE_PRESETS.map(p => <option key={p} value={p} />)}
+                                </datalist>
+                                {templateVariables.map((v, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[10px] shrink-0">{`{{${i + 1}}}`}</Badge>
+                                    <Input
+                                      list="var-presets-list"
+                                      value={v}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setTemplateVariables(prev => prev.map((x, idx) => idx === i ? val : x));
+                                      }}
+                                      placeholder="e.g. client_name"
+                                      className="h-8 text-xs"
+                                    />
+                                  </div>
                                 ))}
+                                <p className="text-[10px] text-muted-foreground">Type any variable name or pick from suggestions. Click "Save Mapping" so you don't have to redo this next time.</p>
                               </div>
                             )}
 
@@ -586,6 +612,7 @@ export default function BulkMessaging() {
                                 </Button>
                               </div>
                             </div>
+
                           </>
                         )}
                       </div>
