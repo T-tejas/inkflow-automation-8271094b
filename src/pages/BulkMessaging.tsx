@@ -13,10 +13,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Send, Upload, Users, BarChart3, Plus, Trash2,
-  MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee, Download, Target
+  MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee, Download, Target,
+  RefreshCw, ShieldCheck, Zap
 } from 'lucide-react';
 import { LEAD_STATUSES } from '@/types/lead';
 import { getRetargetingSegments, exportRetargetingCSV, downloadCSV, type RetargetingSegment } from '@/lib/retargetingExport';
+
+interface MetaTemplate {
+  name: string;
+  status: string;
+  category: string;
+  language: string;
+  body: string;
+  variableCount: number;
+}
+
+const VARIABLE_PRESETS = ['client_name', 'artist_name', 'appointment_date', 'amount', 'studio_name'];
 
 interface Campaign {
   id: string;
@@ -73,13 +85,86 @@ export default function BulkMessaging() {
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Template state
+  const [campaignType, setCampaignType] = useState<'text' | 'template'>('text');
+  const [metaTemplates, setMetaTemplates] = useState<MetaTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedTemplateName, setSelectedTemplateName] = useState<string>('');
+  const [templateVariables, setTemplateVariables] = useState<string[]>([]); // ordered list of variable names mapped to {{1}}..{{n}}
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState(false);
+
+  const selectedTemplate = metaTemplates.find(t => t.name === selectedTemplateName);
+
   const fetchCampaigns = useCallback(async () => {
     const { data } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false }) as { data: Campaign[] | null };
     setCampaigns(data || []);
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
+  const fetchTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-templates', { method: 'GET' });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const list = ((data as any)?.templates || []) as MetaTemplate[];
+      setMetaTemplates(list);
+      if (list.length === 0) toast.info('No templates found in Meta WhatsApp Manager');
+    } catch (e: any) {
+      toast.error(`Failed to load templates: ${e.message || e}`);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCampaigns(); fetchTemplates(); }, [fetchCampaigns, fetchTemplates]);
+
+  // When a template is picked, init the variable mapping with defaults
+  useEffect(() => {
+    if (selectedTemplate) {
+      const defaults = Array.from({ length: selectedTemplate.variableCount }, (_, i) =>
+        VARIABLE_PRESETS[i] || `var_${i + 1}`
+      );
+      setTemplateVariables(defaults);
+    } else {
+      setTemplateVariables([]);
+    }
+  }, [selectedTemplateName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Realtime: refresh campaigns when delivery status changes
+  useEffect(() => {
+    const ch = supabase
+      .channel('campaigns-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => fetchCampaigns())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_recipients' }, () => fetchCampaigns())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [fetchCampaigns]);
+
+  const sendTestTemplate = async () => {
+    if (!selectedTemplate) { toast.error('Select a template first'); return; }
+    if (!testPhone) { toast.error('Enter test phone (+91...)'); return; }
+    setTestSending(true);
+    try {
+      const sample: Record<string, string> = {
+        client_name: 'Test User', artist_name: 'F19 Artist', appointment_date: 'Tomorrow 4 PM',
+        amount: '₹2,500', studio_name: 'F19 Tattoo Studio',
+      };
+      const vars = templateVariables.map(k => sample[k] || k);
+      const { data, error } = await supabase.functions.invoke('whatsapp-templates', {
+        method: 'POST',
+        body: { action: 'test', phone: testPhone, templateName: selectedTemplate.name, language: selectedTemplate.language, variables: vars },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success('Test template sent ✅');
+    } catch (e: any) {
+      toast.error(`Test failed: ${e.message || e}`);
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const importByStage = async () => {
     if (selectedStages.length === 0) {
