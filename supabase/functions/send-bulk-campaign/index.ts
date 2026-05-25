@@ -190,16 +190,10 @@ async function sendOne(
     const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
 
-    // Validate: if any mapped variable has no data for this recipient, fail with clear error
-    const missing = varOrder.filter(k => !vars[k] || String(vars[k]).trim() === "");
-    if (missing.length) {
-      return { ok: false, error: `Missing lead data for: ${missing.join(", ")}` };
-    }
-
     const components = varOrder.length
       ? [{
           type: "body",
-          parameters: varOrder.map((key: string) => ({ type: "text", text: String(vars[key]) })),
+          parameters: varOrder.map((key: string) => ({ type: "text", text: templateParam(vars[key]) })),
         }]
       : undefined;
 
@@ -233,6 +227,10 @@ async function sendOne(
     }
   }
 
+  const logPreview = campaign.campaign_type === "template"
+    ? templatePreview(campaign.message_content || "", Array.isArray(campaign.template_variables) ? campaign.template_variables : [], await buildVarsForRecipient(supabase, recip, campaign), campaign.template_name)
+    : campaign.message_content;
+
   try {
     const res = await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
       method: "POST",
@@ -240,10 +238,10 @@ async function sendOne(
       body: JSON.stringify(payload),
     });
     const j = await res.json().catch(() => null);
-    if (res.ok && j?.messages?.[0]?.id) return { ok: true, messageId: j.messages[0].id, raw: j };
-    return { ok: false, error: j?.error?.message || `HTTP ${res.status}`, raw: j };
+    if (res.ok && j?.messages?.[0]?.id) return { ok: true, messageId: j.messages[0].id, raw: j, preview: logPreview } as any;
+    return { ok: false, error: j?.error?.message || `HTTP ${res.status}`, raw: j, preview: logPreview } as any;
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+    return { ok: false, error: e instanceof Error ? e.message : "Network error", preview: logPreview } as any;
   }
 }
 
