@@ -28,6 +28,99 @@ function substitute(text: string, vars: Record<string, string>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+const INVISIBLE_EMPTY_TEXT = "\u200C";
+
+function phoneDigits(phone: string) {
+  return String(phone || "").replace(/\D/g, "");
+}
+
+function phoneVariants(phone: string) {
+  const raw = String(phone || "").trim();
+  const compact = raw.replace(/[\s\-\(\)]/g, "");
+  const digits = phoneDigits(raw);
+  const last10 = digits.slice(-10);
+  return Array.from(new Set([
+    raw,
+    compact,
+    compact.replace(/^\+/, ""),
+    digits,
+    digits ? `+${digits}` : "",
+    last10 ? `+91${last10}` : "",
+    last10 ? `+91 ${last10}` : "",
+  ].filter(Boolean)));
+}
+
+async function findLeadByPhone(supabase: any, phone: string) {
+  const variants = phoneVariants(phone);
+  const { data: exact } = await supabase
+    .from("leads")
+    .select("id, full_name, phone, preferred_date, updated_at")
+    .in("phone", variants)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+
+  if (exact?.length) {
+    const raw = String(phone || "").trim();
+    const compact = raw.replace(/[\s\-\(\)]/g, "");
+    return exact.find((l: any) => l.phone === raw) || exact.find((l: any) => l.phone === compact) || exact[0];
+  }
+
+  const last10 = phoneDigits(phone).slice(-10);
+  if (!last10) return null;
+
+  const { data: candidates } = await supabase
+    .from("leads")
+    .select("id, full_name, phone, preferred_date, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(2000);
+
+  return (candidates || []).find((l: any) => phoneDigits(l.phone).slice(-10) === last10) || null;
+}
+
+async function findLatestAppointment(supabase: any, lead: any, phone: string) {
+  const pickActive = (rows: any[] = []) => rows.find((a) => String(a.status || "").toLowerCase() !== "cancelled") || rows[0] || null;
+
+  if (lead?.id) {
+    const { data } = await supabase
+      .from("appointments")
+      .select("appointment_date, time_slot, status, updated_at")
+      .eq("lead_id", lead.id)
+      .order("updated_at", { ascending: false })
+      .limit(10);
+    const active = pickActive(data || []);
+    if (active) return active;
+  }
+
+  const variants = phoneVariants(lead?.phone || phone);
+  const { data: exact } = await supabase
+    .from("appointments")
+    .select("appointment_date, time_slot, status, lead_phone, updated_at")
+    .in("lead_phone", variants)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+  const activeExact = pickActive(exact || []);
+  if (activeExact) return activeExact;
+
+  const last10 = phoneDigits(lead?.phone || phone).slice(-10);
+  if (!last10) return null;
+  const { data: candidates } = await supabase
+    .from("appointments")
+    .select("appointment_date, time_slot, status, lead_phone, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(2000);
+  return pickActive((candidates || []).filter((a: any) => phoneDigits(a.lead_phone).slice(-10) === last10));
+}
+
+function templatePreview(body: string, order: string[], vars: Record<string, string>, templateName: string) {
+  const rendered = String(body || "").replace(/\{\{(\d+)\}\}/g, (_, idx) => vars[order[Number(idx) - 1]] || "");
+  return rendered.trim() ? rendered : `[Template] ${templateName}`;
+}
+
+function templateParam(value: string | undefined) {
+  const text = String(value || "").trim();
+  return text || INVISIBLE_EMPTY_TEXT;
+}
+
 async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any): Promise<Record<string, string>> {
   const base: Record<string, string> = {
     name: recip.name || "",
@@ -41,26 +134,16 @@ async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any):
 
   // Lookup lead by phone for real data — empty if not found
   try {
-    const cleanPhone = String(recip.phone || "").replace(/[\s\-\(\)]/g, "");
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("id, full_name")
-      .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^\+/, "")}`)
-      .maybeSingle();
+    const lead = await findLeadByPhone(supabase, recip.phone);
 
     if (lead?.full_name && !recip.name) base.client_name = base.name = lead.full_name;
 
     if (lead?.id) {
       // Latest appointment for date/time
-      const { data: appt } = await supabase
-        .from("appointments")
-        .select("appointment_date, time_slot")
-        .eq("lead_id", lead.id)
-        .order("appointment_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const appt = await findLatestAppointment(supabase, lead, recip.phone);
       if (appt?.appointment_date) base.appointment_date = String(appt.appointment_date);
       if (appt?.time_slot) base.appointment_time = String(appt.time_slot);
+      if (!base.appointment_date && lead?.preferred_date) base.appointment_date = String(lead.preferred_date);
 
       // Artist from design task or completion
       const { data: dt } = await supabase
@@ -100,24 +183,17 @@ async function sendOne(
   accessToken: string,
   recip: any,
   campaign: any,
-): Promise<{ ok: boolean; messageId?: string | null; error?: string; raw?: any }> {
+): Promise<{ ok: boolean; messageId?: string | null; error?: string; raw?: any; preview?: string; vars?: Record<string, string> }> {
   const cleanPhone = String(recip.phone).replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
   let payload: any;
+  const vars = await buildVarsForRecipient(supabase, recip, campaign);
+  const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
 
   if (campaign.campaign_type === "template" && campaign.template_name) {
-    const vars = await buildVarsForRecipient(supabase, recip, campaign);
-    const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
-
-    // Validate: if any mapped variable has no data for this recipient, fail with clear error
-    const missing = varOrder.filter(k => !vars[k] || String(vars[k]).trim() === "");
-    if (missing.length) {
-      return { ok: false, error: `Missing lead data for: ${missing.join(", ")}` };
-    }
-
     const components = varOrder.length
       ? [{
           type: "body",
-          parameters: varOrder.map((key: string) => ({ type: "text", text: String(vars[key]) })),
+          parameters: varOrder.map((key: string) => ({ type: "text", text: templateParam(vars[key]) })),
         }]
       : undefined;
 
@@ -132,7 +208,6 @@ async function sendOne(
       },
     };
   } else {
-    const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const text = substitute(campaign.message_content || "", vars);
     if (campaign.cta_label && campaign.cta_type) {
       const id = campaign.cta_type === "book" ? "menu_book" : campaign.cta_type === "artist" ? "talk_to_artist" : "menu_designs";
@@ -151,6 +226,10 @@ async function sendOne(
     }
   }
 
+  const logPreview = campaign.campaign_type === "template"
+    ? templatePreview(campaign.message_content || "", varOrder, vars, campaign.template_name)
+    : campaign.message_content;
+
   try {
     const res = await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
       method: "POST",
@@ -158,11 +237,31 @@ async function sendOne(
       body: JSON.stringify(payload),
     });
     const j = await res.json().catch(() => null);
-    if (res.ok && j?.messages?.[0]?.id) return { ok: true, messageId: j.messages[0].id, raw: j };
-    return { ok: false, error: j?.error?.message || `HTTP ${res.status}`, raw: j };
+    if (res.ok && j?.messages?.[0]?.id) return { ok: true, messageId: j.messages[0].id, raw: j, preview: logPreview, vars };
+    return { ok: false, error: j?.error?.message || `HTTP ${res.status}`, raw: j, preview: logPreview, vars };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+    return { ok: false, error: e instanceof Error ? e.message : "Network error", preview: logPreview, vars };
   }
+}
+
+async function logCampaignMessage(supabase: any, recip: any, campaign: any, campaignId: string, result: any, status: "sent" | "failed") {
+  const leadRow = await findLeadByPhone(supabase, recip.phone);
+  const templateName = campaign.campaign_type === "template" ? campaign.template_name : `campaign_${campaignId.slice(0, 8)}`;
+  const { error } = await supabase.from("whatsapp_messages").insert({
+    lead_phone: leadRow?.phone || recip.phone,
+    lead_name: leadRow?.full_name || recip.name || "Unknown",
+    lead_id: leadRow?.id || null,
+    template_name: templateName,
+    template_type: campaign.campaign_type === "template" ? "utility" : "promo",
+    template_language: campaign.template_language || null,
+    template_variables: result?.vars || recip.template_variables || {},
+    status,
+    meta_message_id: result?.messageId || null,
+    error_message: status === "failed" ? result?.error || "Unknown error" : null,
+    message_body: result?.preview || (campaign.campaign_type === "template" ? `[Template] ${templateName}` : campaign.message_content),
+    message_type: campaign.campaign_type === "template" ? "template" : "text",
+  });
+  if (error) console.error("[send-bulk-campaign] whatsapp_messages log failed", error);
 }
 
 Deno.serve(async (req) => {
@@ -220,29 +319,7 @@ Deno.serve(async (req) => {
           error_message: null,
         }).eq("id", recip.id);
 
-        // Lookup lead so the message appears in CRM Chats
-        const cleanLookup = String(recip.phone).replace(/[\s\-\(\)]/g, "");
-        const { data: leadRow } = await supabase
-          .from("leads")
-          .select("id, full_name, phone")
-          .in("phone", [cleanLookup, cleanLookup.replace(/^\+/, ""), `+${cleanLookup.replace(/^\+/, "")}`])
-          .maybeSingle();
-
-        await supabase.from("whatsapp_messages").insert({
-          lead_phone: leadRow?.phone || recip.phone,
-          lead_name: leadRow?.full_name || recip.name,
-          lead_id: leadRow?.id || null,
-          template_name: campaign.campaign_type === "template" ? campaign.template_name : `campaign_${campaignId.slice(0, 8)}`,
-          template_type: campaign.campaign_type === "template" ? "utility" : "promo",
-          template_language: campaign.template_language || null,
-          template_variables: recip.template_variables || {},
-          status: "sent",
-          meta_message_id: result.messageId,
-          message_body: campaign.campaign_type === "template"
-            ? `[Template] ${campaign.template_name}`
-            : campaign.message_content,
-          message_type: campaign.campaign_type === "template" ? "template" : "text",
-        });
+        await logCampaignMessage(supabase, recip, campaign, campaignId, result, "sent");
         sent++;
       } else {
         await supabase.from("campaign_recipients").update({
@@ -252,17 +329,7 @@ Deno.serve(async (req) => {
           last_attempt_at: new Date().toISOString(),
         }).eq("id", recip.id);
 
-        await supabase.from("whatsapp_messages").insert({
-          lead_phone: recip.phone,
-          lead_name: recip.name,
-          template_name: campaign.template_name || `campaign_${campaignId.slice(0, 8)}`,
-          template_type: campaign.campaign_type === "template" ? "utility" : "promo",
-          template_language: campaign.template_language || null,
-          status: "failed",
-          error_message: result.error,
-          message_body: campaign.message_content,
-          message_type: campaign.campaign_type === "template" ? "template" : "text",
-        });
+        await logCampaignMessage(supabase, recip, campaign, campaignId, result, "failed");
         failed++;
         if ((recip.retry_count || 0) < 1) failedForRetry.push(recip);
       }
@@ -281,6 +348,7 @@ Deno.serve(async (req) => {
             retry_count: (recip.retry_count || 0) + 2,
             last_attempt_at: new Date().toISOString(),
           }).eq("id", recip.id);
+          await logCampaignMessage(supabase, recip, campaign, campaignId, r2, "sent");
           sent++;
           failed--;
         } else {

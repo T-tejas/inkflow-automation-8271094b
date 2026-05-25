@@ -24,6 +24,46 @@ async function metaGet(path: string, token: string) {
   return { ok: r.ok, status: r.status, body };
 }
 
+function phoneDigits(phone: string) {
+  return String(phone || "").replace(/\D/g, "");
+}
+
+function phoneVariants(phone: string) {
+  const raw = String(phone || "").trim();
+  const compact = raw.replace(/[\s\-\(\)]/g, "");
+  const digits = phoneDigits(raw);
+  const last10 = digits.slice(-10);
+  return Array.from(new Set([
+    raw,
+    compact,
+    compact.replace(/^\+/, ""),
+    digits,
+    digits ? `+${digits}` : "",
+    last10 ? `+91${last10}` : "",
+    last10 ? `+91 ${last10}` : "",
+  ].filter(Boolean)));
+}
+
+async function findLeadByPhone(supabase: any, phone: string) {
+  const variants = phoneVariants(phone);
+  const { data: exact } = await supabase
+    .from("leads")
+    .select("id, full_name, phone, updated_at")
+    .in("phone", variants)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+  if (exact?.length) return exact[0];
+
+  const last10 = phoneDigits(phone).slice(-10);
+  if (!last10) return null;
+  const { data: candidates } = await supabase
+    .from("leads")
+    .select("id, full_name, phone, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(2000);
+  return (candidates || []).find((l: any) => phoneDigits(l.phone).slice(-10) === last10) || null;
+}
+
 /**
  * Resolves the real WhatsApp Business Account ID.
  * Handles three cases the user might have stored:
@@ -145,12 +185,7 @@ Deno.serve(async (req) => {
 
         // Log to whatsapp_messages so it appears in CRM Chats
         try {
-          const variants = [`+${cleanPhone}`, cleanPhone];
-          const { data: lead } = await supabase
-            .from("leads")
-            .select("id, full_name, phone")
-            .in("phone", variants)
-            .maybeSingle();
+          const lead = await findLeadByPhone(supabase, phone);
 
           await supabase.from("whatsapp_messages").insert({
             lead_phone: lead?.phone || `+${cleanPhone}`,
