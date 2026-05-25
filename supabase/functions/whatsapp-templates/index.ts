@@ -71,7 +71,20 @@ Deno.serve(async (req) => {
     const url = `https://graph.facebook.com/v22.0/${wabaId}/message_templates?fields=name,status,category,language,components&limit=200`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     const data = await res.json().catch(() => null);
-    if (!res.ok) return json({ error: data?.error?.message || "Failed to fetch templates", details: data }, 502);
+    if (!res.ok) {
+      // Detect common misconfig: user stored Phone Number ID instead of WABA ID
+      const probe = await fetch(`https://graph.facebook.com/v22.0/${wabaId}?fields=display_phone_number,verified_name`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then((r) => r.json()).catch(() => null);
+      if (probe?.display_phone_number) {
+        return json({
+          error: `The ID configured as "WhatsApp Business Account ID" (${wabaId}) is actually a Phone Number ID for ${probe.verified_name} (${probe.display_phone_number}). Please open Meta Business Manager → WhatsApp Accounts and copy the WABA ID (shown above the phone number), then update it in CRM Settings → WhatsApp.`,
+          details: data,
+        }, 400);
+      }
+      return json({ error: data?.error?.message || "Failed to fetch templates", details: data }, 502);
+    }
+
 
     const templates = (data?.data || []).map((t: any) => {
       const bodyComp = (t.components || []).find((c: any) => c.type === "BODY");
