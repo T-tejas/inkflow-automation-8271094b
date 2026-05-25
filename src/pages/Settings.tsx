@@ -105,6 +105,7 @@ const Settings = () => {
           </div>
 
           <WhatsAppSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
+          <StyleArtistMappingCard />
           <GoogleReviewSettingsCard settings={settings} onUpdate={updateSetting} />
           <InstagramSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
           <MetaSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
