@@ -241,19 +241,28 @@ export default function BulkMessaging() {
   const estimatedCost = recipients.length * COST_PER_MESSAGE;
 
   const handleSendCampaign = async () => {
-    if (!campaignName || !messageContent || recipients.length === 0) {
-      toast.error('Fill campaign name, message, and add recipients');
-      return;
+    if (!campaignName) { toast.error('Enter campaign name'); return; }
+    if (recipients.length === 0) { toast.error('Add recipients'); return; }
+    if (campaignType === 'template') {
+      if (!selectedTemplate) { toast.error('Select an approved WhatsApp template'); return; }
+      if (selectedTemplate.status !== 'APPROVED') { toast.error('Template is not APPROVED in Meta'); return; }
+    } else if (!messageContent) {
+      toast.error('Enter message content'); return;
     }
+
     setSending(true);
     try {
       const { data: campaign, error: campErr } = await supabase.from('campaigns').insert({
         campaign_name: campaignName,
-        message_content: messageContent,
-        cta_type: ctaType || null,
+        message_content: campaignType === 'template' ? (selectedTemplate?.body || '') : messageContent,
+        cta_type: ctaType && ctaType !== 'none' ? ctaType : null,
         cta_label: ctaLabel || null,
         total_recipients: recipients.length,
         status: 'queued',
+        campaign_type: campaignType,
+        template_name: campaignType === 'template' ? selectedTemplate?.name : null,
+        template_language: campaignType === 'template' ? selectedTemplate?.language : null,
+        template_variables: campaignType === 'template' ? templateVariables : [],
       } as any).select().single();
 
       if (campErr || !campaign) { toast.error('Failed to create campaign'); setSending(false); return; }
@@ -263,6 +272,7 @@ export default function BulkMessaging() {
         phone: r.phone,
         name: r.name,
         status: 'pending',
+        template_variables: { client_name: r.name },
       }));
       await supabase.from('campaign_recipients').insert(recipRows as any);
 
@@ -271,9 +281,9 @@ export default function BulkMessaging() {
       });
 
       if (error) {
-        toast.error('Failed to send campaign');
+        toast.error(`Failed to send campaign: ${error.message || error}`);
       } else {
-        toast.success(`Campaign queued! Sending to ${recipients.length} contacts. Estimated cost: ₹${estimatedCost.toFixed(0)}`);
+        toast.success(`Campaign sent! ${recipients.length} contacts · est ₹${estimatedCost.toFixed(0)}`);
         setCampaignName('');
         setMessageContent('');
         setCtaType('');
@@ -283,11 +293,13 @@ export default function BulkMessaging() {
         setTab('campaigns');
         fetchCampaigns();
       }
-    } catch {
-      toast.error('Error creating campaign');
+    } catch (e: any) {
+      toast.error(`Error: ${e.message || 'Failed to create campaign'}`);
     }
     setSending(false);
   };
+
+
 
   const toggleStage = (stage: string) => {
     setSelectedStages(prev => prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]);
