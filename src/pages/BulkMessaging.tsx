@@ -372,7 +372,7 @@ export default function BulkMessaging() {
                 <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" /> Meta-Approved WhatsApp Templates
                 </h2>
-                <p className="text-xs text-muted-foreground">Fetched live from Meta WhatsApp Manager · {metaTemplates.length} templates</p>
+                <p className="text-xs text-muted-foreground">Live from Meta · {metaTemplates.length} total · {metaTemplates.filter(t => t.status === 'APPROVED').length} approved {templateDebug?.resolved_waba_id && <span className="ml-1 opacity-60">· WABA {templateDebug.resolved_waba_id}</span>}</p>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setShowDebug(v => !v)} className="text-xs">
