@@ -12,6 +12,7 @@ import InstagramSettingsCard from '@/components/settings/InstagramSettingsCard';
 import MetaSettingsCard from '@/components/settings/MetaSettingsCard';
 import GoogleCalendarSettingsCard from '@/components/settings/GoogleCalendarSettingsCard';
 import GoogleReviewSettingsCard from '@/components/settings/GoogleReviewSettingsCard';
+import StyleArtistMappingCard from '@/components/settings/StyleArtistMappingCard';
 
 type SettingsMap = Record<string, string>;
 
@@ -104,6 +105,7 @@ const Settings = () => {
           </div>
 
           <WhatsAppSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
+          <StyleArtistMappingCard />
           <GoogleReviewSettingsCard settings={settings} onUpdate={updateSetting} />
           <InstagramSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />
           <MetaSettingsCard settings={settings} showTokens={showTokens} onUpdate={updateSetting} onToggle={toggleShow} />

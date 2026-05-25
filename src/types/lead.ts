@@ -56,6 +56,7 @@ export interface Lead {
   updatedAt: string;
   nextFollowupDate: string | null;
   lastContactedAt: string | null;
+  assignedArtist?: string | null;
 }
 
 export type FollowupFilter = 'all' | 'today' | 'overdue' | 'upcoming';

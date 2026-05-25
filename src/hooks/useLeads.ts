@@ -23,6 +23,7 @@ interface DbLead {
   updated_at: string;
   next_followup_date: string | null;
   last_contacted_at: string | null;
+  assigned_artist?: string | null;
 }
 
 function dbToLead(row: DbLead): Lead {
@@ -44,6 +45,7 @@ function dbToLead(row: DbLead): Lead {
     updatedAt: row.updated_at,
     nextFollowupDate: row.next_followup_date,
     lastContactedAt: row.last_contacted_at,
+    assignedArtist: (row as any).assigned_artist ?? null,
   };
 }
 

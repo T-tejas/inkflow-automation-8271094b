@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.website-lead-intake]
 verify_jwt = false
+
+[functions.website-chatbot]
+verify_jwt = false
+
+[functions.stale-lead-alerts]
+verify_jwt = false
