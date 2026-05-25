@@ -95,6 +95,7 @@ async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any):
 }
 
 async function sendOne(
+  supabase: any,
   phoneNumberId: string,
   accessToken: string,
   recip: any,
@@ -104,13 +105,19 @@ async function sendOne(
   let payload: any;
 
   if (campaign.campaign_type === "template" && campaign.template_name) {
-    const vars = buildVarsForRecipient(recip, campaign);
-    // Order variables by declared list (template_variables = array of variable names mapped {{1}}..{{n}})
+    const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
+
+    // Validate: if any mapped variable has no data for this recipient, fail with clear error
+    const missing = varOrder.filter(k => !vars[k] || String(vars[k]).trim() === "");
+    if (missing.length) {
+      return { ok: false, error: `Missing lead data for: ${missing.join(", ")}` };
+    }
+
     const components = varOrder.length
       ? [{
           type: "body",
-          parameters: varOrder.map((key: string) => ({ type: "text", text: substitute(`{{${key}}}`, vars) })),
+          parameters: varOrder.map((key: string) => ({ type: "text", text: String(vars[key]) })),
         }]
       : undefined;
 
@@ -125,7 +132,7 @@ async function sendOne(
       },
     };
   } else {
-    const vars = buildVarsForRecipient(recip, campaign);
+    const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const text = substitute(campaign.message_content || "", vars);
     if (campaign.cta_label && campaign.cta_type) {
       const id = campaign.cta_type === "book" ? "menu_book" : campaign.cta_type === "artist" ? "talk_to_artist" : "menu_designs";
