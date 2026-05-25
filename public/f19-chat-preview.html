@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F19 Chat Preview</title>
+  <style>
+    body{margin:0;min-height:100vh;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f5f7fb,#ffffff);}
+    .page{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+    .side{padding:40px 24px;color:#4b5563}
+    .side h2{margin:0 0 24px;font-size:52px;color:#111827;opacity:.12}
+    .side a{display:block;margin:24px 0;font-size:22px;color:#6b7280;text-decoration:none}
+    .content{padding:48px 32px;position:relative}
+    .card{max-width:780px;background:#fff;border-radius:28px;padding:40px;box-shadow:0 20px 60px rgba(15,23,42,.08)}
+    .fake-host button{width:140px;height:28px;border-radius:2px;background:#ef4444;border:none}
+    .fake-host input{height:24px;border-radius:0;border:1px solid #ddd}
+    @media (max-width: 820px){.page{grid-template-columns:1fr}.side{display:none}.content{padding:24px 16px}}
+  </style>
+</head>
+<body class="fake-host">
+  <div class="page">
+    <aside class="side">
+      <h2>F19</h2>
+      <a href="#">Home</a>
+      <a href="#">Portfolio</a>
+      <a href="#">About Us</a>
+      <a href="#">Contact</a>
+    </aside>
+    <main class="content">
+      <div class="card">
+        <h1>Preview host page</h1>
+        <p>This page intentionally includes aggressive host styles to test the chat widget.</p>
+        <button>Host Button</button>
+        <input placeholder="Host input" />
+      </div>
+    </main>
+  </div>
+  <script src="/f19-chat.js" defer></script>
+</body>
+</html>
