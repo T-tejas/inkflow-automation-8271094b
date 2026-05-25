@@ -32,21 +32,40 @@ async function metaGet(path: string, token: string) {
  *   3. Garbage / wrong ID → returns null + reason.
  */
 async function resolveWaba(storedId: string, token: string) {
-  // Probe: is it a phone number?
-  const probe = await metaGet(`${storedId}?fields=display_phone_number,verified_name,whatsapp_business_account`, token);
-  if (probe.ok && probe.body?.display_phone_number) {
-    const realWaba = probe.body?.whatsapp_business_account?.id;
-    if (realWaba) {
-      return { wabaId: realWaba, autoResolvedFrom: storedId, kind: "phone_number_id", probe: probe.body };
+  // 1) Maybe it IS already a WABA — try fetching templates lightly
+  const tplProbe = await metaGet(`${storedId}/message_templates?limit=1`, token);
+  if (tplProbe.ok) {
+    return { wabaId: storedId, autoResolvedFrom: null, kind: "waba_id", probe: { ok: true } };
+  }
+
+  // 2) Maybe it's a Phone Number ID — try to get its parent WABA
+  const phoneProbe = await metaGet(`${storedId}?fields=display_phone_number,verified_name`, token);
+  if (phoneProbe.ok && phoneProbe.body?.display_phone_number) {
+    // Try owning WABA via business account chain
+    const owner = await metaGet(`${storedId}?fields=account_mode,messaging_limit_tier`, token);
+    // Enumerate WABAs accessible by this token and match by phone_numbers
+    const businesses = await metaGet(`me/businesses?fields=id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}`, token);
+    const owned: any[] = [];
+    for (const biz of businesses.body?.data || []) {
+      for (const w of biz?.owned_whatsapp_business_accounts?.data || []) {
+        owned.push(w);
+        for (const p of w?.phone_numbers?.data || []) {
+          if (String(p.id) === String(storedId)) {
+            return { wabaId: w.id, autoResolvedFrom: storedId, kind: "phone_number_id", probe: { phone: phoneProbe.body, matchedWaba: w } };
+          }
+        }
+      }
     }
-    return { wabaId: null, autoResolvedFrom: storedId, kind: "phone_number_id_no_waba", probe: probe.body };
+    return { wabaId: null, autoResolvedFrom: storedId, kind: "phone_number_id_no_match", probe: { phone: phoneProbe.body, owner: owner.body, candidate_wabas: owned } };
   }
-  // Probe: is it a WABA? (has message_templates field accessible)
-  const wabaCheck = await metaGet(`${storedId}?fields=id,name,currency,timezone_id`, token);
-  if (wabaCheck.ok && wabaCheck.body?.id) {
-    return { wabaId: storedId, autoResolvedFrom: null, kind: "waba_id", probe: wabaCheck.body };
+
+  // 3) Last resort — enumerate WABAs and return list as candidates
+  const businesses = await metaGet(`me/businesses?fields=id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}`, token);
+  const candidates: any[] = [];
+  for (const biz of businesses.body?.data || []) {
+    for (const w of biz?.owned_whatsapp_business_accounts?.data || []) candidates.push(w);
   }
-  return { wabaId: null, autoResolvedFrom: null, kind: "unknown", probe: probe.body || wabaCheck.body };
+  return { wabaId: null, autoResolvedFrom: null, kind: "unknown", probe: { tplProbe: tplProbe.body, phoneProbe: phoneProbe.body, candidate_wabas: candidates } };
 }
 
 Deno.serve(async (req) => {
