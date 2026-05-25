@@ -591,12 +591,13 @@ export default function BulkMessaging() {
                         </div>
                         <Button
                           onClick={handleSendCampaign}
-                          disabled={sending || !campaignName || !messageContent}
-                          className="gap-2"
+                          disabled={sending || !campaignName || (campaignType === 'text' ? !messageContent : !selectedTemplate)}
+                          className="gap-2 w-full sm:w-auto"
                         >
                           {sending ? <Clock className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           {sending ? 'Sending...' : 'Send Campaign'}
                         </Button>
+
                       </div>
                     </CardContent>
                   </Card>
