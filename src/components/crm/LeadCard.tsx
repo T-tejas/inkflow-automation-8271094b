@@ -91,12 +91,20 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
         </div>
 
         {/* Style + Size badges */}
-        <div className="flex flex-wrap gap-1">
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
-            {lead.tattooStyle}
+        <div className="flex flex-wrap gap-1 max-w-full overflow-hidden">
+          <Badge
+            variant="outline"
+            title={lead.tattooStyle}
+            className="text-[10px] px-1.5 py-0 border-primary/30 text-primary max-w-[140px] truncate inline-block"
+          >
+            {(lead.tattooStyle || '').length > 24 ? `${lead.tattooStyle.slice(0, 24)}…` : lead.tattooStyle}
           </Badge>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border text-muted-foreground">
-            {lead.size}
+          <Badge
+            variant="outline"
+            title={lead.size}
+            className="text-[10px] px-1.5 py-0 border-border text-muted-foreground max-w-[140px] truncate inline-block"
+          >
+            {(lead.size || '').length > 24 ? `${lead.size.slice(0, 24)}…` : lead.size}
           </Badge>
         </div>
 
