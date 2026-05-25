@@ -547,23 +547,8 @@ export default function BulkMessaging() {
                               {selectedTemplate.body}
                             </div>
 
-                            {templateVariables.length > 0 && (
-                              <div className="space-y-2">
-                                <label className="text-xs text-muted-foreground">Map Variables (in order)</label>
-                                {templateVariables.map((v, i) => (
-                                  <div key={i} className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-[10px] shrink-0">{`{{${i + 1}}}`}</Badge>
-                                    <Select value={v} onValueChange={(val) => {
-                                      setTemplateVariables(prev => prev.map((x, idx) => idx === i ? val : x));
-                                    }}>
-                                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        {VARIABLE_PRESETS.map(p => (
-                                          <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
+                            {/* old mapping block removed; replaced by editable inputs below */}
+
                             {templateVariables.length > 0 && (
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
