@@ -366,7 +366,7 @@ const Index = ({ signOut, isAdmin, userRole }: IndexProps) => {
         editLead={editLead}
       />
       <LeadDetailDialog
-        lead={detailLead}
+        lead={detailLead ? (leads.find(l => l.id === detailLead.id) ?? detailLead) : null}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onStatusChange={updateLeadStatus}
