@@ -25,21 +25,71 @@ async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promis
 }
 
 function substitute(text: string, vars: Record<string, string>): string {
-  return text.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? `{{${k}}}`);
+  return text.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
-function buildVarsForRecipient(recip: any, campaign: any): Record<string, string> {
+async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any): Promise<Record<string, string>> {
   const base: Record<string, string> = {
-    name: recip.name || "there",
-    client_name: recip.name || "there",
-    artist_name: "F19 Artist",
+    name: recip.name || "",
+    client_name: recip.name || "",
+    artist_name: "",
     studio_name: "F19 Tattoo Studio",
     appointment_date: "",
+    appointment_time: "",
     amount: "",
   };
-  // Recipient-level overrides
+
+  // Lookup lead by phone for real data — empty if not found
+  try {
+    const cleanPhone = String(recip.phone || "").replace(/[\s\-\(\)]/g, "");
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id, full_name")
+      .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^\+/, "")}`)
+      .maybeSingle();
+
+    if (lead?.full_name && !recip.name) base.client_name = base.name = lead.full_name;
+
+    if (lead?.id) {
+      // Latest appointment for date/time
+      const { data: appt } = await supabase
+        .from("appointments")
+        .select("appointment_date, time_slot")
+        .eq("lead_id", lead.id)
+        .order("appointment_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (appt?.appointment_date) base.appointment_date = String(appt.appointment_date);
+      if (appt?.time_slot) base.appointment_time = String(appt.time_slot);
+
+      // Artist from design task or completion
+      const { data: dt } = await supabase
+        .from("design_tasks")
+        .select("artist_name")
+        .eq("lead_id", lead.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (dt?.artist_name) base.artist_name = dt.artist_name;
+      if (!base.artist_name) {
+        const { data: comp } = await supabase
+          .from("tattoo_completions")
+          .select("artist_name, tattoo_price")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (comp?.artist_name) base.artist_name = comp.artist_name;
+        if (comp?.tattoo_price) base.amount = `₹${comp.tattoo_price}`;
+      }
+    }
+  } catch { /* silent — keep empty defaults */ }
+
+  // Recipient-level overrides win
   if (recip.template_variables && typeof recip.template_variables === "object") {
-    Object.assign(base, recip.template_variables);
+    for (const [k, v] of Object.entries(recip.template_variables)) {
+      if (v !== undefined && v !== null && String(v).trim() !== "") base[k] = String(v);
+    }
   }
   return base;
 }
