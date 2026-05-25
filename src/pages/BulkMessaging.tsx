@@ -93,6 +93,9 @@ export default function BulkMessaging() {
   const [templateVariables, setTemplateVariables] = useState<string[]>([]); // ordered list of variable names mapped to {{1}}..{{n}}
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [templateDebug, setTemplateDebug] = useState<any>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const selectedTemplate = metaTemplates.find(t => t.name === selectedTemplateName);
 
@@ -104,14 +107,24 @@ export default function BulkMessaging() {
 
   const fetchTemplates = useCallback(async () => {
     setTemplatesLoading(true);
+    setTemplateError(null);
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-templates', { method: 'GET' });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const list = ((data as any)?.templates || []) as MetaTemplate[];
+      const payload = data as any;
+      const list = (payload?.templates || []) as MetaTemplate[];
       setMetaTemplates(list);
-      if (list.length === 0) toast.info('No templates found in Meta WhatsApp Manager');
+      setTemplateDebug(payload?.debug || null);
+      if (payload?.error) {
+        setTemplateError(payload.error);
+        toast.error(payload.error);
+      } else if (list.length === 0) {
+        toast.info('No templates found in this WABA');
+      } else {
+        toast.success(`Loaded ${list.length} template(s) from Meta`);
+      }
     } catch (e: any) {
+      setTemplateError(e.message || String(e));
       toast.error(`Failed to load templates: ${e.message || e}`);
     } finally {
       setTemplatesLoading(false);
