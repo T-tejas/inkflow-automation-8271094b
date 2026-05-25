@@ -25,26 +25,77 @@ async function resolvePhoneNumberId(wabaId: string, accessToken: string): Promis
 }
 
 function substitute(text: string, vars: Record<string, string>): string {
-  return text.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? `{{${k}}}`);
+  return text.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
-function buildVarsForRecipient(recip: any, campaign: any): Record<string, string> {
+async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any): Promise<Record<string, string>> {
   const base: Record<string, string> = {
-    name: recip.name || "there",
-    client_name: recip.name || "there",
-    artist_name: "F19 Artist",
+    name: recip.name || "",
+    client_name: recip.name || "",
+    artist_name: "",
     studio_name: "F19 Tattoo Studio",
     appointment_date: "",
+    appointment_time: "",
     amount: "",
   };
-  // Recipient-level overrides
+
+  // Lookup lead by phone for real data — empty if not found
+  try {
+    const cleanPhone = String(recip.phone || "").replace(/[\s\-\(\)]/g, "");
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id, full_name")
+      .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^\+/, "")}`)
+      .maybeSingle();
+
+    if (lead?.full_name && !recip.name) base.client_name = base.name = lead.full_name;
+
+    if (lead?.id) {
+      // Latest appointment for date/time
+      const { data: appt } = await supabase
+        .from("appointments")
+        .select("appointment_date, time_slot")
+        .eq("lead_id", lead.id)
+        .order("appointment_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (appt?.appointment_date) base.appointment_date = String(appt.appointment_date);
+      if (appt?.time_slot) base.appointment_time = String(appt.time_slot);
+
+      // Artist from design task or completion
+      const { data: dt } = await supabase
+        .from("design_tasks")
+        .select("artist_name")
+        .eq("lead_id", lead.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (dt?.artist_name) base.artist_name = dt.artist_name;
+      if (!base.artist_name) {
+        const { data: comp } = await supabase
+          .from("tattoo_completions")
+          .select("artist_name, tattoo_price")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (comp?.artist_name) base.artist_name = comp.artist_name;
+        if (comp?.tattoo_price) base.amount = `₹${comp.tattoo_price}`;
+      }
+    }
+  } catch { /* silent — keep empty defaults */ }
+
+  // Recipient-level overrides win
   if (recip.template_variables && typeof recip.template_variables === "object") {
-    Object.assign(base, recip.template_variables);
+    for (const [k, v] of Object.entries(recip.template_variables)) {
+      if (v !== undefined && v !== null && String(v).trim() !== "") base[k] = String(v);
+    }
   }
   return base;
 }
 
 async function sendOne(
+  supabase: any,
   phoneNumberId: string,
   accessToken: string,
   recip: any,
@@ -54,13 +105,19 @@ async function sendOne(
   let payload: any;
 
   if (campaign.campaign_type === "template" && campaign.template_name) {
-    const vars = buildVarsForRecipient(recip, campaign);
-    // Order variables by declared list (template_variables = array of variable names mapped {{1}}..{{n}})
+    const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
+
+    // Validate: if any mapped variable has no data for this recipient, fail with clear error
+    const missing = varOrder.filter(k => !vars[k] || String(vars[k]).trim() === "");
+    if (missing.length) {
+      return { ok: false, error: `Missing lead data for: ${missing.join(", ")}` };
+    }
+
     const components = varOrder.length
       ? [{
           type: "body",
-          parameters: varOrder.map((key: string) => ({ type: "text", text: substitute(`{{${key}}}`, vars) })),
+          parameters: varOrder.map((key: string) => ({ type: "text", text: String(vars[key]) })),
         }]
       : undefined;
 
@@ -75,7 +132,7 @@ async function sendOne(
       },
     };
   } else {
-    const vars = buildVarsForRecipient(recip, campaign);
+    const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const text = substitute(campaign.message_content || "", vars);
     if (campaign.cta_label && campaign.cta_type) {
       const id = campaign.cta_type === "book" ? "menu_book" : campaign.cta_type === "artist" ? "talk_to_artist" : "menu_designs";
@@ -153,7 +210,7 @@ Deno.serve(async (req) => {
 
     for (const recip of recipients) {
       if (sent + failed > 0) await new Promise(r => setTimeout(r, 700));
-      const result = await sendOne(phoneNumberId, accessToken, recip, campaign);
+      const result = await sendOne(supabase, phoneNumberId, accessToken, recip, campaign);
 
       if (result.ok) {
         await supabase.from("campaign_recipients").update({
@@ -205,7 +262,7 @@ Deno.serve(async (req) => {
     if (failedForRetry.length > 0) {
       await new Promise(r => setTimeout(r, 30_000));
       for (const recip of failedForRetry) {
-        const r2 = await sendOne(phoneNumberId, accessToken, recip, campaign);
+        const r2 = await sendOne(supabase, phoneNumberId, accessToken, recip, campaign);
         if (r2.ok) {
           await supabase.from("campaign_recipients").update({
             status: "sent",

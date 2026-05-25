@@ -28,7 +28,7 @@ interface MetaTemplate {
   variableCount: number;
 }
 
-const VARIABLE_PRESETS = ['client_name', 'artist_name', 'appointment_date', 'amount', 'studio_name'];
+const VARIABLE_PRESETS = ['client_name', 'artist_name', 'appointment_date', 'appointment_time', 'amount', 'studio_name'];
 
 interface Campaign {
   id: string;
@@ -161,7 +161,7 @@ export default function BulkMessaging() {
     setTestSending(true);
     try {
       const sample: Record<string, string> = {
-        client_name: 'Test User', artist_name: 'F19 Artist', appointment_date: 'Tomorrow 4 PM',
+        client_name: 'Test User', artist_name: 'F19 Artist', appointment_date: 'Tomorrow', appointment_time: '4:00 PM',
         amount: '₹2,500', studio_name: 'F19 Tattoo Studio',
       };
       const vars = templateVariables.map(k => sample[k] || k);
