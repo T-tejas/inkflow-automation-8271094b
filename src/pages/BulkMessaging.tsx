@@ -133,9 +133,19 @@ export default function BulkMessaging() {
 
   useEffect(() => { fetchCampaigns(); fetchTemplates(); }, [fetchCampaigns, fetchTemplates]);
 
-  // When a template is picked, init the variable mapping with defaults
+  // When a template is picked, load saved mapping or init defaults
   useEffect(() => {
     if (selectedTemplate) {
+      const saved = localStorage.getItem(`bulk_var_mapping_${selectedTemplate.name}`);
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr) && arr.length === selectedTemplate.variableCount) {
+            setTemplateVariables(arr.map(String));
+            return;
+          }
+        } catch { /* ignore */ }
+      }
       const defaults = Array.from({ length: selectedTemplate.variableCount }, (_, i) =>
         VARIABLE_PRESETS[i] || `var_${i + 1}`
       );
@@ -144,6 +154,13 @@ export default function BulkMessaging() {
       setTemplateVariables([]);
     }
   }, [selectedTemplateName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveVariableMapping = () => {
+    if (!selectedTemplate) return;
+    localStorage.setItem(`bulk_var_mapping_${selectedTemplate.name}`, JSON.stringify(templateVariables));
+    toast.success('Variable mapping saved');
+  };
+
 
   // Realtime: refresh campaigns when delivery status changes
   useEffect(() => {
@@ -530,24 +547,35 @@ export default function BulkMessaging() {
                               {selectedTemplate.body}
                             </div>
 
+                            {/* old mapping block removed; replaced by editable inputs below */}
+
                             {templateVariables.length > 0 && (
                               <div className="space-y-2">
-                                <label className="text-xs text-muted-foreground">Map Variables (in order)</label>
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs text-muted-foreground">Map Variables (in order) — edit freely</label>
+                                  <Button type="button" size="sm" variant="outline" onClick={saveVariableMapping} className="h-7 text-[10px] gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> Save Mapping
+                                  </Button>
+                                </div>
+                                <datalist id="var-presets-list">
+                                  {VARIABLE_PRESETS.map(p => <option key={p} value={p} />)}
+                                </datalist>
                                 {templateVariables.map((v, i) => (
                                   <div key={i} className="flex items-center gap-2">
                                     <Badge variant="outline" className="text-[10px] shrink-0">{`{{${i + 1}}}`}</Badge>
-                                    <Select value={v} onValueChange={(val) => {
-                                      setTemplateVariables(prev => prev.map((x, idx) => idx === i ? val : x));
-                                    }}>
-                                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        {VARIABLE_PRESETS.map(p => (
-                                          <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <Input
+                                      list="var-presets-list"
+                                      value={v}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setTemplateVariables(prev => prev.map((x, idx) => idx === i ? val : x));
+                                      }}
+                                      placeholder="e.g. client_name"
+                                      className="h-8 text-xs"
+                                    />
                                   </div>
                                 ))}
+                                <p className="text-[10px] text-muted-foreground">Type any variable name or pick from suggestions. Click "Save Mapping" so you don't have to redo this next time.</p>
                               </div>
                             )}
 
@@ -569,6 +597,7 @@ export default function BulkMessaging() {
                                 </Button>
                               </div>
                             </div>
+
                           </>
                         )}
                       </div>
