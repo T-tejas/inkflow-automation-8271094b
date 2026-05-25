@@ -182,14 +182,13 @@ async function sendOne(
   accessToken: string,
   recip: any,
   campaign: any,
-): Promise<{ ok: boolean; messageId?: string | null; error?: string; raw?: any }> {
+): Promise<{ ok: boolean; messageId?: string | null; error?: string; raw?: any; preview?: string; vars?: Record<string, string> }> {
   const cleanPhone = String(recip.phone).replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
   let payload: any;
+  const vars = await buildVarsForRecipient(supabase, recip, campaign);
+  const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
 
   if (campaign.campaign_type === "template" && campaign.template_name) {
-    const vars = await buildVarsForRecipient(supabase, recip, campaign);
-    const varOrder: string[] = Array.isArray(campaign.template_variables) ? campaign.template_variables : [];
-
     const components = varOrder.length
       ? [{
           type: "body",
@@ -208,7 +207,6 @@ async function sendOne(
       },
     };
   } else {
-    const vars = await buildVarsForRecipient(supabase, recip, campaign);
     const text = substitute(campaign.message_content || "", vars);
     if (campaign.cta_label && campaign.cta_type) {
       const id = campaign.cta_type === "book" ? "menu_book" : campaign.cta_type === "artist" ? "talk_to_artist" : "menu_designs";
@@ -228,7 +226,7 @@ async function sendOne(
   }
 
   const logPreview = campaign.campaign_type === "template"
-    ? templatePreview(campaign.message_content || "", Array.isArray(campaign.template_variables) ? campaign.template_variables : [], await buildVarsForRecipient(supabase, recip, campaign), campaign.template_name)
+    ? templatePreview(campaign.message_content || "", varOrder, vars, campaign.template_name)
     : campaign.message_content;
 
   try {
@@ -238,11 +236,31 @@ async function sendOne(
       body: JSON.stringify(payload),
     });
     const j = await res.json().catch(() => null);
-    if (res.ok && j?.messages?.[0]?.id) return { ok: true, messageId: j.messages[0].id, raw: j, preview: logPreview } as any;
-    return { ok: false, error: j?.error?.message || `HTTP ${res.status}`, raw: j, preview: logPreview } as any;
+    if (res.ok && j?.messages?.[0]?.id) return { ok: true, messageId: j.messages[0].id, raw: j, preview: logPreview, vars };
+    return { ok: false, error: j?.error?.message || `HTTP ${res.status}`, raw: j, preview: logPreview, vars };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Network error", preview: logPreview } as any;
+    return { ok: false, error: e instanceof Error ? e.message : "Network error", preview: logPreview, vars };
   }
+}
+
+async function logCampaignMessage(supabase: any, recip: any, campaign: any, campaignId: string, result: any, status: "sent" | "failed") {
+  const leadRow = await findLeadByPhone(supabase, recip.phone);
+  const templateName = campaign.campaign_type === "template" ? campaign.template_name : `campaign_${campaignId.slice(0, 8)}`;
+  const { error } = await supabase.from("whatsapp_messages").insert({
+    lead_phone: leadRow?.phone || recip.phone,
+    lead_name: leadRow?.full_name || recip.name || "Unknown",
+    lead_id: leadRow?.id || null,
+    template_name: templateName,
+    template_type: campaign.campaign_type === "template" ? "utility" : "promo",
+    template_language: campaign.template_language || null,
+    template_variables: result?.vars || recip.template_variables || {},
+    status,
+    meta_message_id: result?.messageId || null,
+    error_message: status === "failed" ? result?.error || "Unknown error" : null,
+    message_body: result?.preview || (campaign.campaign_type === "template" ? `[Template] ${templateName}` : campaign.message_content),
+    message_type: campaign.campaign_type === "template" ? "template" : "text",
+  });
+  if (error) console.error("[send-bulk-campaign] whatsapp_messages log failed", error);
 }
 
 Deno.serve(async (req) => {
