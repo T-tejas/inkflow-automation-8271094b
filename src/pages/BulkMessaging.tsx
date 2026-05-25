@@ -93,6 +93,9 @@ export default function BulkMessaging() {
   const [templateVariables, setTemplateVariables] = useState<string[]>([]); // ordered list of variable names mapped to {{1}}..{{n}}
   const [testPhone, setTestPhone] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [templateDebug, setTemplateDebug] = useState<any>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   const selectedTemplate = metaTemplates.find(t => t.name === selectedTemplateName);
 
@@ -104,14 +107,24 @@ export default function BulkMessaging() {
 
   const fetchTemplates = useCallback(async () => {
     setTemplatesLoading(true);
+    setTemplateError(null);
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp-templates', { method: 'GET' });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const list = ((data as any)?.templates || []) as MetaTemplate[];
+      const payload = data as any;
+      const list = (payload?.templates || []) as MetaTemplate[];
       setMetaTemplates(list);
-      if (list.length === 0) toast.info('No templates found in Meta WhatsApp Manager');
+      setTemplateDebug(payload?.debug || null);
+      if (payload?.error) {
+        setTemplateError(payload.error);
+        toast.error(payload.error);
+      } else if (list.length === 0) {
+        toast.info('No templates found in this WABA');
+      } else {
+        toast.success(`Loaded ${list.length} template(s) from Meta`);
+      }
     } catch (e: any) {
+      setTemplateError(e.message || String(e));
       toast.error(`Failed to load templates: ${e.message || e}`);
     } finally {
       setTemplatesLoading(false);
@@ -359,20 +372,49 @@ export default function BulkMessaging() {
                 <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" /> Meta-Approved WhatsApp Templates
                 </h2>
-                <p className="text-xs text-muted-foreground">Fetched live from Meta WhatsApp Manager · {metaTemplates.length} templates</p>
+                <p className="text-xs text-muted-foreground">Live from Meta · {metaTemplates.length} total · {metaTemplates.filter(t => t.status === 'APPROVED').length} approved {templateDebug?.resolved_waba_id && <span className="ml-1 opacity-60">· WABA {templateDebug.resolved_waba_id}</span>}</p>
               </div>
-              <Button size="sm" variant="outline" onClick={fetchTemplates} disabled={templatesLoading} className="gap-1.5 text-xs">
-                <RefreshCw className={`h-3.5 w-3.5 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setShowDebug(v => !v)} className="text-xs">
+                  {showDebug ? 'Hide' : 'Show'} debug
+                </Button>
+                <Button size="sm" variant="outline" onClick={fetchTemplates} disabled={templatesLoading} className="gap-1.5 text-xs">
+                  <RefreshCw className={`h-3.5 w-3.5 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
+                </Button>
+              </div>
             </div>
+
+            {(showDebug || templateError || metaTemplates.length === 0) && templateDebug && (
+              <Card className="glass-card mb-3 border-amber-500/30">
+                <CardContent className="py-3 text-[11px] space-y-1.5">
+                  <div className="font-semibold text-amber-400 flex items-center gap-2">Debug · Meta API</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                    <div><span className="opacity-60">Stored ID:</span> <code className="text-foreground">{templateDebug.stored_id}</code></div>
+                    <div><span className="opacity-60">Resolved WABA:</span> <code className="text-foreground">{templateDebug.resolved_waba_id || '—'}</code></div>
+                    <div><span className="opacity-60">ID kind:</span> <code className="text-foreground">{templateDebug.id_kind}</code></div>
+                    <div><span className="opacity-60">Auto-resolved:</span> <code className="text-foreground">{String(templateDebug.auto_resolved)}</code></div>
+                    <div><span className="opacity-60">Token valid:</span> <code className="text-foreground">{String(templateDebug.token_valid)}</code></div>
+                    <div><span className="opacity-60">Raw count:</span> <code className="text-foreground">{templateDebug.raw_count ?? '—'}</code></div>
+                  </div>
+                  {templateDebug.token_scopes && (
+                    <div className="pt-1"><span className="opacity-60">Scopes:</span> <code className="text-foreground break-all">{Array.isArray(templateDebug.token_scopes) ? templateDebug.token_scopes.join(', ') : JSON.stringify(templateDebug.token_scopes)}</code></div>
+                  )}
+                  {templateError && <div className="text-red-400 pt-1">⚠ {templateError}</div>}
+                  {showDebug && (
+                    <pre className="mt-2 max-h-60 overflow-auto bg-muted/40 p-2 rounded text-[10px]">{JSON.stringify(templateDebug, null, 2)}</pre>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {templatesLoading && metaTemplates.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">Loading templates from Meta...</div>
             ) : metaTemplates.length === 0 ? (
               <Card className="glass-card">
                 <CardContent className="py-10 text-center text-sm text-muted-foreground space-y-2">
                   <MessageSquare className="h-8 w-8 mx-auto opacity-40" />
-                  <p>No templates found.</p>
-                  <p className="text-xs">Ensure WABA ID & Access Token are set in WhatsApp Settings and templates are APPROVED in Meta Business Manager.</p>
+                  <p>No templates found in this WABA.</p>
+                  <p className="text-xs">Token needs <code>whatsapp_business_management</code> + <code>whatsapp_business_messaging</code>. Ensure the WABA ID above matches Meta Business Manager → WhatsApp Accounts.</p>
                 </CardContent>
               </Card>
             ) : (

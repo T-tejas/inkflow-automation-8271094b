@@ -16,6 +16,58 @@ async function getSettings(supabase: any) {
   return m;
 }
 
+async function metaGet(path: string, token: string) {
+  const r = await fetch(`https://graph.facebook.com/v22.0/${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const body = await r.json().catch(() => null);
+  return { ok: r.ok, status: r.status, body };
+}
+
+/**
+ * Resolves the real WhatsApp Business Account ID.
+ * Handles three cases the user might have stored:
+ *   1. Already a WABA ID → returned as-is.
+ *   2. A Phone Number ID → resolves via `?fields=whatsapp_business_account`.
+ *   3. Garbage / wrong ID → returns null + reason.
+ */
+async function resolveWaba(storedId: string, token: string) {
+  // 1) Maybe it IS already a WABA — try fetching templates lightly
+  const tplProbe = await metaGet(`${storedId}/message_templates?limit=1`, token);
+  if (tplProbe.ok) {
+    return { wabaId: storedId, autoResolvedFrom: null, kind: "waba_id", probe: { ok: true } };
+  }
+
+  // 2) Maybe it's a Phone Number ID — try to get its parent WABA
+  const phoneProbe = await metaGet(`${storedId}?fields=display_phone_number,verified_name`, token);
+  if (phoneProbe.ok && phoneProbe.body?.display_phone_number) {
+    // Try owning WABA via business account chain
+    const owner = await metaGet(`${storedId}?fields=account_mode,messaging_limit_tier`, token);
+    // Enumerate WABAs accessible by this token and match by phone_numbers
+    const businesses = await metaGet(`me/businesses?fields=id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}`, token);
+    const owned: any[] = [];
+    for (const biz of businesses.body?.data || []) {
+      for (const w of biz?.owned_whatsapp_business_accounts?.data || []) {
+        owned.push(w);
+        for (const p of w?.phone_numbers?.data || []) {
+          if (String(p.id) === String(storedId)) {
+            return { wabaId: w.id, autoResolvedFrom: storedId, kind: "phone_number_id", probe: { phone: phoneProbe.body, matchedWaba: w } };
+          }
+        }
+      }
+    }
+    return { wabaId: null, autoResolvedFrom: storedId, kind: "phone_number_id_no_match", probe: { phone: phoneProbe.body, owner: owner.body, candidate_wabas: owned } };
+  }
+
+  // 3) Last resort — enumerate WABAs and return list as candidates
+  const businesses = await metaGet(`me/businesses?fields=id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}`, token);
+  const candidates: any[] = [];
+  for (const biz of businesses.body?.data || []) {
+    for (const w of biz?.owned_whatsapp_business_accounts?.data || []) candidates.push(w);
+  }
+  return { wabaId: null, autoResolvedFrom: null, kind: "unknown", probe: { tplProbe: tplProbe.body, phoneProbe: phoneProbe.body, candidate_wabas: candidates } };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -23,26 +75,53 @@ Deno.serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const settings = await getSettings(supabase);
 
-    const accessToken = settings["access_token"] || settings["whatsapp_access_token"] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    const wabaId = settings["whatsapp_business_account_id"] || settings["waba_id"];
+    const accessToken =
+      settings["access_token"] || settings["whatsapp_access_token"] || Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+    const storedWabaId =
+      settings["whatsapp_business_account_id"] || settings["waba_id"];
 
-    if (!accessToken) return json({ error: "WhatsApp access token not configured" }, 400);
-    if (!wabaId) return json({ error: "WhatsApp Business Account ID (WABA ID) not configured" }, 400);
+    if (!accessToken) return json({ error: "WhatsApp access token not configured", debug: { settingsKeys: Object.keys(settings) } }, 400);
+    if (!storedWabaId) return json({ error: "WhatsApp Business Account ID not configured", debug: { settingsKeys: Object.keys(settings) } }, 400);
 
-    // Optional: testTemplate path
+    // Token permission probe
+    const tokenInfo = await metaGet(`debug_token?input_token=${encodeURIComponent(accessToken)}`, accessToken);
+
+    // Auto-resolve WABA (handles stored Phone Number ID)
+    const resolved = await resolveWaba(storedWabaId, accessToken);
+
+    // If we auto-resolved, persist the real WABA back so future calls are clean
+    if (resolved.wabaId && resolved.autoResolvedFrom) {
+      await supabase
+        .from("whatsapp_settings")
+        .upsert(
+          { setting_key: "whatsapp_business_account_id", setting_value: resolved.wabaId, updated_at: new Date().toISOString() },
+          { onConflict: "setting_key" },
+        );
+    }
+
+    const debug: any = {
+      stored_id: storedWabaId,
+      resolved_waba_id: resolved.wabaId,
+      auto_resolved: !!resolved.autoResolvedFrom,
+      id_kind: resolved.kind,
+      probe: resolved.probe,
+      token_scopes: tokenInfo.body?.data?.scopes || tokenInfo.body?.data?.granular_scopes || null,
+      token_valid: tokenInfo.body?.data?.is_valid ?? null,
+      token_expires_at: tokenInfo.body?.data?.expires_at ?? null,
+    };
+
+    // Test action (single send) — POST { action: 'test', ... }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body?.action === "test") {
         const { phone, templateName, language = "en_US", variables = [] } = body;
         if (!phone || !templateName) return json({ error: "phone and templateName required" }, 400);
+        if (!resolved.wabaId) return json({ error: "Could not resolve WABA ID", debug }, 400);
 
         const envPhoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-        const phoneRes = await fetch(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers?fields=id`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const phoneJson = await phoneRes.json().catch(() => null);
-        const phoneNumberId = phoneJson?.data?.[0]?.id || envPhoneId;
-        if (!phoneNumberId) return json({ error: "Could not resolve Phone Number ID" }, 500);
+        const phoneRes = await metaGet(`${resolved.wabaId}/phone_numbers?fields=id`, accessToken);
+        const phoneNumberId = phoneRes.body?.data?.[0]?.id || envPhoneId;
+        if (!phoneNumberId) return json({ error: "Could not resolve Phone Number ID", debug }, 500);
 
         const cleanPhone = String(phone).replace(/[\s\-\(\)]/g, "").replace(/^\+/, "");
         const components = Array.isArray(variables) && variables.length
@@ -62,31 +141,33 @@ Deno.serve(async (req) => {
           body: JSON.stringify(payload),
         });
         const result = await r.json().catch(() => null);
-        if (!r.ok) return json({ error: result?.error?.message || "Send failed", details: result }, 502);
-        return json({ success: true, messageId: result?.messages?.[0]?.id, result });
+        if (!r.ok) return json({ error: result?.error?.message || "Send failed", details: result, debug }, 502);
+        return json({ success: true, messageId: result?.messages?.[0]?.id, result, debug });
       }
     }
 
-    // GET → list approved templates
-    const url = `https://graph.facebook.com/v22.0/${wabaId}/message_templates?fields=name,status,category,language,components&limit=200`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      // Detect common misconfig: user stored Phone Number ID instead of WABA ID
-      const probe = await fetch(`https://graph.facebook.com/v22.0/${wabaId}?fields=display_phone_number,verified_name`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }).then((r) => r.json()).catch(() => null);
-      if (probe?.display_phone_number) {
-        return json({
-          error: `The ID configured as "WhatsApp Business Account ID" (${wabaId}) is actually a Phone Number ID for ${probe.verified_name} (${probe.display_phone_number}). Please open Meta Business Manager → WhatsApp Accounts and copy the WABA ID (shown above the phone number), then update it in CRM Settings → WhatsApp.`,
-          details: data,
-        }, 400);
-      }
-      return json({ error: data?.error?.message || "Failed to fetch templates", details: data }, 502);
+    if (!resolved.wabaId) {
+      return json({
+        error: `Could not resolve a valid WhatsApp Business Account ID from "${storedWabaId}". Open Meta Business Manager → WhatsApp Accounts and copy the WABA ID (numeric, shown above the phone number).`,
+        templates: [],
+        debug,
+      }, 200);
     }
 
+    // Fetch all templates (no status filter, but expose status per item; UI will display)
+    const tplUrl = `${resolved.wabaId}/message_templates?fields=name,status,category,language,components&limit=200`;
+    const tplRes = await metaGet(tplUrl, accessToken);
 
-    const templates = (data?.data || []).map((t: any) => {
+    if (!tplRes.ok) {
+      return json({
+        error: tplRes.body?.error?.message || "Failed to fetch templates",
+        templates: [],
+        debug: { ...debug, meta_response: tplRes.body, endpoint: tplUrl },
+      }, 200);
+    }
+
+    const raw = tplRes.body?.data || [];
+    const templates = raw.map((t: any) => {
       const bodyComp = (t.components || []).find((c: any) => c.type === "BODY");
       const bodyText: string = bodyComp?.text || "";
       const matches = bodyText.match(/\{\{\d+\}\}/g) || [];
@@ -101,8 +182,11 @@ Deno.serve(async (req) => {
       };
     });
 
-    return json({ templates });
+    return json({
+      templates,
+      debug: { ...debug, raw_count: raw.length, approved_count: templates.filter((t: any) => t.status === "APPROVED").length, endpoint: tplUrl },
+    });
   } catch (err) {
-    return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
+    return json({ error: err instanceof Error ? err.message : "Unknown error", templates: [] }, 200);
   }
 });
