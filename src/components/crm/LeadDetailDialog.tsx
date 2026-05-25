@@ -284,12 +284,17 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onE
 
 function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-0.5 min-w-0">
       <div className="flex items-center gap-1 text-muted-foreground">
         <Icon className="h-3 w-3" />
         <span className="text-[10px] uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-foreground text-xs font-medium">{value}</p>
+      <p
+        className="text-foreground text-xs font-medium break-words line-clamp-3"
+        title={value}
+      >
+        {value}
+      </p>
     </div>
   );
 }
