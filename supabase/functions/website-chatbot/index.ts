@@ -20,27 +20,39 @@ Goals:
 - Answer queries about tattoo styles, pricing (₹), booking, aftercare, studio hours.
 - Studio: open 11 AM - 8 PM, all 7 days. Located in India. Custom designs by expert artists.
 - PRICING (STRICT — never quote lower):
-  • Minimum charge: ₹2,000 (smallest tattoos only).
-  • Small tattoos (2-3 inch): ₹2,000 - ₹5,000.
-  • Medium tattoos (4-6 inch): ₹5,000 - ₹12,000.
-  • Large / custom / sleeves: ₹15,000+ (can go ₹50,000+).
-  • Colour, detail, placement and artist time affect final price.
-  • NEVER quote ₹500, ₹800, ₹1,000 or anything below ₹2,000. If user asks for cheap rate, politely say minimum is ₹2,000.
-- If user asks to book / wants appointment / shares phone/name → ask for: name, phone, tattoo idea, preferred date.
-- Keep replies short, warm, emoji-friendly. Reply in same language as user (Hindi/English/Hinglish).
-- For specific designs always suggest a free consultation for exact quote.
-- When you have collected name + phone, say "Great, our team will reach out shortly on WhatsApp!" and END the lead-capture flow.`;
+  • Minimum charge: ₹2,000. Small ₹2,000-5,000. Medium ₹5,000-12,000. Large/sleeves ₹15,000+.
+  • NEVER quote below ₹2,000.
+- LEAD CAPTURE (collect one by one, in this order, BEFORE closing):
+  1. Name — "May I know your good name?"
+  2. WhatsApp number
+  3. Tattoo idea / design
+  4. Placement on body (forearm, wrist, back, etc.)
+  5. Approx size
+  6. Preferred date
+- After name + phone are received, confirm: "Great <Name>, our team will reach out shortly on WhatsApp!"
+- Keep replies short, warm, emoji-friendly. Reply in user's language (Hindi/English/Hinglish).`;
 
 function extractContact(msgs: Array<{ role: string; content: string }>) {
-  // Find phone (10+ digits) and a likely name from user messages
   const userText = msgs.filter(m => m.role === "user").map(m => m.content).join("\n");
   const phoneMatch = userText.match(/(?:\+?91[\s-]?)?[6-9]\d{9}/);
   const phone = phoneMatch ? phoneMatch[0] : null;
 
-  // Name heuristic: line like "my name is X" or "I am X"
-  const nameMatch = userText.match(/(?:my name is|i am|i'm|mera naam|name[:\-])\s+([a-zA-Z][a-zA-Z\s]{1,40})/i);
-  const name = nameMatch ? nameMatch[1].trim().split(/\s+/).slice(0, 3).join(" ") : null;
-  return { phone, name };
+  const nameMatch = userText.match(/(?:my name is|i am|i'm|mera naam|myself|this is|name[:\-])\s+([a-zA-Z][a-zA-Z\s]{1,40})/i);
+  let name = nameMatch ? nameMatch[1].trim().split(/\s+/).slice(0, 3).join(" ") : null;
+  if (name) name = name.replace(/\b(is|hai|here|from)\b/gi, "").trim();
+
+  const bodyParts = /\b(forearm|wrist|arm|bicep|shoulder|back|chest|neck|thigh|leg|calf|ankle|hand|finger|rib|ribs|hip|stomach|foot|spine|collarbone)\b/i;
+  const placementMatch = userText.match(/(?:placement|place|jagah|on my|on the)[:\s\-]+([a-zA-Z\s]{2,30})/i);
+  let placement: string | null = placementMatch ? placementMatch[1].trim().split(/[.,\n]/)[0].trim() : null;
+  if (!placement) {
+    const m = userText.match(bodyParts);
+    placement = m ? m[1] : null;
+  }
+
+  const ideaMatch = userText.match(/(?:tattoo of|want a|chahiye|design of|banwana hai|getting a)\s+([a-zA-Z0-9\s]{2,60})/i);
+  const tattooIdea = ideaMatch ? ideaMatch[1].trim().split(/[.,\n]/)[0].trim() : null;
+
+  return { phone, name, placement, tattooIdea };
 }
 
 function normalizePhone(raw: string) {
@@ -83,13 +95,13 @@ Deno.serve(async (req) => {
     const reply = data?.choices?.[0]?.message?.content || "Sorry, please try again.";
 
     // Auto-capture lead if contact info present
-    const { phone, name } = extractContact(messages);
+    const { phone, name, placement, tattooIdea } = extractContact(messages);
     let leadId: string | null = null;
     if (phone) {
       const normalized = normalizePhone(phone);
       const fullName = name || "Website Chat Lead";
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
-      const notes = `📥 Website Chatbot\nLast message: ${lastUserMsg}\nSession: ${sessionId || "n/a"}`;
+      const notes = `📥 Website Chatbot\n${tattooIdea ? `Idea: ${tattooIdea}\n` : ""}${placement ? `Placement: ${placement}\n` : ""}Last message: ${lastUserMsg}\nSession: ${sessionId || "n/a"}`;
 
       const { data: existing } = await supabase
         .from("leads")
@@ -100,6 +112,11 @@ Deno.serve(async (req) => {
 
       if (existing) {
         leadId = existing.id;
+        const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (name) updates.full_name = fullName;
+        if (placement) updates.placement = placement;
+        if (tattooIdea) updates.notes = notes;
+        await supabase.from("leads").update(updates).eq("id", existing.id);
       } else {
         const { data: lead } = await supabase
           .from("leads")
@@ -108,6 +125,7 @@ Deno.serve(async (req) => {
             phone: normalized,
             source: "Website Chat",
             status: "New Lead",
+            placement: placement || "",
             notes,
             tags: ["website-chatbot"],
             whatsapp_opt_in: true,
@@ -122,6 +140,8 @@ Deno.serve(async (req) => {
             lead_phone: normalized,
             notification_type: "website_chatbot",
             lead_source: "Website Chat",
+            placement: placement || null,
+            tattoo_idea: tattooIdea || null,
             chat_summary: lastUserMsg.slice(0, 200),
           });
         }
