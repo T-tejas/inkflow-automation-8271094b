@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
 
     for (const recip of recipients) {
       if (sent + failed > 0) await new Promise(r => setTimeout(r, 700));
-      const result = await sendOne(phoneNumberId, accessToken, recip, campaign);
+      const result = await sendOne(supabase, phoneNumberId, accessToken, recip, campaign);
 
       if (result.ok) {
         await supabase.from("campaign_recipients").update({
@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
     if (failedForRetry.length > 0) {
       await new Promise(r => setTimeout(r, 30_000));
       for (const recip of failedForRetry) {
-        const r2 = await sendOne(phoneNumberId, accessToken, recip, campaign);
+        const r2 = await sendOne(supabase, phoneNumberId, accessToken, recip, campaign);
         if (r2.ok) {
           await supabase.from("campaign_recipients").update({
             status: "sent",
