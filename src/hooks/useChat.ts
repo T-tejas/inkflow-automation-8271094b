@@ -61,6 +61,27 @@ function mapRow(row: any): ChatMessage {
 
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+Onp2XjHVjWGJ0hZSdmpKCcGFfbX+QnZuUh3ZoYWp6i5iamZOGdmhlanqLmJqZk4Z2aA==';
 
+function phoneKey(phone: string | null | undefined) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.slice(-10) || digits;
+}
+
+function phoneVariants(phone: string) {
+  const raw = String(phone || '').trim();
+  const compact = raw.replace(/[\s\-\(\)]/g, '');
+  const digits = compact.replace(/^\+/, '').replace(/\D/g, '');
+  const last10 = digits.slice(-10);
+  return Array.from(new Set([
+    raw,
+    compact,
+    compact.replace(/^\+/, ''),
+    digits,
+    digits ? `+${digits}` : '',
+    last10 ? `+91${last10}` : '',
+    last10 ? `+91 ${last10}` : '',
+  ].filter(Boolean)));
+}
+
 export function useChat() {
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -91,7 +112,7 @@ export function useChat() {
 
     if (allMessages) {
       for (const m of allMessages) {
-        const phone = m.lead_phone;
+        const phone = phoneKey(m.lead_phone);
         if (!msgMap.has(phone)) {
           let lastMsg = m.message_body || m.template_name;
           // Show media type indicator for media messages
@@ -113,7 +134,7 @@ export function useChat() {
     }
 
     const contactList: ChatContact[] = leads.map((l: any) => {
-      const info = msgMap.get(l.phone);
+      const info = msgMap.get(phoneKey(l.phone));
       return {
         leadId: l.id,
         leadName: l.full_name,
@@ -145,7 +166,7 @@ export function useChat() {
     const { data } = await supabase
       .from('whatsapp_messages')
       .select('*')
-      .eq('lead_phone', phone)
+      .in('lead_phone', phoneVariants(phone))
       .order('created_at', { ascending: true });
 
     setMessages(data ? data.map(mapRow) : []);
@@ -156,7 +177,7 @@ export function useChat() {
     await supabase
       .from('whatsapp_messages')
       .update({ read_at: new Date().toISOString() } as any)
-      .eq('lead_phone', phone)
+      .in('lead_phone', phoneVariants(phone))
       .in('template_type', ['incoming'])
       .is('read_at', null);
 
@@ -177,7 +198,7 @@ export function useChat() {
       .channel('chat-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_messages' }, (payload) => {
         const newMsg = mapRow(payload.new);
-        if (newMsg.leadPhone === selectedPhone) {
+        if (phoneKey(newMsg.leadPhone) === phoneKey(selectedPhone)) {
           setMessages(prev => [...prev, newMsg]);
         }
         if (newMsg.templateType === 'incoming' || newMsg.status === 'received') {
@@ -298,7 +319,7 @@ export function useChat() {
     const { error } = await supabase
       .from('whatsapp_messages')
       .delete()
-      .eq('lead_phone', phone);
+      .in('lead_phone', phoneVariants(phone));
     if (error) throw error;
     setMessages([]);
     await fetchContacts();
