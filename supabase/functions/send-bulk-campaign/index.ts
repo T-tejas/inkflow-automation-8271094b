@@ -28,6 +28,99 @@ function substitute(text: string, vars: Record<string, string>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+const INVISIBLE_EMPTY_TEXT = "\u200C";
+
+function phoneDigits(phone: string) {
+  return String(phone || "").replace(/\D/g, "");
+}
+
+function phoneVariants(phone: string) {
+  const raw = String(phone || "").trim();
+  const compact = raw.replace(/[\s\-\(\)]/g, "");
+  const digits = phoneDigits(raw);
+  const last10 = digits.slice(-10);
+  return Array.from(new Set([
+    raw,
+    compact,
+    compact.replace(/^\+/, ""),
+    digits,
+    digits ? `+${digits}` : "",
+    last10 ? `+91${last10}` : "",
+    last10 ? `+91 ${last10}` : "",
+  ].filter(Boolean)));
+}
+
+async function findLeadByPhone(supabase: any, phone: string) {
+  const variants = phoneVariants(phone);
+  const { data: exact } = await supabase
+    .from("leads")
+    .select("id, full_name, phone, preferred_date, updated_at")
+    .in("phone", variants)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+
+  if (exact?.length) {
+    const raw = String(phone || "").trim();
+    const compact = raw.replace(/[\s\-\(\)]/g, "");
+    return exact.find((l: any) => l.phone === raw) || exact.find((l: any) => l.phone === compact) || exact[0];
+  }
+
+  const last10 = phoneDigits(phone).slice(-10);
+  if (!last10) return null;
+
+  const { data: candidates } = await supabase
+    .from("leads")
+    .select("id, full_name, phone, preferred_date, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(2000);
+
+  return (candidates || []).find((l: any) => phoneDigits(l.phone).slice(-10) === last10) || null;
+}
+
+async function findLatestAppointment(supabase: any, lead: any, phone: string) {
+  const pickActive = (rows: any[] = []) => rows.find((a) => String(a.status || "").toLowerCase() !== "cancelled") || rows[0] || null;
+
+  if (lead?.id) {
+    const { data } = await supabase
+      .from("appointments")
+      .select("appointment_date, time_slot, status, updated_at")
+      .eq("lead_id", lead.id)
+      .order("updated_at", { ascending: false })
+      .limit(10);
+    const active = pickActive(data || []);
+    if (active) return active;
+  }
+
+  const variants = phoneVariants(lead?.phone || phone);
+  const { data: exact } = await supabase
+    .from("appointments")
+    .select("appointment_date, time_slot, status, lead_phone, updated_at")
+    .in("lead_phone", variants)
+    .order("updated_at", { ascending: false })
+    .limit(10);
+  const activeExact = pickActive(exact || []);
+  if (activeExact) return activeExact;
+
+  const last10 = phoneDigits(lead?.phone || phone).slice(-10);
+  if (!last10) return null;
+  const { data: candidates } = await supabase
+    .from("appointments")
+    .select("appointment_date, time_slot, status, lead_phone, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(2000);
+  return pickActive((candidates || []).filter((a: any) => phoneDigits(a.lead_phone).slice(-10) === last10));
+}
+
+function templatePreview(body: string, order: string[], vars: Record<string, string>, templateName: string) {
+  const rendered = String(body || "").replace(/\{\{(\d+)\}\}/g, (_, idx) => vars[order[Number(idx) - 1]] || "");
+  return rendered.trim() ? rendered : `[Template] ${templateName}`;
+}
+
+function templateParam(value: string | undefined) {
+  const text = String(value || "").trim();
+  return text || INVISIBLE_EMPTY_TEXT;
+}
+
 async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any): Promise<Record<string, string>> {
   const base: Record<string, string> = {
     name: recip.name || "",
@@ -41,24 +134,13 @@ async function buildVarsForRecipient(supabase: any, recip: any, _campaign: any):
 
   // Lookup lead by phone for real data — empty if not found
   try {
-    const cleanPhone = String(recip.phone || "").replace(/[\s\-\(\)]/g, "");
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("id, full_name")
-      .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^\+/, "")}`)
-      .maybeSingle();
+    const lead = await findLeadByPhone(supabase, recip.phone);
 
     if (lead?.full_name && !recip.name) base.client_name = base.name = lead.full_name;
 
     if (lead?.id) {
       // Latest appointment for date/time
-      const { data: appt } = await supabase
-        .from("appointments")
-        .select("appointment_date, time_slot")
-        .eq("lead_id", lead.id)
-        .order("appointment_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const appt = await findLatestAppointment(supabase, lead, recip.phone);
       if (appt?.appointment_date) base.appointment_date = String(appt.appointment_date);
       if (appt?.time_slot) base.appointment_time = String(appt.time_slot);
 
