@@ -142,6 +142,33 @@ Deno.serve(async (req) => {
         });
         const result = await r.json().catch(() => null);
         if (!r.ok) return json({ error: result?.error?.message || "Send failed", details: result, debug }, 502);
+
+        // Log to whatsapp_messages so it appears in CRM Chats
+        try {
+          const variants = [`+${cleanPhone}`, cleanPhone];
+          const { data: lead } = await supabase
+            .from("leads")
+            .select("id, full_name, phone")
+            .in("phone", variants)
+            .maybeSingle();
+
+          await supabase.from("whatsapp_messages").insert({
+            lead_phone: lead?.phone || `+${cleanPhone}`,
+            lead_name: lead?.full_name || "Test Recipient",
+            lead_id: lead?.id || null,
+            template_name: templateName,
+            template_type: "utility",
+            template_language: language,
+            template_variables: variables,
+            status: "sent",
+            meta_message_id: result?.messages?.[0]?.id,
+            message_body: `[Template] ${templateName}${Array.isArray(variables) && variables.length ? ` — ${variables.join(" | ")}` : ""}`,
+            message_type: "template",
+          });
+        } catch (logErr) {
+          console.error("[whatsapp-templates] log failed:", logErr);
+        }
+
         return json({ success: true, messageId: result?.messages?.[0]?.id, result, debug });
       }
     }
