@@ -434,34 +434,135 @@ export default function BulkMessaging() {
                       <label className="text-xs text-muted-foreground mb-1 block">Campaign Name</label>
                       <Input value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="e.g. March Promo" />
                     </div>
+
+                    {/* Campaign Type Toggle */}
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Message Content</label>
-                      <Textarea
-                        value={messageContent}
-                        onChange={e => setMessageContent(e.target.value)}
-                        placeholder="Hi {{client_name}}, check out our latest designs..."
-                        className="min-h-[120px]"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">Variables: {'{{client_name}}'} {'{{tattoo_idea}}'} {'{{appointment_date}}'} {'{{artist_name}}'}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">CTA Button</label>
-                        <Select value={ctaType} onValueChange={setCtaType}>
-                          <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No CTA</SelectItem>
-                            {CTA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Button Label</label>
-                        <Input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} placeholder="e.g. Book Now" disabled={!ctaType || ctaType === 'none'} />
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Message Type</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCampaignType('text')}
+                          className={`px-3 py-2 rounded-md text-xs font-medium border transition-all ${campaignType === 'text' ? 'bg-primary/10 border-primary text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Free Text (24h window)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCampaignType('template')}
+                          className={`px-3 py-2 rounded-md text-xs font-medium border transition-all flex items-center justify-center gap-1.5 ${campaignType === 'template' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          <ShieldCheck className="h-3 w-3" /> Approved Template
+                        </button>
                       </div>
                     </div>
+
+                    {campaignType === 'template' ? (
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs text-muted-foreground">Select Meta Template</label>
+                            <button type="button" onClick={fetchTemplates} disabled={templatesLoading} className="text-[10px] text-primary hover:underline flex items-center gap-1">
+                              <RefreshCw className={`h-3 w-3 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
+                            </button>
+                          </div>
+                          <Select value={selectedTemplateName} onValueChange={setSelectedTemplateName}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={templatesLoading ? 'Loading...' : 'Pick approved template'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {metaTemplates.filter(t => t.status === 'APPROVED').map(t => (
+                                <SelectItem key={`${t.name}-${t.language}`} value={t.name}>
+                                  {t.name} · {t.category} · {t.language}
+                                </SelectItem>
+                              ))}
+                              {metaTemplates.filter(t => t.status === 'APPROVED').length === 0 && (
+                                <div className="px-2 py-3 text-xs text-muted-foreground">No approved templates</div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {selectedTemplate && (
+                          <>
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 border border-border/50">
+                              {selectedTemplate.body}
+                            </div>
+
+                            {templateVariables.length > 0 && (
+                              <div className="space-y-2">
+                                <label className="text-xs text-muted-foreground">Map Variables (in order)</label>
+                                {templateVariables.map((v, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[10px] shrink-0">{`{{${i + 1}}}`}</Badge>
+                                    <Select value={v} onValueChange={(val) => {
+                                      setTemplateVariables(prev => prev.map((x, idx) => idx === i ? val : x));
+                                    }}>
+                                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        {VARIABLE_PRESETS.map(p => (
+                                          <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Test send */}
+                            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
+                              <p className="text-[10px] uppercase font-semibold tracking-wider text-emerald-400 flex items-center gap-1">
+                                <Zap className="h-3 w-3" /> Send Test Template
+                              </p>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={testPhone}
+                                  onChange={e => setTestPhone(e.target.value)}
+                                  placeholder="+919876543210"
+                                  className="h-8 text-xs"
+                                />
+                                <Button size="sm" onClick={sendTestTemplate} disabled={testSending} className="h-8 text-xs gap-1 shrink-0">
+                                  {testSending ? <Clock className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                                  Test
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">Message Content</label>
+                          <Textarea
+                            value={messageContent}
+                            onChange={e => setMessageContent(e.target.value)}
+                            placeholder="Hi {{client_name}}, check out our latest designs..."
+                            className="min-h-[120px]"
+                          />
+                          <p className="text-[10px] text-muted-foreground mt-1">Variables: {'{{client_name}}'} {'{{artist_name}}'} {'{{appointment_date}}'} {'{{amount}}'} {'{{studio_name}}'}</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">CTA Button</label>
+                            <Select value={ctaType} onValueChange={setCtaType}>
+                              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No CTA</SelectItem>
+                                {CTA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">Button Label</label>
+                            <Input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} placeholder="e.g. Book Now" disabled={!ctaType || ctaType === 'none'} />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
+
 
                 {/* Cost Estimate & Preview */}
                 {recipients.length > 0 && (
