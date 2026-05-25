@@ -176,7 +176,22 @@
   if (dateInput) {
     var today = new Date();
     var iso = today.toISOString().split("T")[0];
-    dateInput.setAttribute("min", iso);
+    dateInput.setAttribute("data-min", iso);
+
+    dateInput.addEventListener("focus", function () {
+      dateInput.type = "date";
+      dateInput.setAttribute("min", iso);
+      if (typeof dateInput.showPicker === "function") {
+        try { dateInput.showPicker(); } catch (e) {}
+      }
+    });
+
+    dateInput.addEventListener("blur", function () {
+      if (!dateInput.value) {
+        dateInput.type = "text";
+        dateInput.removeAttribute("min");
+      }
+    });
   }
 
   function show(type, text) {
