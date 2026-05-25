@@ -13,10 +13,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Send, Upload, Users, BarChart3, Plus, Trash2,
-  MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee, Download, Target
+  MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee, Download, Target,
+  RefreshCw, ShieldCheck, Zap
 } from 'lucide-react';
 import { LEAD_STATUSES } from '@/types/lead';
 import { getRetargetingSegments, exportRetargetingCSV, downloadCSV, type RetargetingSegment } from '@/lib/retargetingExport';
+
+interface MetaTemplate {
+  name: string;
+  status: string;
+  category: string;
+  language: string;
+  body: string;
+  variableCount: number;
+}
+
+const VARIABLE_PRESETS = ['client_name', 'artist_name', 'appointment_date', 'amount', 'studio_name'];
 
 interface Campaign {
   id: string;
@@ -73,13 +85,86 @@ export default function BulkMessaging() {
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Template state
+  const [campaignType, setCampaignType] = useState<'text' | 'template'>('text');
+  const [metaTemplates, setMetaTemplates] = useState<MetaTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedTemplateName, setSelectedTemplateName] = useState<string>('');
+  const [templateVariables, setTemplateVariables] = useState<string[]>([]); // ordered list of variable names mapped to {{1}}..{{n}}
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState(false);
+
+  const selectedTemplate = metaTemplates.find(t => t.name === selectedTemplateName);
+
   const fetchCampaigns = useCallback(async () => {
     const { data } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false }) as { data: Campaign[] | null };
     setCampaigns(data || []);
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
+  const fetchTemplates = useCallback(async () => {
+    setTemplatesLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-templates', { method: 'GET' });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const list = ((data as any)?.templates || []) as MetaTemplate[];
+      setMetaTemplates(list);
+      if (list.length === 0) toast.info('No templates found in Meta WhatsApp Manager');
+    } catch (e: any) {
+      toast.error(`Failed to load templates: ${e.message || e}`);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCampaigns(); fetchTemplates(); }, [fetchCampaigns, fetchTemplates]);
+
+  // When a template is picked, init the variable mapping with defaults
+  useEffect(() => {
+    if (selectedTemplate) {
+      const defaults = Array.from({ length: selectedTemplate.variableCount }, (_, i) =>
+        VARIABLE_PRESETS[i] || `var_${i + 1}`
+      );
+      setTemplateVariables(defaults);
+    } else {
+      setTemplateVariables([]);
+    }
+  }, [selectedTemplateName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Realtime: refresh campaigns when delivery status changes
+  useEffect(() => {
+    const ch = supabase
+      .channel('campaigns-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => fetchCampaigns())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_recipients' }, () => fetchCampaigns())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [fetchCampaigns]);
+
+  const sendTestTemplate = async () => {
+    if (!selectedTemplate) { toast.error('Select a template first'); return; }
+    if (!testPhone) { toast.error('Enter test phone (+91...)'); return; }
+    setTestSending(true);
+    try {
+      const sample: Record<string, string> = {
+        client_name: 'Test User', artist_name: 'F19 Artist', appointment_date: 'Tomorrow 4 PM',
+        amount: '₹2,500', studio_name: 'F19 Tattoo Studio',
+      };
+      const vars = templateVariables.map(k => sample[k] || k);
+      const { data, error } = await supabase.functions.invoke('whatsapp-templates', {
+        method: 'POST',
+        body: { action: 'test', phone: testPhone, templateName: selectedTemplate.name, language: selectedTemplate.language, variables: vars },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success('Test template sent ✅');
+    } catch (e: any) {
+      toast.error(`Test failed: ${e.message || e}`);
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const importByStage = async () => {
     if (selectedStages.length === 0) {
@@ -156,19 +241,28 @@ export default function BulkMessaging() {
   const estimatedCost = recipients.length * COST_PER_MESSAGE;
 
   const handleSendCampaign = async () => {
-    if (!campaignName || !messageContent || recipients.length === 0) {
-      toast.error('Fill campaign name, message, and add recipients');
-      return;
+    if (!campaignName) { toast.error('Enter campaign name'); return; }
+    if (recipients.length === 0) { toast.error('Add recipients'); return; }
+    if (campaignType === 'template') {
+      if (!selectedTemplate) { toast.error('Select an approved WhatsApp template'); return; }
+      if (selectedTemplate.status !== 'APPROVED') { toast.error('Template is not APPROVED in Meta'); return; }
+    } else if (!messageContent) {
+      toast.error('Enter message content'); return;
     }
+
     setSending(true);
     try {
       const { data: campaign, error: campErr } = await supabase.from('campaigns').insert({
         campaign_name: campaignName,
-        message_content: messageContent,
-        cta_type: ctaType || null,
+        message_content: campaignType === 'template' ? (selectedTemplate?.body || '') : messageContent,
+        cta_type: ctaType && ctaType !== 'none' ? ctaType : null,
         cta_label: ctaLabel || null,
         total_recipients: recipients.length,
         status: 'queued',
+        campaign_type: campaignType,
+        template_name: campaignType === 'template' ? selectedTemplate?.name : null,
+        template_language: campaignType === 'template' ? selectedTemplate?.language : null,
+        template_variables: campaignType === 'template' ? templateVariables : [],
       } as any).select().single();
 
       if (campErr || !campaign) { toast.error('Failed to create campaign'); setSending(false); return; }
@@ -178,6 +272,7 @@ export default function BulkMessaging() {
         phone: r.phone,
         name: r.name,
         status: 'pending',
+        template_variables: { client_name: r.name },
       }));
       await supabase.from('campaign_recipients').insert(recipRows as any);
 
@@ -186,9 +281,9 @@ export default function BulkMessaging() {
       });
 
       if (error) {
-        toast.error('Failed to send campaign');
+        toast.error(`Failed to send campaign: ${error.message || error}`);
       } else {
-        toast.success(`Campaign queued! Sending to ${recipients.length} contacts. Estimated cost: ₹${estimatedCost.toFixed(0)}`);
+        toast.success(`Campaign sent! ${recipients.length} contacts · est ₹${estimatedCost.toFixed(0)}`);
         setCampaignName('');
         setMessageContent('');
         setCtaType('');
@@ -198,11 +293,13 @@ export default function BulkMessaging() {
         setTab('campaigns');
         fetchCampaigns();
       }
-    } catch {
-      toast.error('Error creating campaign');
+    } catch (e: any) {
+      toast.error(`Error: ${e.message || 'Failed to create campaign'}`);
     }
     setSending(false);
   };
+
+
 
   const toggleStage = (stage: string) => {
     setSelectedStages(prev => prev.includes(stage) ? prev.filter(s => s !== stage) : [...prev, stage]);
@@ -238,7 +335,7 @@ export default function BulkMessaging() {
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 py-6">
+      <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="create" className="gap-1.5">
@@ -255,47 +352,77 @@ export default function BulkMessaging() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Templates Tab */}
+          {/* Templates Tab: Meta-approved WhatsApp templates (live) */}
           <TabsContent value="templates">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {WHATSAPP_TEMPLATES.map(t => (
-                <Card key={t.key} className="glass-card">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-foreground flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                      {t.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 mb-3">
-                      {t.text}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">{'{{client_name}}'}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{'{{tattoo_idea}}'}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{'{{appointment_date}}'}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{'{{artist_name}}'}</Badge>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-3 text-xs"
-                      onClick={() => {
-                        setMessageContent(t.text);
-                        setTab('create');
-                        toast.success(`"${t.label}" template loaded`);
-                      }}
-                    >
-                      Use This Template
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-4 mb-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" /> Meta-Approved WhatsApp Templates
+                </h2>
+                <p className="text-xs text-muted-foreground">Fetched live from Meta WhatsApp Manager · {metaTemplates.length} templates</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={fetchTemplates} disabled={templatesLoading} className="gap-1.5 text-xs">
+                <RefreshCw className={`h-3.5 w-3.5 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
             </div>
+            {templatesLoading && metaTemplates.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">Loading templates from Meta...</div>
+            ) : metaTemplates.length === 0 ? (
+              <Card className="glass-card">
+                <CardContent className="py-10 text-center text-sm text-muted-foreground space-y-2">
+                  <MessageSquare className="h-8 w-8 mx-auto opacity-40" />
+                  <p>No templates found.</p>
+                  <p className="text-xs">Ensure WABA ID & Access Token are set in WhatsApp Settings and templates are APPROVED in Meta Business Manager.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {metaTemplates.map(t => (
+                  <Card key={`${t.name}-${t.language}`} className="glass-card">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-sm text-foreground flex items-center gap-2 truncate">
+                          <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+                          <span className="truncate">{t.name}</span>
+                        </CardTitle>
+                        <Badge className={`text-[10px] shrink-0 ${t.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                          {t.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <Badge variant="outline" className="text-[10px]">{t.category}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{t.language}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{t.variableCount} vars</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 mb-3 max-h-40 overflow-auto">
+                        {t.body || '(no body)'}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs gap-1.5"
+                        disabled={t.status !== 'APPROVED'}
+                        onClick={() => {
+                          setCampaignType('template');
+                          setSelectedTemplateName(t.name);
+                          setTab('create');
+                          toast.success(`Template "${t.name}" selected`);
+                        }}
+                      >
+                        <Send className="h-3 w-3" /> Use This Template
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="create">
-            <div className="grid grid-cols-2 gap-6 mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+
               {/* Left: Campaign Details */}
               <div className="space-y-4">
                 <Card className="glass-card">
@@ -307,43 +434,145 @@ export default function BulkMessaging() {
                       <label className="text-xs text-muted-foreground mb-1 block">Campaign Name</label>
                       <Input value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="e.g. March Promo" />
                     </div>
+
+                    {/* Campaign Type Toggle */}
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Message Content</label>
-                      <Textarea
-                        value={messageContent}
-                        onChange={e => setMessageContent(e.target.value)}
-                        placeholder="Hi {{client_name}}, check out our latest designs..."
-                        className="min-h-[120px]"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">Variables: {'{{client_name}}'} {'{{tattoo_idea}}'} {'{{appointment_date}}'} {'{{artist_name}}'}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">CTA Button</label>
-                        <Select value={ctaType} onValueChange={setCtaType}>
-                          <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No CTA</SelectItem>
-                            {CTA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Button Label</label>
-                        <Input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} placeholder="e.g. Book Now" disabled={!ctaType || ctaType === 'none'} />
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Message Type</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCampaignType('text')}
+                          className={`px-3 py-2 rounded-md text-xs font-medium border transition-all ${campaignType === 'text' ? 'bg-primary/10 border-primary text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Free Text (24h window)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCampaignType('template')}
+                          className={`px-3 py-2 rounded-md text-xs font-medium border transition-all flex items-center justify-center gap-1.5 ${campaignType === 'template' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          <ShieldCheck className="h-3 w-3" /> Approved Template
+                        </button>
                       </div>
                     </div>
+
+                    {campaignType === 'template' ? (
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs text-muted-foreground">Select Meta Template</label>
+                            <button type="button" onClick={fetchTemplates} disabled={templatesLoading} className="text-[10px] text-primary hover:underline flex items-center gap-1">
+                              <RefreshCw className={`h-3 w-3 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
+                            </button>
+                          </div>
+                          <Select value={selectedTemplateName} onValueChange={setSelectedTemplateName}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={templatesLoading ? 'Loading...' : 'Pick approved template'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {metaTemplates.filter(t => t.status === 'APPROVED').map(t => (
+                                <SelectItem key={`${t.name}-${t.language}`} value={t.name}>
+                                  {t.name} · {t.category} · {t.language}
+                                </SelectItem>
+                              ))}
+                              {metaTemplates.filter(t => t.status === 'APPROVED').length === 0 && (
+                                <div className="px-2 py-3 text-xs text-muted-foreground">No approved templates</div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {selectedTemplate && (
+                          <>
+                            <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 border border-border/50">
+                              {selectedTemplate.body}
+                            </div>
+
+                            {templateVariables.length > 0 && (
+                              <div className="space-y-2">
+                                <label className="text-xs text-muted-foreground">Map Variables (in order)</label>
+                                {templateVariables.map((v, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-[10px] shrink-0">{`{{${i + 1}}}`}</Badge>
+                                    <Select value={v} onValueChange={(val) => {
+                                      setTemplateVariables(prev => prev.map((x, idx) => idx === i ? val : x));
+                                    }}>
+                                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        {VARIABLE_PRESETS.map(p => (
+                                          <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Test send */}
+                            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
+                              <p className="text-[10px] uppercase font-semibold tracking-wider text-emerald-400 flex items-center gap-1">
+                                <Zap className="h-3 w-3" /> Send Test Template
+                              </p>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={testPhone}
+                                  onChange={e => setTestPhone(e.target.value)}
+                                  placeholder="+919876543210"
+                                  className="h-8 text-xs"
+                                />
+                                <Button size="sm" onClick={sendTestTemplate} disabled={testSending} className="h-8 text-xs gap-1 shrink-0">
+                                  {testSending ? <Clock className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                                  Test
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">Message Content</label>
+                          <Textarea
+                            value={messageContent}
+                            onChange={e => setMessageContent(e.target.value)}
+                            placeholder="Hi {{client_name}}, check out our latest designs..."
+                            className="min-h-[120px]"
+                          />
+                          <p className="text-[10px] text-muted-foreground mt-1">Variables: {'{{client_name}}'} {'{{artist_name}}'} {'{{appointment_date}}'} {'{{amount}}'} {'{{studio_name}}'}</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">CTA Button</label>
+                            <Select value={ctaType} onValueChange={setCtaType}>
+                              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No CTA</SelectItem>
+                                {CTA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">Button Label</label>
+                            <Input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} placeholder="e.g. Book Now" disabled={!ctaType || ctaType === 'none'} />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
+
 
                 {/* Cost Estimate & Preview */}
                 {recipients.length > 0 && (
                   <Card className="glass-card border-primary/30">
                     <CardContent className="py-4 space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">Send Preview</p>
-                          <div className="flex items-center gap-4 mt-1">
+                          <div className="flex items-center gap-3 flex-wrap mt-1">
+
                             <div className="flex items-center gap-1">
                               <Users className="h-3.5 w-3.5 text-info" />
                               <span className="text-sm font-bold text-foreground">{recipients.length}</span>
@@ -363,12 +592,13 @@ export default function BulkMessaging() {
                         </div>
                         <Button
                           onClick={handleSendCampaign}
-                          disabled={sending || !campaignName || !messageContent}
-                          className="gap-2"
+                          disabled={sending || !campaignName || (campaignType === 'text' ? !messageContent : !selectedTemplate)}
+                          className="gap-2 w-full sm:w-auto"
                         >
                           {sending ? <Clock className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           {sending ? 'Sending...' : 'Send Campaign'}
                         </Button>
+
                       </div>
                     </CardContent>
                   </Card>
@@ -465,14 +695,19 @@ export default function BulkMessaging() {
               {campaigns.map(c => (
                 <Card key={c.id} className="glass-card">
                   <CardContent className="py-4 px-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-sm font-medium text-foreground">{c.campaign_name}</h3>
                           {getStatusBadge(c.status)}
+                          {(c as any).campaign_type === 'template' && (
+                            <Badge className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                              <ShieldCheck className="h-2.5 w-2.5 mr-1" /> Template
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-[400px] truncate">{c.message_content}</p>
-                        <div className="flex items-center gap-3 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{(c as any).template_name || c.message_content}</p>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <p className="text-[10px] text-muted-foreground">
                             {c.sent_at ? new Date(c.sent_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not sent'}
                           </p>
@@ -481,7 +716,8 @@ export default function BulkMessaging() {
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex gap-5 text-center">
+                      <div className="grid grid-cols-5 gap-3 sm:gap-5 text-center shrink-0">
+
                         <div>
                           <p className="text-lg font-bold text-foreground">{c.messages_sent}</p>
                           <p className="text-[10px] text-muted-foreground">Sent</p>
@@ -499,9 +735,10 @@ export default function BulkMessaging() {
                           <p className="text-[10px] text-muted-foreground">Replies</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-destructive">{c.total_recipients - c.messages_sent > 0 ? c.total_recipients - c.messages_sent : 0}</p>
+                          <p className="text-lg font-bold text-destructive">{(c as any).failed_count ?? Math.max(c.total_recipients - c.messages_sent, 0)}</p>
                           <p className="text-[10px] text-muted-foreground">Failed</p>
                         </div>
+
                       </div>
                     </div>
                   </CardContent>

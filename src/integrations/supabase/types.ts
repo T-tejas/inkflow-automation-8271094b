@@ -132,37 +132,49 @@ export type Database = {
           campaign_id: string
           created_at: string
           delivered_at: string | null
+          error_message: string | null
           id: string
+          last_attempt_at: string | null
           meta_message_id: string | null
           name: string
           phone: string
           read_at: string | null
           replied: boolean
+          retry_count: number
           status: string
+          template_variables: Json | null
         }
         Insert: {
           campaign_id: string
           created_at?: string
           delivered_at?: string | null
+          error_message?: string | null
           id?: string
+          last_attempt_at?: string | null
           meta_message_id?: string | null
           name?: string
           phone: string
           read_at?: string | null
           replied?: boolean
+          retry_count?: number
           status?: string
+          template_variables?: Json | null
         }
         Update: {
           campaign_id?: string
           created_at?: string
           delivered_at?: string | null
+          error_message?: string | null
           id?: string
+          last_attempt_at?: string | null
           meta_message_id?: string | null
           name?: string
           phone?: string
           read_at?: string | null
           replied?: boolean
+          retry_count?: number
           status?: string
+          template_variables?: Json | null
         }
         Relationships: [
           {
@@ -178,9 +190,11 @@ export type Database = {
         Row: {
           bookings_generated: number
           campaign_name: string
+          campaign_type: string
           created_at: string
           cta_label: string | null
           cta_type: string | null
+          failed_count: number
           id: string
           media_url: string | null
           message_content: string
@@ -188,17 +202,23 @@ export type Database = {
           messages_read: number
           messages_sent: number
           replies_received: number
+          retry_count: number
           sent_at: string | null
           status: string
+          template_language: string | null
+          template_name: string | null
+          template_variables: Json
           total_recipients: number
           updated_at: string
         }
         Insert: {
           bookings_generated?: number
           campaign_name: string
+          campaign_type?: string
           created_at?: string
           cta_label?: string | null
           cta_type?: string | null
+          failed_count?: number
           id?: string
           media_url?: string | null
           message_content: string
@@ -206,17 +226,23 @@ export type Database = {
           messages_read?: number
           messages_sent?: number
           replies_received?: number
+          retry_count?: number
           sent_at?: string | null
           status?: string
+          template_language?: string | null
+          template_name?: string | null
+          template_variables?: Json
           total_recipients?: number
           updated_at?: string
         }
         Update: {
           bookings_generated?: number
           campaign_name?: string
+          campaign_type?: string
           created_at?: string
           cta_label?: string | null
           cta_type?: string | null
+          failed_count?: number
           id?: string
           media_url?: string | null
           message_content?: string
@@ -224,8 +250,12 @@ export type Database = {
           messages_read?: number
           messages_sent?: number
           replies_received?: number
+          retry_count?: number
           sent_at?: string | null
           status?: string
+          template_language?: string | null
+          template_name?: string | null
+          template_variables?: Json
           total_recipients?: number
           updated_at?: string
         }
@@ -1106,10 +1136,13 @@ export type Database = {
           message_type: string | null
           meta_message_id: string | null
           read_at: string | null
+          retry_count: number
           starred: boolean
           status: string
+          template_language: string | null
           template_name: string
           template_type: string
+          template_variables: Json | null
         }
         Insert: {
           created_at?: string
@@ -1128,10 +1161,13 @@ export type Database = {
           message_type?: string | null
           meta_message_id?: string | null
           read_at?: string | null
+          retry_count?: number
           starred?: boolean
           status?: string
+          template_language?: string | null
           template_name: string
           template_type: string
+          template_variables?: Json | null
         }
         Update: {
           created_at?: string
@@ -1150,10 +1186,13 @@ export type Database = {
           message_type?: string | null
           meta_message_id?: string | null
           read_at?: string | null
+          retry_count?: number
           starred?: boolean
           status?: string
+          template_language?: string | null
           template_name?: string
           template_type?: string
+          template_variables?: Json | null
         }
         Relationships: [
           {
