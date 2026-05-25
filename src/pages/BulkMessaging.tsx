@@ -352,47 +352,77 @@ export default function BulkMessaging() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Templates Tab */}
+          {/* Templates Tab: Meta-approved WhatsApp templates (live) */}
           <TabsContent value="templates">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {WHATSAPP_TEMPLATES.map(t => (
-                <Card key={t.key} className="glass-card">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-foreground flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                      {t.label}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 mb-3">
-                      {t.text}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">{'{{client_name}}'}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{'{{tattoo_idea}}'}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{'{{appointment_date}}'}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{'{{artist_name}}'}</Badge>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-3 text-xs"
-                      onClick={() => {
-                        setMessageContent(t.text);
-                        setTab('create');
-                        toast.success(`"${t.label}" template loaded`);
-                      }}
-                    >
-                      Use This Template
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-4 mb-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400" /> Meta-Approved WhatsApp Templates
+                </h2>
+                <p className="text-xs text-muted-foreground">Fetched live from Meta WhatsApp Manager · {metaTemplates.length} templates</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={fetchTemplates} disabled={templatesLoading} className="gap-1.5 text-xs">
+                <RefreshCw className={`h-3.5 w-3.5 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
             </div>
+            {templatesLoading && metaTemplates.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">Loading templates from Meta...</div>
+            ) : metaTemplates.length === 0 ? (
+              <Card className="glass-card">
+                <CardContent className="py-10 text-center text-sm text-muted-foreground space-y-2">
+                  <MessageSquare className="h-8 w-8 mx-auto opacity-40" />
+                  <p>No templates found.</p>
+                  <p className="text-xs">Ensure WABA ID & Access Token are set in WhatsApp Settings and templates are APPROVED in Meta Business Manager.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {metaTemplates.map(t => (
+                  <Card key={`${t.name}-${t.language}`} className="glass-card">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-sm text-foreground flex items-center gap-2 truncate">
+                          <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+                          <span className="truncate">{t.name}</span>
+                        </CardTitle>
+                        <Badge className={`text-[10px] shrink-0 ${t.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                          {t.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <Badge variant="outline" className="text-[10px]">{t.category}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{t.language}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{t.variableCount} vars</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded-lg p-3 mb-3 max-h-40 overflow-auto">
+                        {t.body || '(no body)'}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs gap-1.5"
+                        disabled={t.status !== 'APPROVED'}
+                        onClick={() => {
+                          setCampaignType('template');
+                          setSelectedTemplateName(t.name);
+                          setTab('create');
+                          toast.success(`Template "${t.name}" selected`);
+                        }}
+                      >
+                        <Send className="h-3 w-3" /> Use This Template
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="create">
-            <div className="grid grid-cols-2 gap-6 mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+
               {/* Left: Campaign Details */}
               <div className="space-y-4">
                 <Card className="glass-card">
