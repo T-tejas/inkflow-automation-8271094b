@@ -17,9 +17,9 @@
 
   var style = document.createElement("style");
   style.textContent = `
-  .f19c-bubble{position:fixed;bottom:24px;right:24px;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#dc2626,#7f1d1d);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(220,38,38,.35);z-index:2147483646;border:none;transition:transform .2s ease}
-  .f19c-bubble:hover{transform:scale(1.08)}
-  .f19c-bubble svg{width:28px;height:28px}
+  .f19c-bubble{position:fixed!important;bottom:24px!important;right:24px!important;width:62px!important;height:62px!important;min-width:62px!important;min-height:62px!important;max-width:62px!important;max-height:62px!important;padding:0!important;margin:0!important;border-radius:50%!important;background:linear-gradient(135deg,#dc2626,#7f1d1d)!important;color:#fff!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;box-shadow:0 8px 24px rgba(220,38,38,.4)!important;z-index:2147483646!important;border:none!important;outline:none!important;box-sizing:border-box!important;transition:transform .2s ease!important;font-family:inherit;line-height:1!important}
+  .f19c-bubble:hover{transform:scale(1.08)!important}
+  .f19c-bubble svg{width:28px!important;height:28px!important;display:block!important}
   .f19c-panel{position:fixed;bottom:100px;right:24px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 140px);background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:2147483647;display:none;flex-direction:column;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a}
   .f19c-panel.f19c-open{display:flex;animation:f19cIn .25s ease}
   @keyframes f19cIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
