@@ -133,9 +133,19 @@ export default function BulkMessaging() {
 
   useEffect(() => { fetchCampaigns(); fetchTemplates(); }, [fetchCampaigns, fetchTemplates]);
 
-  // When a template is picked, init the variable mapping with defaults
+  // When a template is picked, load saved mapping or init defaults
   useEffect(() => {
     if (selectedTemplate) {
+      const saved = localStorage.getItem(`bulk_var_mapping_${selectedTemplate.name}`);
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr) && arr.length === selectedTemplate.variableCount) {
+            setTemplateVariables(arr.map(String));
+            return;
+          }
+        } catch { /* ignore */ }
+      }
       const defaults = Array.from({ length: selectedTemplate.variableCount }, (_, i) =>
         VARIABLE_PRESETS[i] || `var_${i + 1}`
       );
@@ -144,6 +154,13 @@ export default function BulkMessaging() {
       setTemplateVariables([]);
     }
   }, [selectedTemplateName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveVariableMapping = () => {
+    if (!selectedTemplate) return;
+    localStorage.setItem(`bulk_var_mapping_${selectedTemplate.name}`, JSON.stringify(templateVariables));
+    toast.success('Variable mapping saved');
+  };
+
 
   // Realtime: refresh campaigns when delivery status changes
   useEffect(() => {
