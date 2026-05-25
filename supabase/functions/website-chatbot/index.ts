@@ -95,13 +95,13 @@ Deno.serve(async (req) => {
     const reply = data?.choices?.[0]?.message?.content || "Sorry, please try again.";
 
     // Auto-capture lead if contact info present
-    const { phone, name } = extractContact(messages);
+    const { phone, name, placement, tattooIdea } = extractContact(messages);
     let leadId: string | null = null;
     if (phone) {
       const normalized = normalizePhone(phone);
       const fullName = name || "Website Chat Lead";
       const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
-      const notes = `📥 Website Chatbot\nLast message: ${lastUserMsg}\nSession: ${sessionId || "n/a"}`;
+      const notes = `📥 Website Chatbot\n${tattooIdea ? `Idea: ${tattooIdea}\n` : ""}${placement ? `Placement: ${placement}\n` : ""}Last message: ${lastUserMsg}\nSession: ${sessionId || "n/a"}`;
 
       const { data: existing } = await supabase
         .from("leads")
@@ -112,6 +112,11 @@ Deno.serve(async (req) => {
 
       if (existing) {
         leadId = existing.id;
+        const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (name) updates.full_name = fullName;
+        if (placement) updates.placement = placement;
+        if (tattooIdea) updates.notes = notes;
+        await supabase.from("leads").update(updates).eq("id", existing.id);
       } else {
         const { data: lead } = await supabase
           .from("leads")
@@ -120,6 +125,7 @@ Deno.serve(async (req) => {
             phone: normalized,
             source: "Website Chat",
             status: "New Lead",
+            placement: placement || "",
             notes,
             tags: ["website-chatbot"],
             whatsapp_opt_in: true,
@@ -134,6 +140,8 @@ Deno.serve(async (req) => {
             lead_phone: normalized,
             notification_type: "website_chatbot",
             lead_source: "Website Chat",
+            placement: placement || null,
+            tattoo_idea: tattooIdea || null,
             chat_summary: lastUserMsg.slice(0, 200),
           });
         }
