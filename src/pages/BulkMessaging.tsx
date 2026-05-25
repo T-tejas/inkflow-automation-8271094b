@@ -374,18 +374,47 @@ export default function BulkMessaging() {
                 </h2>
                 <p className="text-xs text-muted-foreground">Fetched live from Meta WhatsApp Manager · {metaTemplates.length} templates</p>
               </div>
-              <Button size="sm" variant="outline" onClick={fetchTemplates} disabled={templatesLoading} className="gap-1.5 text-xs">
-                <RefreshCw className={`h-3.5 w-3.5 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setShowDebug(v => !v)} className="text-xs">
+                  {showDebug ? 'Hide' : 'Show'} debug
+                </Button>
+                <Button size="sm" variant="outline" onClick={fetchTemplates} disabled={templatesLoading} className="gap-1.5 text-xs">
+                  <RefreshCw className={`h-3.5 w-3.5 ${templatesLoading ? 'animate-spin' : ''}`} /> Refresh
+                </Button>
+              </div>
             </div>
+
+            {(showDebug || templateError || metaTemplates.length === 0) && templateDebug && (
+              <Card className="glass-card mb-3 border-amber-500/30">
+                <CardContent className="py-3 text-[11px] space-y-1.5">
+                  <div className="font-semibold text-amber-400 flex items-center gap-2">Debug · Meta API</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                    <div><span className="opacity-60">Stored ID:</span> <code className="text-foreground">{templateDebug.stored_id}</code></div>
+                    <div><span className="opacity-60">Resolved WABA:</span> <code className="text-foreground">{templateDebug.resolved_waba_id || '—'}</code></div>
+                    <div><span className="opacity-60">ID kind:</span> <code className="text-foreground">{templateDebug.id_kind}</code></div>
+                    <div><span className="opacity-60">Auto-resolved:</span> <code className="text-foreground">{String(templateDebug.auto_resolved)}</code></div>
+                    <div><span className="opacity-60">Token valid:</span> <code className="text-foreground">{String(templateDebug.token_valid)}</code></div>
+                    <div><span className="opacity-60">Raw count:</span> <code className="text-foreground">{templateDebug.raw_count ?? '—'}</code></div>
+                  </div>
+                  {templateDebug.token_scopes && (
+                    <div className="pt-1"><span className="opacity-60">Scopes:</span> <code className="text-foreground break-all">{Array.isArray(templateDebug.token_scopes) ? templateDebug.token_scopes.join(', ') : JSON.stringify(templateDebug.token_scopes)}</code></div>
+                  )}
+                  {templateError && <div className="text-red-400 pt-1">⚠ {templateError}</div>}
+                  {showDebug && (
+                    <pre className="mt-2 max-h-60 overflow-auto bg-muted/40 p-2 rounded text-[10px]">{JSON.stringify(templateDebug, null, 2)}</pre>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {templatesLoading && metaTemplates.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">Loading templates from Meta...</div>
             ) : metaTemplates.length === 0 ? (
               <Card className="glass-card">
                 <CardContent className="py-10 text-center text-sm text-muted-foreground space-y-2">
                   <MessageSquare className="h-8 w-8 mx-auto opacity-40" />
-                  <p>No templates found.</p>
-                  <p className="text-xs">Ensure WABA ID & Access Token are set in WhatsApp Settings and templates are APPROVED in Meta Business Manager.</p>
+                  <p>No templates found in this WABA.</p>
+                  <p className="text-xs">Token needs <code>whatsapp_business_management</code> + <code>whatsapp_business_messaging</code>. Ensure the WABA ID above matches Meta Business Manager → WhatsApp Accounts.</p>
                 </CardContent>
               </Card>
             ) : (
