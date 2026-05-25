@@ -12,6 +12,7 @@ import InstagramSettingsCard from '@/components/settings/InstagramSettingsCard';
 import MetaSettingsCard from '@/components/settings/MetaSettingsCard';
 import GoogleCalendarSettingsCard from '@/components/settings/GoogleCalendarSettingsCard';
 import GoogleReviewSettingsCard from '@/components/settings/GoogleReviewSettingsCard';
+import StyleArtistMappingCard from '@/components/settings/StyleArtistMappingCard';
 
 type SettingsMap = Record<string, string>;
 
