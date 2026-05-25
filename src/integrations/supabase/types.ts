@@ -776,6 +776,7 @@ export type Database = {
           budget: string | null
           client_id_code: string | null
           created_at: string
+          email: string | null
           full_name: string
           id: string
           instagram_username: string | null
@@ -800,6 +801,7 @@ export type Database = {
           budget?: string | null
           client_id_code?: string | null
           created_at?: string
+          email?: string | null
           full_name: string
           id?: string
           instagram_username?: string | null
@@ -824,6 +826,7 @@ export type Database = {
           budget?: string | null
           client_id_code?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
           instagram_username?: string | null
