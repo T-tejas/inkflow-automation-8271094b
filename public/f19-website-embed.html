@@ -1,0 +1,217 @@
+<!--
+  F19 Tattoo Studio – Website Appointment Form (Light theme)
+  How to use: copy everything below this comment and paste it into your
+  Hostinger website page where the form should appear.
+-->
+<style>
+  .f19-form,
+  .f19-form *,
+  .f19-form *::before,
+  .f19-form *::after { box-sizing: border-box; }
+
+  .f19-form {
+    max-width: 560px;
+    width: 100%;
+    margin: 24px auto;
+    padding: 22px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.06);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1a1a1a;
+    color-scheme: light;
+    overflow: hidden;
+  }
+  .f19-form h2 {
+    margin: 0 0 14px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    color: #1a1a1a;
+  }
+  .f19-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    margin: 10px 0 6px;
+  }
+  .f19-form input,
+  .f19-form textarea,
+  .f19-form select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: block;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1a1a1a;
+    background: #f7f7f7;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .15s ease, background .15s ease;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .f19-form input::placeholder,
+  .f19-form textarea::placeholder { color: #9ca3af; }
+  .f19-form input:focus,
+  .f19-form textarea:focus,
+  .f19-form select:focus {
+    border-color: #e53935;
+    background: #fff;
+  }
+  .f19-form textarea { min-height: 90px; resize: vertical; }
+  .f19-form input[type="date"] {
+    min-height: 44px;
+    color: #1a1a1a;
+  }
+  .f19-form input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+
+  .f19-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .f19-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 13px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #ff5722, #e53935);
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(229,57,53,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .f19-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(229,57,53,.4); }
+  .f19-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+  .f19-note {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #6b7280;
+    text-align: center;
+  }
+  .f19-msg {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: none;
+  }
+  .f19-msg.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; display: block; }
+  .f19-msg.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+
+  @media (max-width: 480px) {
+    .f19-form { margin: 12px; padding: 16px; border-radius: 12px; }
+    .f19-row { grid-template-columns: 1fr !important; gap: 10px; }
+    .f19-form input,
+    .f19-form textarea,
+    .f19-form select { font-size: 16px; } /* prevents iOS zoom */
+  }
+</style>
+
+<form class="f19-form" id="f19AppointmentForm" novalidate>
+  <h2>Book Your Tattoo Appointment</h2>
+
+  <label class="f19-label" for="f19-name">Full Name *</label>
+  <input id="f19-name" name="full_name" type="text" placeholder="Your full name" required />
+
+  <label class="f19-label" for="f19-phone">Phone *</label>
+  <input id="f19-phone" name="phone" type="tel" inputmode="numeric" placeholder="+91 xxxxxxxxxx" required />
+
+  <label class="f19-label" for="f19-email">Email (optional)</label>
+  <input id="f19-email" name="email" type="email" placeholder="you@example.com" />
+
+  <label class="f19-label" for="f19-idea">Describe your tattoo idea</label>
+  <textarea id="f19-idea" name="tattoo_idea" placeholder="Style, size, references…"></textarea>
+
+  <div class="f19-row">
+    <div>
+      <label class="f19-label" for="f19-placement">Placement</label>
+      <input id="f19-placement" name="placement" type="text" placeholder="e.g. Forearm" />
+    </div>
+    <div>
+      <label class="f19-label" for="f19-budget">Budget (INR)</label>
+      <input id="f19-budget" name="budget" type="text" inputmode="numeric" placeholder="e.g. 5000" />
+    </div>
+  </div>
+
+  <label class="f19-label" for="f19-date">Preferred Date</label>
+  <input id="f19-date" name="preferred_date" type="date" />
+
+  <button class="f19-btn" type="submit" id="f19SubmitBtn">Book an Appointment</button>
+  <div class="f19-note">We’ll confirm your slot on WhatsApp within a few minutes.</div>
+  <div class="f19-msg" id="f19Msg"></div>
+</form>
+
+<script>
+(function () {
+  var SUPABASE_URL = "https://edwmlzhbrtchnjfdntrc.supabase.co";
+  var ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkd21semhicnRjaG5qZmRudHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0Mjc4MDcsImV4cCI6MjA4ODAwMzgwN30.KYca-5nNojNuTz8XSBoJW6WIu0_8Fg9SrOpqT1L0xdI";
+
+  var form = document.getElementById("f19AppointmentForm");
+  var btn = document.getElementById("f19SubmitBtn");
+  var msg = document.getElementById("f19Msg");
+
+  // Make today the minimum selectable date
+  var dateInput = document.getElementById("f19-date");
+  if (dateInput) {
+    var today = new Date();
+    var iso = today.toISOString().split("T")[0];
+    dateInput.setAttribute("min", iso);
+  }
+
+  function show(type, text) {
+    msg.className = "f19-msg " + type;
+    msg.textContent = text;
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var data = {
+      full_name: form.full_name.value.trim(),
+      phone: form.phone.value.trim(),
+      email: form.email.value.trim(),
+      tattoo_idea: form.tattoo_idea.value.trim(),
+      placement: form.placement.value.trim(),
+      budget: form.budget.value.trim(),
+      preferred_date: form.preferred_date.value
+    };
+    if (!data.full_name) return show("err", "Please enter your name.");
+    var digits = (data.phone || "").replace(/\D/g, "");
+    if (digits.length < 10) return show("err", "Please enter a valid phone number.");
+
+    btn.disabled = true;
+    btn.textContent = "Booking…";
+    msg.className = "f19-msg"; msg.textContent = "";
+
+    fetch(SUPABASE_URL + "/functions/v1/website-lead-intake", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: ANON_KEY,
+        Authorization: "Bearer " + ANON_KEY
+      },
+      body: JSON.stringify(data)
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          show("ok", "Thank you! Our team will contact you on WhatsApp shortly.");
+          form.reset();
+        } else {
+          show("err", (res.d && res.d.error) || "Something went wrong. Please try again.");
+        }
+      })
+      .catch(function () { show("err", "Network error. Please try again."); })
+      .finally(function () { btn.disabled = false; btn.textContent = "Book an Appointment"; });
+  });
+})();
+</script>
