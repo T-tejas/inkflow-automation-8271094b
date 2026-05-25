@@ -772,6 +772,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          assigned_artist: string | null
           bot_enabled: boolean
           budget: string | null
           client_id_code: string | null
@@ -781,6 +782,7 @@ export type Database = {
           id: string
           instagram_username: string | null
           last_contacted_at: string | null
+          last_incoming_at: string | null
           lead_score: string | null
           next_followup_date: string | null
           notes: string | null
@@ -797,6 +799,7 @@ export type Database = {
           whatsapp_opt_in: boolean
         }
         Insert: {
+          assigned_artist?: string | null
           bot_enabled?: boolean
           budget?: string | null
           client_id_code?: string | null
@@ -806,6 +809,7 @@ export type Database = {
           id?: string
           instagram_username?: string | null
           last_contacted_at?: string | null
+          last_incoming_at?: string | null
           lead_score?: string | null
           next_followup_date?: string | null
           notes?: string | null
@@ -822,6 +826,7 @@ export type Database = {
           whatsapp_opt_in?: boolean
         }
         Update: {
+          assigned_artist?: string | null
           bot_enabled?: boolean
           budget?: string | null
           client_id_code?: string | null
@@ -831,6 +836,7 @@ export type Database = {
           id?: string
           instagram_username?: string | null
           last_contacted_at?: string | null
+          last_incoming_at?: string | null
           lead_score?: string | null
           next_followup_date?: string | null
           notes?: string | null
@@ -1015,6 +1021,30 @@ export type Database = {
           is_available?: boolean
           specific_date?: string | null
           start_time?: string
+        }
+        Relationships: []
+      }
+      style_artist_mapping: {
+        Row: {
+          artist_name: string
+          created_at: string
+          id: string
+          tattoo_style: string
+          updated_at: string
+        }
+        Insert: {
+          artist_name: string
+          created_at?: string
+          id?: string
+          tattoo_style: string
+          updated_at?: string
+        }
+        Update: {
+          artist_name?: string
+          created_at?: string
+          id?: string
+          tattoo_style?: string
+          updated_at?: string
         }
         Relationships: []
       }
