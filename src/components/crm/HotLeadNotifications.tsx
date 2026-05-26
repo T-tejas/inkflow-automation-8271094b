@@ -80,7 +80,7 @@ export function HotLeadNotifications({ notifications, unreadCount, onMarkRead, o
             </Button>
           )}
         </div>
-        <ScrollArea className="max-h-[450px]">
+        <ScrollArea className="h-[450px]">
           {notifications.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">No lead alerts yet</div>
           ) : (
