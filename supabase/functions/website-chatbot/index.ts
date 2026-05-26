@@ -134,12 +134,16 @@ Deno.serve(async (req) => {
           .single();
         if (lead) {
           leadId = lead.id;
+          const allUserText = messages.filter((m: any) => m.role === "user").map((m: any) => m.content).join(" ").toLowerCase();
+          const hotKeywords = ["book", "appointment", "price", "today", "consultation", "ready", "tomorrow", "abhi", "kal", "aaj", "confirm"];
+          const isHot = hotKeywords.some(k => allUserText.includes(k));
           await supabase.from("crm_notifications").insert({
             lead_id: lead.id,
             lead_name: fullName,
             lead_phone: normalized,
-            notification_type: "website_chatbot",
+            notification_type: isHot ? "hot_lead" : "website_chatbot",
             lead_source: "Website Chat",
+            lead_score: isHot ? "hot" : "warm",
             placement: placement || null,
             tattoo_idea: tattooIdea || null,
             chat_summary: lastUserMsg.slice(0, 200),
