@@ -41,10 +41,18 @@ const COLUMN_LABELS: Record<string, string> = {
 };
 
 export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, onEdit, onTagClick, onAssignDesign, onViewDesign, designLeadIds, selectedIds, onToggleSelect, selectMode, onMarkContacted, onRescheduleFollowup }: PipelineBoardProps) {
+  const COLUMNS: Array<{ key: string; status: LeadStatus | 'Instagram'; label: string }> = [
+    { key: 'Instagram', status: 'Instagram', label: 'Instagram Inquiries' },
+    ...KANBAN_STATUSES.map(s => ({ key: s, status: s, label: COLUMN_LABELS[s] || s })),
+  ];
+
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:snap-none" style={{ height: 'calc(100vh - 320px)', minHeight: '400px' }}>
-      {KANBAN_STATUSES.map(status => {
+      {COLUMNS.map(({ key, status, label }) => {
+        const isInstagramCol = status === 'Instagram';
         const statusLeads = leads.filter(l => {
+          if (isInstagramCol) return l.source === 'Instagram' && (l.status === 'New Lead' || l.status === 'Contacted');
+          if (l.source === 'Instagram' && (l.status === 'New Lead' || l.status === 'Contacted')) return false;
           if (status === 'No Response') return l.status === 'No Response' || l.status === 'Cancelled';
           return l.status === status;
         });
