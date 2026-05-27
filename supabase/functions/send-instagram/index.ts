@@ -111,6 +111,20 @@ async function getTokenCandidates(supabase: ReturnType<typeof createClient>): Pr
 }
 
 async function getPageIdCandidates(supabase: ReturnType<typeof createClient>): Promise<PageIdCandidate[]> {
+  const candidates: PageIdCandidate[] = [];
+
+  // PRIORITY 1: Instagram Business Account ID (correct endpoint per Meta v22+ docs)
+  const { data: igBizSetting } = await supabase
+    .from("whatsapp_settings")
+    .select("setting_value")
+    .eq("setting_key", "instagram_business_account_id")
+    .maybeSingle();
+  const igBizId = normalizePageId(igBizSetting?.setting_value || "");
+  if (igBizId) {
+    candidates.push({ source: "db", pageId: igBizId });
+  }
+
+  // PRIORITY 2: Facebook Page ID (legacy fallback)
   const envPageIdRaw = Deno.env.get("INSTAGRAM_PAGE_ID") || "";
   const envPageId = normalizePageId(envPageIdRaw);
 
@@ -120,24 +134,12 @@ async function getPageIdCandidates(supabase: ReturnType<typeof createClient>): P
     .eq("setting_key", "instagram_page_id")
     .maybeSingle();
 
-  const dbPageIdRaw = pageIdSetting?.setting_value || "";
-  const dbPageId = normalizePageId(dbPageIdRaw);
+  const dbPageId = normalizePageId(pageIdSetting?.setting_value || "");
 
-  if (envPageIdRaw && envPageId !== envPageIdRaw.trim()) {
-    console.log("[send-instagram] Normalized Instagram page ID from runtime secret");
-  }
-
-  if (dbPageIdRaw && dbPageId !== dbPageIdRaw.trim()) {
-    console.log("[send-instagram] Normalized Instagram page ID from saved settings");
-  }
-
-  const candidates: PageIdCandidate[] = [];
-
-  if (dbPageId) {
+  if (dbPageId && !candidates.some((c) => c.pageId === dbPageId)) {
     candidates.push({ source: "db", pageId: dbPageId });
   }
-
-  if (envPageId && !candidates.some((candidate) => candidate.pageId === envPageId)) {
+  if (envPageId && !candidates.some((c) => c.pageId === envPageId)) {
     candidates.push({ source: "env", pageId: envPageId });
   }
 
@@ -149,14 +151,15 @@ function buildEndpointCandidates(pageIdCandidates: PageIdCandidate[]): EndpointC
     kind: "page",
     pageId: candidate.pageId,
     pageIdSource: candidate.source,
-    url: `https://graph.facebook.com/v21.0/${candidate.pageId}/messages`,
+    url: `https://graph.facebook.com/v22.0/${candidate.pageId}/messages`,
   }));
 
+  // /me/messages fallback (last resort — works only with page tokens for FB Messenger, not IG)
   endpointCandidates.push({
     kind: "me",
     pageId: null,
     pageIdSource: null,
-    url: "https://graph.facebook.com/v21.0/me/messages",
+    url: "https://graph.facebook.com/v22.0/me/messages",
   });
 
   return endpointCandidates.filter(
