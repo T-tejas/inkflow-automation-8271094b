@@ -20,7 +20,7 @@ const SETTING_KEYS = [
   'whatsapp_access_token', 'whatsapp_phone_number_id', 'facebook_app_id', 'waba_id',
   'webhook_verify_token', 'admin_phone', 'google_review_url',
   'google_business_name', 'google_place_id',
-  'instagram_page_id', 'instagram_page_access_token',
+  'instagram_page_id', 'instagram_page_access_token', 'instagram_business_account_id',
   'instagram_page_id_2', 'instagram_page_access_token_2',
   'meta_app_id', 'meta_app_secret', 'meta_webhook_verify_token', 'meta_page_id',
   'google_client_id', 'google_client_secret', 'google_calendar_id',
