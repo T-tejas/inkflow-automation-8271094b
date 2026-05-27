@@ -70,12 +70,24 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
             <h4 className="font-medium text-sm text-foreground truncate min-w-0 flex-1" title={lead.fullName}>{lead.fullName}</h4>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {lead.source === 'Instagram' && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 border-0 text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-400"
+                title="Instagram Lead"
+              >
+                IG
+              </Badge>
+            )}
             {lead.assignedArtist && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/40 text-emerald-500" title={`Assigned: ${lead.assignedArtist}`}>
                 🎨 {lead.assignedArtist.split(' ')[0]}
               </Badge>
             )}
             {lead.whatsappOptIn && (
+              <MessageCircle className="h-3.5 w-3.5 text-success" />
+            )}
+          </div>
               <MessageCircle className="h-3.5 w-3.5 text-success" />
             )}
           </div>
