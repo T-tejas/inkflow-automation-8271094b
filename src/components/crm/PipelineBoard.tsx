@@ -63,18 +63,23 @@ export function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusCh
         const avgValue = statusLeads.length > 0 ? totalValue / statusLeads.length : 0;
         return (
           <div
-            key={status}
-            className="flex-shrink-0 w-[260px] snap-start flex flex-col h-full"
+            key={key}
+            className={`flex-shrink-0 w-[260px] snap-start flex flex-col h-full ${isInstagramCol ? 'rounded-lg p-0.5 bg-gradient-to-br from-pink-500/40 via-purple-500/30 to-orange-400/30' : ''}`}
             onDragOver={e => e.preventDefault()}
             onDrop={e => {
+              if (isInstagramCol) return;
               const leadId = e.dataTransfer.getData('leadId');
-              if (leadId) onStatusChange(leadId, status);
+              if (leadId) onStatusChange(leadId, status as LeadStatus);
             }}
           >
-            <div className="flex items-center gap-2 mb-1 px-1 sticky top-0 z-10 bg-background py-1">
-              <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-muted'}`} />
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {COLUMN_LABELS[status] || status}
+            <div className="flex items-center gap-2 mb-1 px-1 sticky top-0 z-10 bg-background py-1 rounded-md">
+              {isInstagramCol ? (
+                <div className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400" />
+              ) : (
+                <div className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT_COLORS[status] || 'bg-muted'}`} />
+              )}
+              <h3 className={`text-xs font-semibold uppercase tracking-wider ${isInstagramCol ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-orange-400 bg-clip-text text-transparent' : 'text-muted-foreground'}`}>
+                {label}
               </h3>
               <span className="ml-auto text-xs text-muted-foreground font-medium">
                 {statusLeads.length}
