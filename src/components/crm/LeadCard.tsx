@@ -88,9 +88,6 @@ export function LeadCard({ lead, onClick, onEdit, onStatusChange, onTagClick, on
               <MessageCircle className="h-3.5 w-3.5 text-success" />
             )}
           </div>
-              <MessageCircle className="h-3.5 w-3.5 text-success" />
-            )}
-          </div>
         </div>
 
         {/* Phone + Budget */}
