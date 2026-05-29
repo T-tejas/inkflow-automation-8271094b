@@ -22,9 +22,8 @@ export function renderBody(body: string, vars: string[], values: Record<string, 
   let out = body;
   vars.forEach(v => {
     const val = values[v] ?? (sample ? (SAMPLE[v] || `{{${v}}}`) : `{{${v}}}`);
-    out = out.replaceAll(`{{${v}}}`, val);
+    out = out.split(`{{${v}}}`).join(val);
   });
-  // Also substitute other patterns
   out = out.replace(/\{\{(\w+)\}\}/g, (_, k) => values[k] ?? (sample ? (SAMPLE[k] || `{{${k}}}`) : `{{${k}}}`));
   return out;
 }
