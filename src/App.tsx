@@ -16,6 +16,7 @@ import WhatsAppSettings from "./pages/WhatsAppSettings";
 import DesignTracker from "./pages/DesignTracker";
 import BulkMessaging from "./pages/BulkMessaging";
 import BotTemplates from "./pages/BotTemplates";
+import WhatsAppTemplates from "./pages/WhatsAppTemplates";
 import ConsentForm from "./pages/ConsentForm";
 import WalkInForm from "./pages/WalkInForm";
 import PriceCalculator from "./pages/PriceCalculator";
@@ -70,6 +71,7 @@ function AuthenticatedApp() {
       <Route path="/admin/settings/whatsapp" element={<ProtectedAdminRoute><WhatsAppSettings /></ProtectedAdminRoute>} />
       <Route path="/admin/bulk-messaging" element={<ProtectedAdminRoute><BulkMessaging /></ProtectedAdminRoute>} />
       <Route path="/admin/bot-templates" element={<ProtectedAdminRoute><BotTemplates /></ProtectedAdminRoute>} />
+      <Route path="/admin/whatsapp-templates" element={<ProtectedAdminRoute><WhatsAppTemplates /></ProtectedAdminRoute>} />
       <Route path="/admin/price-calculator" element={<ProtectedAdminRoute><PriceCalculator /></ProtectedAdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
