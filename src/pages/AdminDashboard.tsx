@@ -68,6 +68,9 @@ export default function AdminDashboard() {
             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bot-templates')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
               <Bot className="h-3.5 w-3.5" /> <span className="hidden sm:inline">AI </span>Templates
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/whatsapp-templates')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
+              <Send className="h-3.5 w-3.5" /> <span className="hidden sm:inline">WA </span>Templates
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate('/admin/bulk-messaging')} className="text-muted-foreground hover:text-foreground gap-1.5 text-xs shrink-0">
               <Send className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Bulk </span>Messaging
             </Button>

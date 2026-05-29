@@ -97,6 +97,56 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_rules: {
+        Row: {
+          conditions: Json
+          created_at: string
+          delay_hours: number
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          rule_name: string
+          run_count: number
+          template_id: string | null
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          rule_name: string
+          run_count?: number
+          template_id?: string | null
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          rule_name?: string
+          run_count?: number
+          template_id?: string | null
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bot_response_templates: {
         Row: {
           created_at: string
@@ -854,6 +904,63 @@ export type Database = {
         }
         Relationships: []
       }
+      message_templates: {
+        Row: {
+          body_text: string
+          buttons: Json
+          category: string
+          created_at: string
+          id: string
+          is_favorite: boolean
+          language: string
+          last_used_at: string | null
+          meta_template_name: string | null
+          name: string
+          quality_rating: string | null
+          source: string
+          status: string
+          updated_at: string
+          usage_count: number
+          variables: Json
+        }
+        Insert: {
+          body_text: string
+          buttons?: Json
+          category?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          language?: string
+          last_used_at?: string | null
+          meta_template_name?: string | null
+          name: string
+          quality_rating?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          usage_count?: number
+          variables?: Json
+        }
+        Update: {
+          body_text?: string
+          buttons?: Json
+          category?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          language?: string
+          last_used_at?: string | null
+          meta_template_name?: string | null
+          name?: string
+          quality_rating?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          usage_count?: number
+          variables?: Json
+        }
+        Relationships: []
+      }
       needle_usage_log: {
         Row: {
           created_at: string
@@ -1172,6 +1279,7 @@ export type Database = {
           retry_count: number
           starred: boolean
           status: string
+          template_id: string | null
           template_language: string | null
           template_name: string
           template_type: string
@@ -1197,6 +1305,7 @@ export type Database = {
           retry_count?: number
           starred?: boolean
           status?: string
+          template_id?: string | null
           template_language?: string | null
           template_name: string
           template_type: string
@@ -1222,6 +1331,7 @@ export type Database = {
           retry_count?: number
           starred?: boolean
           status?: string
+          template_id?: string | null
           template_language?: string | null
           template_name?: string
           template_type?: string
@@ -1233,6 +1343,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
             referencedColumns: ["id"]
           },
         ]
