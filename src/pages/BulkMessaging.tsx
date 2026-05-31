@@ -282,8 +282,21 @@ export default function BulkMessaging() {
 
     setSending(true);
     try {
+      // Duplicate-name guard
+      const trimmedName = campaignName.trim();
+      const { data: existing } = await supabase
+        .from('campaigns')
+        .select('id')
+        .ilike('campaign_name', trimmedName)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error(`Campaign name "${trimmedName}" already exists. Pick a different name.`);
+        setSending(false);
+        return;
+      }
+
       const { data: campaign, error: campErr } = await supabase.from('campaigns').insert({
-        campaign_name: campaignName,
+        campaign_name: trimmedName,
         message_content: campaignType === 'template' ? (selectedTemplate?.body || '') : messageContent,
         cta_type: ctaType && ctaType !== 'none' ? ctaType : null,
         cta_label: ctaLabel || null,
