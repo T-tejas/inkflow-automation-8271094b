@@ -359,6 +359,52 @@ export default function BulkMessaging() {
     return <Badge className={`${styles[status] || styles.draft} border-0`}>{status}</Badge>;
   };
 
+  const deleteCampaign = async (c: Campaign) => {
+    if (!confirm(`Delete campaign "${c.campaign_name}"? This cannot be undone.`)) return;
+    await supabase.from('campaign_recipients').delete().eq('campaign_id', c.id);
+    const { error } = await supabase.from('campaigns').delete().eq('id', c.id);
+    if (error) { toast.error('Delete failed'); return; }
+    toast.success('Campaign deleted');
+    fetchCampaigns();
+  };
+
+  const duplicateCampaign = async (c: Campaign) => {
+    let newName = `${c.campaign_name} (Copy)`;
+    let i = 2;
+    while (true) {
+      const { data: dup } = await supabase.from('campaigns').select('id').ilike('campaign_name', newName).limit(1);
+      if (!dup || dup.length === 0) break;
+      newName = `${c.campaign_name} (Copy ${i++})`;
+      if (i > 20) break;
+    }
+    const { error } = await supabase.from('campaigns').insert({
+      campaign_name: newName,
+      message_content: c.message_content,
+      cta_type: c.cta_type,
+      cta_label: c.cta_label,
+      total_recipients: 0,
+      status: 'draft',
+      campaign_type: (c as any).campaign_type || 'text',
+      template_name: (c as any).template_name || null,
+      template_language: (c as any).template_language || null,
+      template_variables: (c as any).template_variables || [],
+    } as any);
+    if (error) { toast.error('Duplicate failed'); return; }
+    toast.success(`Duplicated as "${newName}"`);
+    fetchCampaigns();
+  };
+
+  const toggleArchive = async (c: Campaign) => {
+    const isArchived = c.status === 'archived';
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ status: isArchived ? 'sent' : 'archived' } as any)
+      .eq('id', c.id);
+    if (error) { toast.error('Action failed'); return; }
+    toast.success(isArchived ? 'Campaign restored' : 'Campaign archived');
+    fetchCampaigns();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-3">
