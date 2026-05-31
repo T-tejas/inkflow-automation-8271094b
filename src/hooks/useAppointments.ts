@@ -194,6 +194,11 @@ export function useAppointments() {
     tattooStyle?: string;
     notes?: string;
   }) => {
+    // Guard: all 4 required fields must be present (prevents bad WA messages)
+    if (!data.leadName || !data.leadPhone || !data.appointmentDate || !data.timeSlot) {
+      throw new Error('Missing required appointment fields (name, phone, date, time)');
+    }
+
     const { data: insertedRows, error } = await supabase.from('appointments').insert({
       lead_id: data.leadId,
       lead_name: data.leadName,
@@ -205,9 +210,18 @@ export function useAppointments() {
       notes: data.notes || null,
     } as any).select();
     if (error) throw error;
+    const newAppointmentId = insertedRows?.[0]?.id || null;
 
-    // Update lead preferred_date
+    // Fetch assigned artist from lead (single source of truth — no hardcoded values)
+    let assignedArtist = '';
     if (data.leadId) {
+      const { data: leadRow } = await supabase
+        .from('leads')
+        .select('assigned_artist')
+        .eq('id', data.leadId)
+        .maybeSingle();
+      assignedArtist = (leadRow as any)?.assigned_artist || '';
+
       await supabase.from('leads').update({
         preferred_date: data.appointmentDate,
         status: 'Booked',
@@ -226,31 +240,54 @@ export function useAppointments() {
       syncCalendarEvent('create', {
         id: insertedRows[0].id,
         ...data,
-        leadName: data.leadName,
-        leadPhone: data.leadPhone,
-        appointmentDate: data.appointmentDate,
-        timeSlot: data.timeSlot,
-        durationMinutes: data.durationMinutes || 60,
-        tattooStyle: data.tattooStyle,
-        notes: data.notes,
       }).catch(() => {});
     }
 
-    // Send WhatsApp booking confirmation
+    // Build human-friendly date & time from the actual booking data
+    const friendlyDate = (() => {
+      try {
+        const d = new Date(`${data.appointmentDate}T00:00:00`);
+        return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+      } catch { return data.appointmentDate; }
+    })();
+    const friendlyTime = (() => {
+      const [h, m] = data.timeSlot.split(':').map(Number);
+      if (isNaN(h)) return data.timeSlot;
+      const period = h >= 12 ? 'PM' : 'AM';
+      const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
+      return `${hour}:${(m || 0).toString().padStart(2, '0')} ${period}`;
+    })();
+
+    const artistLine = assignedArtist ? `🎨 Artist: ${assignedArtist}\n` : '';
+    const styleLine = data.tattooStyle ? `✨ Style: ${data.tattooStyle}\n` : '';
+    const messageBody = `✅ Booking Confirmed at F19 Tattoo Studio!\n\nHi ${data.leadName},\n\n📅 Date: ${friendlyDate}\n🕐 Time: ${friendlyTime}\n${artistLine}${styleLine}\nPlease arrive 15 minutes early. Reply here if you need to reschedule.`;
+
+    // Send WhatsApp booking confirmation — log success/failure to system_logs
     try {
-      await supabase.functions.invoke('send-whatsapp', {
+      const { data: waResp, error: waErr } = await supabase.functions.invoke('send-whatsapp', {
         body: {
           phone: data.leadPhone,
           leadName: data.leadName,
+          leadId: data.leadId || undefined,
           type: 'text',
-          messageBody: `✅ Booking Confirmed!\n\n📅 Date: ${data.appointmentDate}\n🕐 Time: ${data.timeSlot}\n${data.tattooStyle ? `🎨 Style: ${data.tattooStyle}\n` : ''}\nSee you at F19 Tattoo Studio! Reply if you need to reschedule.`,
+          messageBody,
+          templateType: 'confirmation',
+          templateName: 'appointment_confirmation',
         },
       });
+      if (waErr || (waResp as any)?.error) {
+        await logSystemError('whatsapp', 'Booking confirmation WA send failed', {
+          error: waErr?.message || (waResp as any)?.error,
+          appointmentId: newAppointmentId,
+        }, data.leadId || undefined);
+      }
     } catch (e) {
       console.error('Failed to send booking confirmation WhatsApp:', e);
+      await logSystemError('whatsapp', 'Booking confirmation send threw', { error: String(e), appointmentId: newAppointmentId }, data.leadId || undefined);
     }
 
     await fetchAppointments();
+    void newAppointmentId;
   }, [fetchAppointments, syncCalendarEvent]);
 
   const updateAppointmentStatus = useCallback(async (id: string, status: string) => {
