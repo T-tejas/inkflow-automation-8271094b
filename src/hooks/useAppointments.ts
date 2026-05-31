@@ -287,7 +287,7 @@ export function useAppointments() {
     }
 
     await fetchAppointments();
-    return newAppointmentId;
+    void newAppointmentId;
   }, [fetchAppointments, syncCalendarEvent]);
 
   const updateAppointmentStatus = useCallback(async (id: string, status: string) => {
