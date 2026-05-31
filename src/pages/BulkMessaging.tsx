@@ -871,6 +871,17 @@ export default function BulkMessaging() {
 
                       </div>
                     </div>
+                    <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-border/40">
+                      <Button size="sm" variant="ghost" onClick={() => duplicateCampaign(c)} className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+                        <Copy className="h-3 w-3" /> Duplicate
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => toggleArchive(c)} className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+                        {c.status === 'archived' ? <><ArchiveRestore className="h-3 w-3" /> Restore</> : <><Archive className="h-3 w-3" /> Archive</>}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => deleteCampaign(c)} className="h-7 text-xs gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3 w-3" /> Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
