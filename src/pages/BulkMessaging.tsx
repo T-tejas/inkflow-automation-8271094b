@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Send, Upload, Users, BarChart3, Plus, Trash2,
   MessageSquare, CheckCircle2, Clock, Eye, AlertCircle, FileText, Filter, IndianRupee, Download, Target,
-  RefreshCw, ShieldCheck, Zap
+  RefreshCw, ShieldCheck, Zap, Copy, Archive, ArchiveRestore
 } from 'lucide-react';
 import { LEAD_STATUSES } from '@/types/lead';
 import { getRetargetingSegments, exportRetargetingCSV, downloadCSV, type RetargetingSegment } from '@/lib/retargetingExport';
