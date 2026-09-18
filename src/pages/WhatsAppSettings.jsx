@@ -1,0 +1,689 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Settings,
+  Key,
+  Phone,
+  Calendar,
+  Webhook,
+  AppWindow,
+  HelpCircle,
+  ExternalLink,
+  Shield,
+  Eye,
+  EyeOff,
+  Bug,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Info,
+  Bot,
+  Instagram
+} from "lucide-react";
+import { ChatbotRulesManager } from "@/components/admin/ChatbotRulesManager";
+import { InstagramFAQManager } from "@/components/settings/InstagramFAQManager";
+function GoogleCalendarCard() {
+  const { connected, checking, connect } = useGoogleCalendar();
+  return <Card className="bg-zinc-900 border-zinc-800">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base text-white">Google Calendar Integration</CardTitle>
+              <CardDescription className="text-zinc-500">Sync design tasks & appointments with Google Calendar</CardDescription>
+            </div>
+          </div>
+          <Badge className={connected ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}>
+            {connected ? <><CheckCircle2 className="h-3 w-3 mr-1" /> Connected</> : <><XCircle className="h-3 w-3 mr-1" /> Not Connected</>}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {checking ? <div className="flex items-center gap-2 text-sm text-zinc-400"><RefreshCw className="h-4 w-4 animate-spin" /> Checking connection...</div> : connected ? <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center"><Calendar className="h-4 w-4 text-emerald-400" /></div>
+              <div>
+                <p className="text-sm font-medium text-white">Google Calendar Connected</p>
+                <p className="text-xs text-zinc-500">Design tasks will auto-sync to your calendar</p>
+              </div>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+          </div> : <>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white gap-2" onClick={connect}>
+              <Calendar className="h-4 w-4" /> Connect Google Calendar
+            </Button>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+              <Info className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-purple-300/80">Connecting Google Calendar will automatically create events when designs are assigned to artists.</p>
+            </div>
+          </>}
+      </CardContent>
+    </Card>;
+}
+function WhatsAppSettings() {
+  const navigate = useNavigate();
+  const [settings, setSettings] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(null);
+  const [showSecrets, setShowSecrets] = useState({});
+  const [editValues, setEditValues] = useState({});
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+  const fetchSettings = async () => {
+    const { data, error } = await supabase.from("whatsapp_settings").select("setting_key, setting_value");
+    if (error) {
+      toast.error("Failed to load settings");
+      setLoading(false);
+      return;
+    }
+    const map = {};
+    (data || []).forEach((r) => {
+      map[r.setting_key] = r.setting_value;
+    });
+    setSettings(map);
+    setEditValues(map);
+    setLoading(false);
+  };
+  const saveSetting = async (key) => {
+    setSaving(key);
+    const value = editValues[key] || "";
+    const { error } = await supabase.from("whatsapp_settings").upsert(
+      { setting_key: key, setting_value: value, updated_at: (/* @__PURE__ */ new Date()).toISOString() },
+      { onConflict: "setting_key" }
+    );
+    if (error) {
+      toast.error(`Failed to save ${key}`);
+    } else {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+      toast.success("Setting saved");
+    }
+    setSaving(null);
+  };
+  const isConfigured = (key) => !!settings[key] && settings[key] !== "" && settings[key] !== "false";
+  const StatusBadge = ({ configured }) => <Badge
+    className={configured ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"}
+  >
+      {configured ? <><CheckCircle2 className="h-3 w-3 mr-1" /> Configured</> : <><XCircle className="h-3 w-3 mr-1" /> Not Configured</>}
+    </Badge>;
+  const toggleVisibility = (key) => {
+    setShowSecrets((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+  const SecretField = ({ label, settingKey, placeholder }) => <div className="space-y-2">
+      <label className="text-sm font-medium text-neutral-300">{label}</label>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Input
+    type={showSecrets[settingKey] ? "text" : "password"}
+    value={editValues[settingKey] || ""}
+    onChange={(e) => setEditValues((prev) => ({ ...prev, [settingKey]: e.target.value }))}
+    placeholder={placeholder || `Enter ${label}`}
+    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 pr-10"
+  />
+          <button
+    onClick={() => toggleVisibility(settingKey)}
+    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+  >
+            {showSecrets[settingKey] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <Button
+    size="sm"
+    onClick={() => saveSetting(settingKey)}
+    disabled={saving === settingKey}
+    className="bg-amber-500 hover:bg-amber-600 text-black font-medium whitespace-nowrap"
+  >
+          {saving === settingKey ? <RefreshCw className="h-4 w-4 animate-spin" /> : isConfigured(settingKey) ? "Update" : "Add New"}
+        </Button>
+      </div>
+    </div>;
+  if (loading) {
+    return <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-2 border-amber-500 border-t-transparent rounded-full" />
+      </div>;
+  }
+  return <div className="min-h-screen bg-zinc-950 text-white">
+      {
+    /* Header */
+  }
+      <header className="border-b border-zinc-800 px-6 py-3">
+        <div className="flex items-center justify-between max-w-[1000px] mx-auto">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" className="text-neutral-400 hover:text-white gap-1.5" onClick={() => navigate("/admin")}>
+              <ArrowLeft className="h-4 w-4" /> Dashboard
+            </Button>
+            <div className="h-5 w-px bg-zinc-700" />
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-md bg-green-500/10 flex items-center justify-center">
+                <Settings className="h-4 w-4 text-green-400" />
+              </div>
+              <h1 className="text-sm font-semibold">WhatsApp Integrations</h1>
+            </div>
+          </div>
+          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+            <Shield className="h-3 w-3 mr-1" /> Admin Only
+          </Badge>
+        </div>
+      </header>
+
+      <ScrollArea className="h-[calc(100vh-52px)]">
+        <main className="max-w-[1000px] mx-auto px-6 py-6 space-y-6">
+
+          {
+    /* Facebook App Configuration */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <AppWindow className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Facebook App Configuration</CardTitle>
+                    <CardDescription className="text-zinc-500">Configure your Facebook App credentials</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured("facebook_app_id") && isConfigured("facebook_app_secret")} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SecretField label="Facebook App ID" settingKey="facebook_app_id" placeholder="Enter your Facebook App ID" />
+              <SecretField label="Facebook App Secret" settingKey="facebook_app_secret" placeholder="Enter your Facebook App Secret" />
+            </CardContent>
+          </Card>
+
+          {
+    /* Access Token */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Key className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Access Token</CardTitle>
+                    <CardDescription className="text-zinc-500">WhatsApp API access token</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured("access_token")} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SecretField label="Access Token" settingKey="access_token" placeholder="Enter your access token" />
+              <div className="flex items-center gap-2">
+                <Button
+    variant="outline"
+    size="sm"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-1.5"
+    onClick={() => {
+      const token = settings["access_token"];
+      if (!token) {
+        toast.error("No token to debug");
+        return;
+      }
+      window.open(`https://developers.facebook.com/tools/debug/accesstoken/?access_token=${encodeURIComponent(token)}`, "_blank");
+    }}
+  >
+                  <Bug className="h-3.5 w-3.5" /> Debug Token
+                </Button>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                <Info className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-300/80">
+                  Temporary tokens expire in 24 hours. Use a <strong>System User permanent token</strong> for production to avoid service interruptions.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {
+    /* WhatsApp Business Account */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <Phone className="h-5 w-5 text-green-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">WhatsApp Business Account</CardTitle>
+                    <CardDescription className="text-zinc-500">Your WABA ID for API access</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured("whatsapp_business_account_id")} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <SecretField label="WhatsApp Business Account ID" settingKey="whatsapp_business_account_id" placeholder="Enter your WABA ID" />
+            </CardContent>
+          </Card>
+
+          {
+    /* Admin Phone Number */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Admin Phone Number</CardTitle>
+                    <CardDescription className="text-zinc-500">Studio owner's WhatsApp number for admin commands</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured("admin_phone")} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <SecretField label="Admin Phone (with country code)" settingKey="admin_phone" placeholder="+917517050600" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                <Info className="h-4 w-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-purple-300/80">
+                  Send <strong>"admin"</strong> from this number to access the F19 Control Panel via WhatsApp.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {
+    /* Meta Conversions API */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <AppWindow className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Meta Conversions API</CardTitle>
+                    <CardDescription className="text-zinc-500">Track lead events for ad optimization & retargeting</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured("meta_pixel_id") && isConfigured("meta_conversions_token")} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <SecretField label="Meta Pixel ID / Dataset ID" settingKey="meta_pixel_id" placeholder="123456789012345" />
+              <SecretField label="Conversions API Access Token" settingKey="meta_conversions_token" placeholder="EAABs..." />
+              <SecretField label="Page Access Token (for Lead Ads)" settingKey="meta_page_access_token" placeholder="EAABs..." />
+              <SecretField label="Lead Webhook Verify Token" settingKey="meta_lead_verify_token" placeholder="f19_meta_leads" />
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-blue-300/80 space-y-1">
+                  <p><strong>Meta Lead Ads Webhook URL:</strong></p>
+                  <code className="block bg-zinc-800 p-2 rounded text-[10px] break-all">
+                    {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-lead-webhook`}
+                  </code>
+                  <p>Events tracked: Lead Submitted → Lead Qualified → Booking Confirmed → Tattoo Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {
+    /* Google Calendar Integration */
+  }
+          <GoogleCalendarCard />
+
+          {
+    /* Instagram Integration */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                    <Instagram className="h-5 w-5 text-pink-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Instagram Integration</CardTitle>
+                    <CardDescription className="text-zinc-500">Instagram Page ID & Access Token for DM replies</CardDescription>
+                  </div>
+                </div>
+                <StatusBadge configured={isConfigured("instagram_page_id") && isConfigured("instagram_page_access_token")} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SecretField label="Instagram Page ID" settingKey="instagram_page_id" placeholder="Enter your Instagram Page ID" />
+              <SecretField label="Page Access Token" settingKey="instagram_page_access_token" placeholder="EAABs..." />
+              <Button
+    variant="outline"
+    size="sm"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-1.5 w-full"
+    onClick={async () => {
+      const pageId = settings["instagram_page_id"] || editValues["instagram_page_id"];
+      const token = settings["instagram_page_access_token"] || editValues["instagram_page_access_token"];
+      if (!pageId || !token) {
+        toast.error("Save Instagram Page ID & Token first");
+        return;
+      }
+      try {
+        const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=name,id&access_token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        toast.success(`\u2705 Connected! Page: ${data.name} (${data.id})`);
+      } catch (e) {
+        toast.error(`\u274C Test failed: ${e.message}`);
+      }
+    }}
+  >
+                <Instagram className="h-3.5 w-3.5" /> Test Instagram Connection
+              </Button>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-pink-500/5 border border-pink-500/10">
+                <Info className="h-4 w-4 text-pink-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-pink-300/80">
+                  Use a <strong>Page Access Token</strong> with <code>instagram_manage_messages</code> and <code>pages_messaging</code> permissions for sending DM replies.
+                </p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {
+    /* Instagram FAQ Manager */
+  }
+              <InstagramFAQManager />
+            </CardContent>
+          </Card>
+
+          {
+    /* Webhook Settings */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                    <Webhook className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Webhook Settings</CardTitle>
+                    <CardDescription className="text-zinc-500">Configure incoming message webhooks from Meta</CardDescription>
+                  </div>
+                </div>
+                {
+    /* Status indicator */
+  }
+                {(() => {
+    const hasToken = isConfigured("webhook_verify_token");
+    const enabled = settings["webhook_enabled"] === "true";
+    if (!hasToken) return <Badge className="bg-red-500/10 text-red-400 border-red-500/20">
+                      <XCircle className="h-3 w-3 mr-1" /> Not Configured
+                    </Badge>;
+    if (hasToken && enabled) return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Verified
+                    </Badge>;
+    return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+                      <Info className="h-3 w-3 mr-1" /> Disabled
+                    </Badge>;
+  })()}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {
+    /* Callback URL */
+  }
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Callback URL</label>
+                <div className="flex gap-2">
+                  <Input
+    readOnly
+    value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`}
+    className="bg-zinc-800 border-zinc-700 text-zinc-300 cursor-default"
+  />
+                  <Button
+    size="sm"
+    variant="outline"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+    onClick={() => {
+      navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`);
+      toast.success("Callback URL copied");
+    }}
+  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">Paste this URL in your Meta App → WhatsApp → Configuration → Callback URL</p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {
+    /* Verify Token */
+  }
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Verify Token</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+    type={showSecrets["webhook_verify_token"] ? "text" : "password"}
+    value={editValues["webhook_verify_token"] || ""}
+    onChange={(e) => setEditValues((prev) => ({ ...prev, webhook_verify_token: e.target.value }))}
+    placeholder="Click Generate or enter your own token"
+    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 pr-10"
+  />
+                    <button
+    onClick={() => toggleVisibility("webhook_verify_token")}
+    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+  >
+                      {showSecrets["webhook_verify_token"] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button
+    size="sm"
+    variant="outline"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+    onClick={() => {
+      const token = crypto.randomUUID();
+      setEditValues((prev) => ({ ...prev, webhook_verify_token: token }));
+      setShowSecrets((prev) => ({ ...prev, webhook_verify_token: true }));
+      toast.info("Token generated \u2014 click Save to apply");
+    }}
+  >
+                    Generate
+                  </Button>
+                  <Button
+    size="sm"
+    onClick={() => saveSetting("webhook_verify_token")}
+    disabled={saving === "webhook_verify_token"}
+    className="bg-amber-500 hover:bg-amber-600 text-black font-medium whitespace-nowrap"
+  >
+                    {saving === "webhook_verify_token" ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Save"}
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">Paste this same token in your Meta App → WhatsApp → Configuration → Verify Token</p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {
+    /* Enable/Disable toggle */
+  }
+              <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
+                <div>
+                  <p className="text-sm font-medium text-white">Enable Webhook</p>
+                  <p className="text-xs text-zinc-500">Toggle webhook processing on/off</p>
+                </div>
+                <Switch
+    checked={settings["webhook_enabled"] === "true"}
+    onCheckedChange={async (checked) => {
+      const { error } = await supabase.from("whatsapp_settings").update({ setting_value: String(checked), updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("setting_key", "webhook_enabled");
+      if (!error) {
+        setSettings((prev) => ({ ...prev, webhook_enabled: String(checked) }));
+        toast.success(checked ? "Webhook enabled" : "Webhook disabled");
+      }
+    }}
+  />
+              </div>
+
+              {
+    /* Test Webhook Button */
+  }
+              <div className="flex gap-2">
+                <Button
+    variant="outline"
+    size="sm"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-1.5 flex-1"
+    onClick={async () => {
+      const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
+      const token = settings["webhook_verify_token"] || "";
+      if (!token) {
+        toast.error("Set a verify token first");
+        return;
+      }
+      try {
+        const testUrl = `${callbackUrl}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(token)}&hub.challenge=test_challenge_ok`;
+        const res = await fetch(testUrl);
+        const text = await res.text();
+        if (res.ok && text === "test_challenge_ok") {
+          toast.success("\u2705 Webhook verified successfully!");
+          await supabase.from("whatsapp_settings").upsert(
+            { setting_key: "webhook_enabled", setting_value: "true", updated_at: (/* @__PURE__ */ new Date()).toISOString() },
+            { onConflict: "setting_key" }
+          );
+          setSettings((prev) => ({ ...prev, webhook_enabled: "true" }));
+        } else {
+          toast.error(`\u274C Webhook returned ${res.status}: ${text}`);
+        }
+      } catch (err) {
+        toast.error(`\u274C Webhook test failed: ${err.message}`);
+      }
+    }}
+  >
+                  <Bug className="h-3.5 w-3.5" /> Test Webhook
+                </Button>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {
+    /* Required Webhook Subscriptions */
+  }
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Required Webhook Fields</label>
+                <p className="text-xs text-zinc-500">Ensure these fields are subscribed in Meta App → WhatsApp → Configuration → Webhook fields:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {["messages", "message_echoes", "message_template_status_update", "phone_number_quality_update"].map((field) => <Badge key={field} className="bg-zinc-800 text-zinc-300 border-zinc-700 font-mono text-[10px]">
+                      {field}
+                    </Badge>)}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                <HelpCircle className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-cyan-300/80">
+                  Copy the <strong>Callback URL</strong> and <strong>Verify Token</strong> into your Meta App's WhatsApp webhook configuration. Click <strong>Test Webhook</strong> to verify the connection before configuring Meta.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {
+    /* AI Chatbot Auto-Reply */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">AI Chatbot Auto-Reply</CardTitle>
+                    <CardDescription className="text-zinc-500">Auto-respond to incoming WhatsApp messages with keyword-based rules</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ChatbotRulesManager />
+            </CardContent>
+          </Card>
+
+          {
+    /* App Lists */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                    <AppWindow className="h-5 w-5 text-indigo-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Connected Apps</CardTitle>
+                    <CardDescription className="text-zinc-500">Facebook apps connected to this account</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {isConfigured("facebook_app_id") ? <div className="flex items-center justify-between p-3 rounded-lg bg-zinc-800 border border-zinc-700">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                      <AppWindow className="h-4 w-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">Facebook App</p>
+                      <p className="text-xs text-zinc-500 font-mono">{settings["facebook_app_id"]?.slice(0, 8)}...{settings["facebook_app_id"]?.slice(-4)}</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Connected</Badge>
+                </div> : <div className="text-center py-8 text-zinc-500">
+                  <AppWindow className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No apps connected yet</p>
+                </div>}
+              <Button
+    variant="outline"
+    size="sm"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-1.5 w-full"
+    onClick={() => window.open("https://developers.facebook.com/apps/", "_blank")}
+  >
+                <AppWindow className="h-3.5 w-3.5" /> Add New App
+              </Button>
+            </CardContent>
+          </Card>
+
+          {
+    /* Help Section */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardContent className="py-4">
+              <Button
+    variant="outline"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-2 w-full"
+    onClick={() => window.open("https://developers.facebook.com/docs/whatsapp/cloud-api/get-started", "_blank")}
+  >
+                <HelpCircle className="h-4 w-4" /> Help & More Information <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </CardContent>
+          </Card>
+
+          <div className="h-6" />
+        </main>
+      </ScrollArea>
+    </div>;
+}
+export {
+  WhatsAppSettings as default
+};

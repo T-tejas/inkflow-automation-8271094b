@@ -1,0 +1,188 @@
+import { Check, CheckCheck, AlertCircle, Lock, Star, RotateCw, FileText, Download } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
+function isImageUrl(url) {
+  return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+}
+function isPdfUrl(url) {
+  return /\.pdf(\?|$)/i.test(url);
+}
+function isVideoUrl(url) {
+  return /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(url);
+}
+function isAudioUrl(url) {
+  return /\.(mp3|ogg|wav|m4a|aac|opus)(\?|$)/i.test(url);
+}
+function isFileMessage(body) {
+  return body.startsWith("[file]") || body.startsWith("http") && (isImageUrl(body) || isPdfUrl(body));
+}
+function DeliveryTicks({ message }) {
+  const status = message.deliveryStatus || message.status;
+  if (status === "failed") return <AlertCircle className="h-3 w-3" style={{ color: "#ea0038" }} />;
+  if (status === "read" || message.readAt) return <CheckCheck className="h-3.5 w-3.5" style={{ color: "#53bdeb" }} />;
+  if (status === "delivered" || message.deliveredAt) return <CheckCheck className="h-3.5 w-3.5" style={{ color: "#8696a0" }} />;
+  if (status === "sent") return <Check className="h-3.5 w-3.5" style={{ color: "#8696a0" }} />;
+  return null;
+}
+function renderMediaContent(message) {
+  const { messageType, mediaUrl, fileName, messageBody } = message;
+  if (!mediaUrl && !messageType) return null;
+  if (messageType === "image" || mediaUrl && isImageUrl(mediaUrl)) {
+    return <div className="mb-1">
+        <a href={mediaUrl || ""} target="_blank" rel="noopener noreferrer">
+          <img
+      src={mediaUrl || ""}
+      alt={fileName || "image"}
+      className="max-w-[250px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+    />
+        </a>
+        {messageBody && !messageBody.startsWith("\u{1F4F7}") && <p className="text-[13px] mt-1 whitespace-pre-wrap break-words" style={{ color: "#111b21" }}>{messageBody}</p>}
+      </div>;
+  }
+  if (messageType === "video" || mediaUrl && isVideoUrl(mediaUrl)) {
+    return <div className="mb-1">
+        <video
+      src={mediaUrl || ""}
+      controls
+      className="max-w-[280px] max-h-[200px] rounded-lg"
+      preload="metadata"
+    />
+        {messageBody && !messageBody.startsWith("\u{1F3A5}") && <p className="text-[13px] mt-1 whitespace-pre-wrap break-words" style={{ color: "#111b21" }}>{messageBody}</p>}
+      </div>;
+  }
+  if (messageType === "audio" || messageType === "voice" || mediaUrl && isAudioUrl(mediaUrl)) {
+    return <div className="mb-1">
+        <audio src={mediaUrl || ""} controls className="max-w-[250px]" preload="metadata" />
+      </div>;
+  }
+  if (messageType === "document" || mediaUrl && isPdfUrl(mediaUrl)) {
+    const displayName = fileName || mediaUrl?.split("/").pop()?.split("?")[0] || "Document";
+    return <a
+      href={mediaUrl || ""}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-3 py-2 rounded-lg mb-1 hover:opacity-80 transition-opacity"
+      style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+    >
+        <FileText className="h-8 w-8 flex-shrink-0" style={{ color: "#ea4335" }} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate" style={{ color: "#111b21" }}>{displayName}</p>
+          <p className="text-[11px]" style={{ color: "#667781" }}>Document</p>
+        </div>
+        <Download className="h-4 w-4 flex-shrink-0" style={{ color: "#667781" }} />
+      </a>;
+  }
+  if (messageType === "sticker" && mediaUrl) {
+    return <div className="mb-1">
+        <img src={mediaUrl} alt="sticker" className="max-w-[150px] max-h-[150px]" />
+      </div>;
+  }
+  return null;
+}
+function renderLegacyFileContent(body) {
+  const url = body.startsWith("[file]") ? body.replace("[file]", "").trim() : body;
+  if (isImageUrl(url)) {
+    return <a href={url} target="_blank" rel="noopener noreferrer">
+        <img src={url} alt="attachment" className="max-w-[250px] max-h-[200px] rounded-lg object-cover" />
+      </a>;
+  }
+  if (isPdfUrl(url)) {
+    const filename = url.split("/").pop()?.split("?")[0] || "document.pdf";
+    return <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-3 py-2 rounded-lg"
+      style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+    >
+        <FileText className="h-8 w-8 flex-shrink-0" style={{ color: "#ea4335" }} />
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: "#111b21" }}>{filename}</p>
+          <p className="text-[11px]" style={{ color: "#667781" }}>PDF Document</p>
+        </div>
+      </a>;
+  }
+  return null;
+}
+function MessageBubble({ message, onToggleStar, onRetry }) {
+  const isOutgoing = message.templateType !== "incoming" && message.status !== "received" && !message.isInternalNote;
+  const isNote = message.isInternalNote;
+  const isIncoming = !isOutgoing && !isNote;
+  const isFailed = message.status === "failed" || message.deliveryStatus === "failed";
+  const body = message.messageBody || (message.templateType === "incoming" ? "\u{1F4AC} Message" : `\u{1F4CB} ${message.templateName}`);
+  const time = format(parseISO(message.createdAt), "HH:mm");
+  const hasMedia = message.mediaUrl && message.messageType && message.messageType !== "text";
+  const legacyFileMsg = body && isFileMessage(body);
+  const bubbleStyle = isNote ? { backgroundColor: "#fef3c7", border: "1px solid #fde68a" } : isOutgoing ? { backgroundColor: "#d9fdd3" } : { backgroundColor: "#ffffff" };
+  return <div className={cn("flex mb-1 group", isOutgoing ? "justify-end" : "justify-start")}>
+      <div
+    className={cn(
+      "relative max-w-[65%] px-2 pt-1.5 pb-1 text-[14.2px] leading-[19px]",
+      isOutgoing && "rounded-lg rounded-tr-none",
+      isIncoming && "rounded-lg rounded-tl-none",
+      isNote && "rounded-lg"
+    )}
+    style={{ ...bubbleStyle, boxShadow: "0 1px 0.5px rgba(11,20,26,.13)" }}
+  >
+        {
+    /* Tail */
+  }
+        {(isOutgoing || isIncoming) && <div
+    className={cn("absolute top-0 w-2 h-3", isOutgoing ? "-right-2" : "-left-2")}
+    style={{
+      backgroundImage: isOutgoing ? `url("data:image/svg+xml,%3Csvg viewBox='0 0 8 13' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5.188 1H0v11.193l6.467-8.625C7.526 2.156 6.958 1 5.188 1z' fill='%23d9fdd3'/%3E%3C/svg%3E")` : `url("data:image/svg+xml,%3Csvg viewBox='0 0 8 13' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.812 1H8v11.193L1.533 3.568C.474 2.156 1.042 1 2.812 1z' fill='%23ffffff'/%3E%3C/svg%3E")`,
+      backgroundSize: "contain",
+      backgroundRepeat: "no-repeat"
+    }}
+  />}
+
+        {isNote && <div className="flex items-center gap-1 text-[11px] mb-1 font-medium" style={{ color: "#92400e" }}>
+            <Lock className="h-3 w-3" /> Internal Note (Not visible to client)
+          </div>}
+
+        {
+    /* Render media content (new system) */
+  }
+        {hasMedia && renderMediaContent(message)}
+
+        {
+    /* Render legacy file content or text */
+  }
+        {!hasMedia && (legacyFileMsg ? renderLegacyFileContent(body) : <p className="whitespace-pre-wrap break-words" style={{ color: "#111b21" }}>{body}</p>)}
+
+        {
+    /* Text-only (no media) messages that also have media_url but messageType is text */
+  }
+        {!hasMedia && !legacyFileMsg && message.mediaUrl && <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-xs underline" style={{ color: "#027eb5" }}>
+            View attachment
+          </a>}
+
+        {message.errorMessage && <p className="text-[11px] mt-1 break-words line-clamp-2" style={{ color: "#ea0038" }}>
+            ⚠ {message.errorMessage}
+          </p>}
+
+        {isFailed && onRetry && <button
+    onClick={() => onRetry(message)}
+    className="flex items-center gap-1 mt-1 text-[11px] font-medium px-2 py-1 rounded hover:bg-black/5 transition-colors"
+    style={{ color: "#ea0038" }}
+  >
+            <RotateCw className="h-3 w-3" /> Retry
+          </button>}
+
+        <div className={cn("flex items-center gap-1 mt-0.5 float-right ml-3 -mb-0.5 relative top-[3px]")}>
+          <button
+    onClick={() => onToggleStar(message.id, message.starred)}
+    className="opacity-0 group-hover:opacity-100 transition-opacity"
+  >
+            <Star className={cn("h-3 w-3", message.starred ? "fill-amber-400 text-amber-400" : "")} style={!message.starred ? { color: "#8696a0" } : {}} />
+          </button>
+          <span className="text-[11px]" style={{ color: "#667781" }}>{time}</span>
+          {isOutgoing && <DeliveryTicks message={message} />}
+        </div>
+        <div className="clear-both" />
+      </div>
+    </div>;
+}
+export {
+  MessageBubble
+};
