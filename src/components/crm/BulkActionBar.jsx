@@ -42,7 +42,7 @@ const BulkActionBar = forwardRef(function BulkActionBar({ selectedCount, onMoveT
         </Button>
       </div>
     </motion.div>;
-}
+});
 export {
   BulkActionBar
 };
