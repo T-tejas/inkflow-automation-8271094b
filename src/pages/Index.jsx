@@ -357,7 +357,8 @@ const Index = ({ signOut, isAdmin, userRole }) => {
     }}
   />
       <AnimatePresence>
-        <BulkActionBar
+        {selectedIds.size > 0 && <div key="bulk-bar-wrapper">
+          <BulkActionBar
     selectedCount={selectedIds.size}
     onMoveToStage={handleBulkMoveToStage}
     onDeleteSelected={handleBulkDelete}
@@ -366,6 +367,7 @@ const Index = ({ signOut, isAdmin, userRole }) => {
       setSelectMode(false);
     }}
   />
+        </div>}
       </AnimatePresence>
       <WalkInDialog
     open={walkInOpen}
