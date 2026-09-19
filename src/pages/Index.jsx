@@ -367,6 +367,7 @@ const Index = ({ signOut, isAdmin, userRole }) => {
       setSelectMode(false);
     }}
   />
+        </div>}
       </AnimatePresence>
       <WalkInDialog
     open={walkInOpen}
