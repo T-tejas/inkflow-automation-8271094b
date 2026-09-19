@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { LEAD_STATUSES } from "@/types/lead";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, ArrowRightLeft, X } from "lucide-react";
 import { motion } from "framer-motion";
-function BulkActionBar({ selectedCount, onMoveToStage, onDeleteSelected, onClearSelection }) {
+const BulkActionBar = forwardRef(function BulkActionBar({ selectedCount, onMoveToStage, onDeleteSelected, onClearSelection }, ref) {
   const [moveStage, setMoveStage] = useState("");
   if (selectedCount === 0) return null;
   return <motion.div
+    ref={ref}
     initial={{ y: 80, opacity: 0 }}
     animate={{ y: 0, opacity: 1 }}
     exit={{ y: 80, opacity: 0 }}
