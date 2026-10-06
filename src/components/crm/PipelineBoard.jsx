@@ -29,8 +29,8 @@ function PipelineBoard({ leads, getLeadsByStatus, onLeadClick, onStatusChange, o
       {COLUMNS.map(({ key, status, label }) => {
     const isInstagramCol = status === "Instagram";
     const statusLeads = leads.filter((l) => {
-      if (isInstagramCol) return l.source === "Instagram" && (l.status === "New Lead" || l.status === "Contacted");
-      if (l.source === "Instagram" && (l.status === "New Lead" || l.status === "Contacted")) return false;
+      if (isInstagramCol) return l.source === "Instagram";
+      if (l.source === "Instagram") return false;
       if (status === "No Response") return l.status === "No Response" || l.status === "Cancelled";
       return l.status === status;
     });
