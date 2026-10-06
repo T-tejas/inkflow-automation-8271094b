@@ -407,6 +407,120 @@ function WhatsAppSettings() {
           </Card>
 
           {
+    /* Instagram Webhook Settings */
+  }
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                    <Webhook className="h-5 w-5 text-pink-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Instagram Webhook Settings</CardTitle>
+                    <CardDescription className="text-zinc-500">Configure incoming Instagram DM webhooks from Meta</CardDescription>
+                  </div>
+                </div>
+                {(() => {
+    const hasToken = isConfigured("instagram_webhook_verify_token");
+    if (hasToken) return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Configured
+                    </Badge>;
+    return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
+                      <Info className="h-3 w-3 mr-1" /> Using Default Token
+                    </Badge>;
+  })()}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Callback URL</label>
+                <div className="flex gap-2">
+                  <Input
+    readOnly
+    value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/instagram-webhook`}
+    className="bg-zinc-800 border-zinc-700 text-zinc-300 cursor-default"
+  />
+                  <Button
+    size="sm"
+    variant="outline"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+    onClick={() => {
+      navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/instagram-webhook`);
+      toast.success("Instagram Callback URL copied");
+    }}
+  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">Paste this URL in your Meta App → Instagram → Webhooks → Callback URL</p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Verify Token</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+    type={showSecrets["instagram_webhook_verify_token"] ? "text" : "password"}
+    value={editValues["instagram_webhook_verify_token"] || ""}
+    onChange={(e) => setEditValues((prev) => ({ ...prev, instagram_webhook_verify_token: e.target.value }))}
+    placeholder="Default: f19_instagram_verify"
+    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 pr-10"
+  />
+                    <button
+    onClick={() => toggleVisibility("instagram_webhook_verify_token")}
+    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+  >
+                      {showSecrets["instagram_webhook_verify_token"] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button
+    size="sm"
+    variant="outline"
+    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white whitespace-nowrap"
+    onClick={() => {
+      const token = crypto.randomUUID();
+      setEditValues((prev) => ({ ...prev, instagram_webhook_verify_token: token }));
+      setShowSecrets((prev) => ({ ...prev, instagram_webhook_verify_token: true }));
+      toast.info("Token generated — click Save to apply");
+    }}
+  >
+                    Generate
+                  </Button>
+                  <Button
+    size="sm"
+    onClick={() => saveSetting("instagram_webhook_verify_token")}
+    disabled={saving === "instagram_webhook_verify_token"}
+    className="bg-amber-500 hover:bg-amber-600 text-black font-medium whitespace-nowrap"
+  >
+                    {saving === "instagram_webhook_verify_token" ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Save"}
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">Paste this same token in your Meta App → Instagram → Webhooks → Verify Token</p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-neutral-300">Required Webhook Fields</label>
+                <p className="text-xs text-zinc-500">Ensure these fields are subscribed in Meta App → Instagram → Webhooks:</p>
+                <div className="flex flex-wrap gap-2">
+                  {["messages", "messaging_postbacks", "message_reactions", "messaging_seen"].map((f) => <code key={f} className="bg-zinc-800 px-2 py-1 rounded text-[10px] text-zinc-300">{f}</code>)}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                <Info className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-cyan-300/80">
+                  Copy the <strong>Callback URL</strong> and <strong>Verify Token</strong> into your Meta App's Instagram webhook configuration. No ngrok tunnel needed — this URL is always live.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {
     /* Webhook Settings */
   }
           <Card className="bg-zinc-900 border-zinc-800">
