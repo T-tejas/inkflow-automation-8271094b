@@ -9,6 +9,7 @@ function dbToLead(row) {
     fullName: row.full_name,
     phone: row.phone,
     source: row.source,
+    instagramUsername: row.instagram_username ?? null,
     whatsappOptIn: row.whatsapp_opt_in,
     tattooStyle: row.tattoo_style,
     size: row.size,
