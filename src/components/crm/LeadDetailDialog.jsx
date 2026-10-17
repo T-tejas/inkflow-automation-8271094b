@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, Loader2, Palette, Award, FileSignature, User, PhoneCall, CalendarClock, Clock } from "lucide-react";
+import { Phone, Calendar, MapPin, DollarSign, MessageCircle, Pencil, Trash2, Send, CheckCircle, Loader2, Palette, Award, FileSignature, User, PhoneCall, CalendarClock, Clock, Instagram } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LeadNotesTimeline } from "./LeadNotesTimeline";
@@ -97,6 +97,7 @@ function LeadDetailDialog({ lead, open, onOpenChange, onStatusChange, onEdit, on
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <InfoRow icon={Phone} label="Phone" value={lead.phone} />
+            {lead.source === "Instagram" && <InfoRow icon={Instagram} label="Instagram" value={lead.instagramUsername ? (/^\d+$/.test(lead.instagramUsername) ? `ID ${lead.instagramUsername}` : `@${lead.instagramUsername.replace(/^@/, "")}`) : "Username unavailable"} />}
             <InfoRow icon={Calendar} label="Preferred Date" value={lead.preferredDate ? new Date(lead.preferredDate).toLocaleDateString("en-IN") : "\u2014"} />
             <InfoRow icon={MapPin} label="Placement" value={lead.placement || "\u2014"} />
             <InfoRow icon={DollarSign} label="Budget" value={lead.budget || "\u2014"} />
